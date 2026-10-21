@@ -17,7 +17,8 @@ const check = (cond, msg) => {
   }
 };
 
-const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1', 'casino.sound.v1'];
+const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1',
+  'casino.sound.v1', 'casino.progress.v1', 'casino.topup.v1'];
 
 // Каждое окно jsdom имеет собственный localStorage, поэтому данные
 // переносим вручную — как «перезагрузка вкладки».
@@ -426,6 +427,66 @@ console.log('• Лимит стола и подсказки о комбинац
   check(limit.api.placeBet('black', 25) === false, 'ставка сверх лимита отклонена');
   check(limit.api.totalBet() === 2500, 'сумма не превысила лимит');
   check(limit.doc.querySelector('#betTotal').classList.contains('full'), 'лимит подсвечен на столе');
+}
+
+// ---------- Бонусы за цели в игре ----------
+console.log('• Страховка и повышенный лимит из целей');
+{
+  // Одна страховка в профиле: при проигрыше вернёт половину.
+  const insured = boot({
+    'casino.progress.v1': JSON.stringify({ claimed: {}, shields: 1, notices: [] }),
+  });
+  insured.api.setTiming({ spin: 1, settle: 1 });
+  insured.api.placeBet('red', 100);
+  check(insured.window.Casino.shields() === 1, 'страховка на месте до спина');
+  insured.api.forceNumber(2); // чёрное — красное проигрывает
+  await insured.api.spin();
+  await sleep(5);
+
+  check(insured.window.Casino.getBalance() === 950,
+    `страховка вернула половину: ожидалось 950, получено ${insured.window.Casino.getBalance()}`);
+  check(insured.window.Casino.shields() === 0, 'страховка потрачена');
+  const insuredHistory = insured.window.Casino.history('roulette')[0];
+  check(insuredHistory.insurance === 50, `в истории страховка 50, получено ${insuredHistory.insurance}`);
+  check(insuredHistory.net === -50, `итог спина −50, получено ${insuredHistory.net}`);
+  check(insured.doc.querySelector('#message').textContent.includes('страховка'),
+    'сообщение объясняет, что сработала страховка');
+}
+
+{
+  // Закрытая цель повышает лимит стола: 2 500 + 1 000 = 3 500.
+  const grown = boot({
+    'casino.progress.v1': JSON.stringify({ claimed: { g5000: 1 }, shields: 0, notices: [] }),
+  });
+  grown.window.Casino.setBalance(10000);
+  check(grown.window.Casino.maxBet() === 3500, `лимит 3 500, получено ${grown.window.Casino.maxBet()}`);
+  check(grown.doc.querySelector('#betLimit').textContent.replace(/\s/g, '').includes('3500'),
+    `на столе виден новый лимит: ${grown.doc.querySelector('#betLimit').textContent}`);
+  check(grown.api.placeBet('red', 3000) === true, 'ставка 3 000 проходит');
+  check(grown.api.placeBet('black', 500) === true, 'добираем до 3 500');
+  check(grown.api.placeBet('odd', 25) === false, 'сверх нового лимита ставка не проходит');
+  check(grown.api.totalBet() === 3500, 'на столе ровно 3 500');
+}
+
+{
+  // Достижение цели прямо в рулетке: 4 900 + выигрыш 100 = 5 000.
+  const climber = boot({
+    'casino.stats.v1': JSON.stringify({ roulette: { net: 4900 } }),
+  });
+  climber.api.setTiming({ spin: 1, settle: 1 });
+  climber.api.placeBet('red', 100);
+  climber.api.forceNumber(1); // красное
+  await climber.api.spin();
+  await sleep(5);
+
+  check(climber.window.Casino.getBalance() === 1600,
+    `баланс с наградой: ожидалось 1 600, получено ${climber.window.Casino.getBalance()}`);
+  check(climber.window.Casino.goalTitle() === 'Игрок', 'цель 5 000 дала звание Игрок');
+  check(climber.window.Casino.shields() === 1, 'за цель начислена страховка');
+  check(climber.window.Casino.maxBet() === 3500, 'лимит стола вырос');
+  check(climber.doc.querySelector('#message').textContent.includes('цель'),
+    `сообщение сообщает о цели: ${climber.doc.querySelector('#message').textContent}`);
+  check(climber.window.Casino.takeGoalNotices().length === 1, 'осталось уведомление для хаба');
 }
 
 // ---------- Сброс игры ----------

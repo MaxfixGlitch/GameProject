@@ -47,7 +47,8 @@
   const Casino = window.Casino;
   const GAME_ID = 'roulette';
   const MIN_BET = Casino.MIN_BET;
-  const MAX_BET = Casino.MAX_BET;
+  // Лимит стола растёт с достигнутыми целями.
+  const maxBet = () => Casino.maxBet();
 
   const state = {
     bets: {},          // ключ ставки -> сумма
@@ -480,7 +481,8 @@
   function updateUI(bump) {
     const total = totalBet();
     el.betTotal.textContent = fmt(total);
-    el.betTotal.classList.toggle('full', total >= MAX_BET);
+    el.betTotal.classList.toggle('full', total >= maxBet());
+    if (el.betLimit) el.betLimit.textContent = `из ${fmt(maxBet())}`;
     renderBetHint();
     const locked = state.spinning || state.settled;
     el.spinBtn.disabled = locked || total < MIN_BET;
@@ -525,8 +527,8 @@
       setMessage('Недостаточно фишек для этой ставки', 'lose');
       return false;
     }
-    if (totalBet() + value > MAX_BET) {
-      setMessage(`Максимальная ставка — ${fmt(MAX_BET)}`, 'lose');
+    if (totalBet() + value > maxBet()) {
+      setMessage(`Максимальная ставка — ${fmt(maxBet())}`, 'lose');
       return false;
     }
 
@@ -739,10 +741,18 @@
       }
     });
 
-    const net = payout - total;
+    const baseNet = payout - total;
+
+    // Страховка из целей: при проигрыше возвращает половину потерь.
+    let insurance = 0;
+    if (baseNet < 0 && Casino.shields() > 0 && Casino.useShield()) {
+      insurance = Math.ceil(-baseNet / 2);
+    }
+    const net = baseNet + insurance;
 
     // Баланс и статистика
     if (payout > 0) Casino.payout(GAME_ID, payout);
+    if (insurance > 0) Casino.payout(GAME_ID, insurance);
     const stats = Casino.stats(GAME_ID);
     stats.spins += 1;
     stats.wagered += total;
@@ -767,7 +777,8 @@
       color,
       bets: Object.assign({}, state.bets),
       wins: winKeys,
-      payout,
+      payout: payout + insurance,
+      insurance,
       summary: `Выпало ${number} · ${colorLabel(number)}`,
     });
     Casino.setPending(GAME_ID, 0);
@@ -785,22 +796,39 @@
     void el.badge.offsetWidth;
     el.badge.style.animation = '';
 
+    let message;
+    let messageClass = '';
     if (net > 0) {
-      setMessage(`Выпало ${number} — выигрыш ${fmt(net)}`, 'win');
+      message = `Выпало ${number} — выигрыш ${fmt(net)}`;
+      messageClass = 'win';
       sfx('win');
     } else if (net < 0) {
-      setMessage(`Выпало ${number} — проигрыш ${fmt(-net)}`, 'lose');
+      message = `Выпало ${number} — проигрыш ${fmt(-net)}`;
+      if (insurance > 0) message += ` · страховка вернула ${fmt(insurance)}`;
+      messageClass = 'lose';
       sfx('lose');
     } else {
-      setMessage(`Выпало ${number} — ставка возвращена`, 'push');
+      message = `Выпало ${number} — ставка возвращена`;
+      messageClass = 'push';
       sfx('push');
     }
+
+    // Достигнутые цели: награда уже на балансе, сообщаем игроку.
+    const reached = Casino.checkGoals();
+    const goalReward = reached.reduce((sum, goal) => sum + goal.reward, 0);
+    if (reached.length) {
+      const best = reached[reached.length - 1];
+      message += ` · цель ${fmt(best.target)}: +${fmt(goalReward)} ₽, звание «${best.title}»`;
+      messageClass = 'win';
+    }
+
+    setMessage(message, messageClass);
 
     // Ставки уже разыграны, но на 1,4 секунды остаются на столе:
     // так видно, какие клетки выиграли.
     state.spinning = false;
     state.settled = true;
-    updateUI(payout - total);
+    updateUI(net + goalReward);
     renderSpins();
 
     await sleep(Math.max(1, settleMs));
@@ -990,7 +1018,7 @@
 
       <h3>Лимиты и комбинации</h3>
       <ul>
-        <li>Минимальная ставка — 25 ₽, максимум на один спин — 2 500 ₽
+        <li>Минимальная ставка — 25 ₽, максимум на один спин — ${fmt(maxBet())}
         в сумме по всем клеткам (лимит стола).</li>
         <li>Правила рулетки не запрещают ставить на любые клетки в любом сочетании:
         можно накрыть несколько чисел, красное и чёт, дюжину и колонку — всё сразу.</li>
@@ -1003,10 +1031,18 @@
 
       <h3>Про баланс</h3>
       <p>Баланс общий для всего казино, а статистика и история — отдельные по каждой игре.</p>
-      <p>Лимит 2 500 ₽ действует на <b>один спин</b>, а не на вечер. Пополнять баланс
-      на главной странице можно сколько угодно раз, поэтому суммарно можно проиграть
-      заметно больше — как в казино, где лимит стола ограничивает одну ставку,
-      а не все ставки за ночь.</p>
+      <p>Лимит <b>${fmt(maxBet())}</b> действует на <b>один спин</b>, а не на вечер.
+      Пополнять баланс на главной странице можно сколько угодно раз, поэтому суммарно
+      можно проиграть заметно больше — как в казино, где лимит стола ограничивает одну
+      ставку, а не все ставки за ночь.</p>
+
+      <h3>Бонус и цели</h3>
+      <ul>
+        <li>Бесплатные <span class="accent">+1 000 ₽</span> — раз в 30 минут, на главной странице.</li>
+        <li>Цели считаются по чистому выигрышу за всё время. За каждую: деньги,
+        звание, страховка и <span class="accent">+1 000 ₽</span> к лимиту стола.</li>
+        <li>Страховка при проигрыше возвращает половину потерь и тратится автоматически.</li>
+      </ul>
 
       <div class="modal-actions">
         <button class="primary-btn" data-close>Понятно</button>
@@ -1089,8 +1125,6 @@
   // Ставки, «зависшие» в незавершённом спине, возвращаются на баланс.
   Casino.settlePending(GAME_ID);
   state.sound = Casino.getSound();
-
-  if (el.betLimit) el.betLimit.textContent = `из ${fmt(MAX_BET)}`;
 
   buildWheel();
   drawWheel();

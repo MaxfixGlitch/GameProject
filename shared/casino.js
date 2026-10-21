@@ -11,6 +11,8 @@
     stats: 'casino.stats.v1',
     pending: 'casino.pending.v1',
     sound: 'casino.sound.v1',
+    progress: 'casino.progress.v1',
+    topup: 'casino.topup.v1',
     legacy: 'bj21.save.v1',
   };
 
@@ -18,6 +20,24 @@
   const MIN_BET = 25;
   const MAX_BET = 2500;
   const HISTORY_MAX = 100;
+
+  // Бесплатное пополнение: раз в 30 минут и только если баланс пуст.
+  const TOPUP_AMOUNT = 1000;
+  const TOPUP_COOLDOWN = 30 * 60 * 1000;
+  const TOPUP_COOKIE = 'casino_topup';
+
+  // Цели по чистому выигрышу за всё время. За каждую — деньги, звание,
+  // страховка и +1 000 ₽ к лимиту ставки навсегда.
+  const DEFAULT_TITLE = 'Новичок';
+  const GOALS = [
+    { id: 'g5000', target: 5000, reward: 500, title: 'Игрок', shields: 1 },
+    { id: 'g10000', target: 10000, reward: 1000, title: 'Опытный', shields: 1 },
+    { id: 'g20000', target: 20000, reward: 2000, title: 'Хайтейлер', shields: 1 },
+    { id: 'g50000', target: 50000, reward: 5000, title: 'Мастер', shields: 2 },
+    { id: 'g100000', target: 100000, reward: 10000, title: 'Легенда', shields: 2 },
+    { id: 'g250000', target: 250000, reward: 25000, title: 'Мифический', shields: 3 },
+  ];
+  const LIMIT_PER_GOAL = 1000;
 
   // Какие поля статистики есть у каждой игры. Недостающие добиваются нулями,
   // поэтому старые сохранения и новые игры читаются одинаково.
@@ -69,6 +89,8 @@
   let stats = {};
   let pending = {};
   let sound = true;
+  let progress = normalizeProgress(null);
+  let topUp = { readyAt: 0, seenAt: 0, count: 0 };
 
   // ---------- Рулетка: чтение ставок ----------
   // Подписи и разметка живут в общем ядре, чтобы страница игры и история
@@ -113,6 +135,180 @@
     return `<div class="bet-tags${hasWins ? ' has-wins' : ''}">${tags}</div>`;
   }
 
+  function normalizeProgress(raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const claimed = {};
+    if (src.claimed && typeof src.claimed === 'object') {
+      GOALS.forEach((goal) => {
+        if (src.claimed[goal.id]) claimed[goal.id] = num(src.claimed[goal.id], 1);
+      });
+    }
+    return {
+      claimed,
+      shields: Math.max(0, num(src.shields)),
+      notices: Array.isArray(src.notices) ? src.notices.filter((n) => n && n.id) : [],
+    };
+  }
+
+  const claimedCount = () => Object.keys(progress.claimed).length;
+
+  function totalNet() {
+    return Object.keys(GAMES).reduce((sum, gameId) => sum + num(ensureGame(gameId).net), 0);
+  }
+
+  function goalTitle() {
+    let title = DEFAULT_TITLE;
+    GOALS.forEach((goal) => {
+      if (progress.claimed[goal.id]) title = goal.title;
+    });
+    return title;
+  }
+
+  function goalsList() {
+    const net = totalNet();
+    return GOALS.map((goal) => ({
+      id: goal.id,
+      target: goal.target,
+      reward: goal.reward,
+      title: goal.title,
+      shields: goal.shields,
+      reached: net >= goal.target,
+      claimed: Boolean(progress.claimed[goal.id]),
+      progress: Math.max(0, Math.min(goal.target, net)),
+    }));
+  }
+
+  function maxBetValue() {
+    return MAX_BET + claimedCount() * LIMIT_PER_GOAL;
+  }
+
+  function checkGoalProgress() {
+    const net = totalNet();
+    const claimedNow = [];
+    GOALS.forEach((goal) => {
+      if (progress.claimed[goal.id] || net < goal.target) return;
+      progress.claimed[goal.id] = Date.now();
+      wallet = Math.max(0, wallet + goal.reward);
+      progress.shields += goal.shields;
+      const notice = {
+        id: goal.id,
+        target: goal.target,
+        reward: goal.reward,
+        title: goal.title,
+        shields: goal.shields,
+      };
+      progress.notices.push(notice);
+      claimedNow.push(notice);
+    });
+    if (claimedNow.length) persist();
+    return claimedNow;
+  }
+
+  function takeGoalNotices() {
+    const list = progress.notices.slice();
+    if (list.length) {
+      progress.notices = [];
+      persist();
+    }
+    return list;
+  }
+
+  function useShield() {
+    if (progress.shields <= 0) return false;
+    progress.shields -= 1;
+    persist();
+    return true;
+  }
+
+  function readCookie(name) {
+    try {
+      const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+      return match ? decodeURIComponent(match[1]) : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function writeCookie(name, value, days) {
+    try {
+      const expires = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+    } catch (_) { /* cookie недоступен — остаётся localStorage */ }
+  }
+
+  // Кулдаун храним в двух местах: обновление страницы и очистка одного
+  // хранилища таймер не сбрасывают. Режим инкогнито обойдёт всё — сервера нет.
+  function readTopUpStore() {
+    const local = readJSON(KEYS.topup) || {};
+    const cookie = readCookie(TOPUP_COOKIE);
+    let remote = {};
+    if (cookie) {
+      const [readyAt, seenAt, count] = cookie.split('.').map((part) => num(part));
+      remote = { readyAt, seenAt, count };
+    }
+    return {
+      readyAt: Math.max(num(local.readyAt), num(remote.readyAt)),
+      seenAt: Math.max(num(local.seenAt), num(remote.seenAt)),
+      count: Math.max(num(local.count), num(remote.count)),
+    };
+  }
+
+  function persistTopUp() {
+    writeJSON(KEYS.topup, topUp);
+    writeCookie(TOPUP_COOKIE, `${topUp.readyAt}.${topUp.seenAt}.${topUp.count}`, 30);
+  }
+
+  // Если часы перевели назад, считаем время от последнего известного момента.
+  function topUpNow() {
+    const now = Date.now();
+    const seen = num(topUp.seenAt);
+    const safe = now < seen - 60000 ? seen : now;
+    if (safe > seen) topUp.seenAt = safe;
+    return safe;
+  }
+
+  function topUpInfo() {
+    // Подхватываем бонус, полученный в другой вкладке.
+    const stored = readTopUpStore();
+    topUp = {
+      readyAt: Math.max(num(topUp.readyAt), num(stored.readyAt)),
+      seenAt: Math.max(num(topUp.seenAt), num(stored.seenAt)),
+      count: Math.max(num(topUp.count), num(stored.count)),
+    };
+    const now = topUpNow();
+    const remaining = Math.max(0, num(topUp.readyAt) - now);
+    return {
+      ready: remaining === 0,
+      remaining,
+      readyAt: num(topUp.readyAt),
+      count: num(topUp.count),
+      amount: TOPUP_AMOUNT,
+      cooldown: TOPUP_COOLDOWN,
+    };
+  }
+
+  function claimTopUp() {
+    // Проверяем хранилище непосредственно перед выдачей: две вкладки
+    // не должны получить бонус дважды.
+    topUp = readTopUpStore();
+    const info = topUpInfo();
+    if (!info.ready) return Object.assign({ ok: false }, info);
+    const now = topUpNow();
+    wallet = Math.max(0, wallet + TOPUP_AMOUNT);
+    topUp.readyAt = now + TOPUP_COOLDOWN;
+    topUp.seenAt = now;
+    topUp.count += 1;
+    persistTopUp();
+    persist();
+    return {
+      ok: true,
+      amount: TOPUP_AMOUNT,
+      readyAt: topUp.readyAt,
+      remaining: TOPUP_COOLDOWN,
+      count: topUp.count,
+    };
+  }
+
   function readJSON(key) {
     try {
       return JSON.parse(localStorage.getItem(key) || 'null');
@@ -154,6 +350,12 @@
   }
 
   function load() {
+    const rawProgress = readJSON(KEYS.progress);
+    progress = normalizeProgress(rawProgress);
+    topUp = readTopUpStore();
+    topUpNow();
+    persistTopUp();
+
     if (migrateLegacy()) return;
     const rawWallet = readJSON(KEYS.wallet);
     if (rawWallet && typeof rawWallet.bankroll === 'number') {
@@ -174,6 +376,7 @@
     writeJSON(KEYS.history, history);
     writeJSON(KEYS.stats, stats);
     writeJSON(KEYS.pending, pending);
+    writeJSON(KEYS.progress, progress);
     try { localStorage.setItem(KEYS.sound, sound ? '1' : '0'); } catch (_) { /* ignore */ }
   }
 
@@ -183,6 +386,11 @@
     MIN_BET,
     MAX_BET,
     HISTORY_MAX,
+    TOPUP_AMOUNT,
+    TOPUP_COOLDOWN,
+    GOALS,
+    LIMIT_PER_GOAL,
+    DEFAULT_TITLE,
     GAMES,
     STAT_TEMPLATES,
 
@@ -282,6 +490,44 @@
       return refunded;
     },
 
+    // ---------- Бонус и цели ----------
+    getTopUp() {
+      return topUpInfo();
+    },
+
+    claimTopUp,
+
+    goals() {
+      return goalsList();
+    },
+
+    checkGoals: checkGoalProgress,
+
+    takeGoalNotices,
+
+    goalTitle,
+
+    totalNet,
+
+    shields() {
+      return progress.shields;
+    },
+
+    useShield,
+
+    maxBet: maxBetValue,
+
+    profile() {
+      return {
+        title: goalTitle(),
+        shields: progress.shields,
+        net: totalNet(),
+        maxBet: maxBetValue(),
+        goals: goalsList(),
+        topUp: topUpInfo(),
+      };
+    },
+
     // ---------- Рулетка ----------
     rouletteBetLabel,
     betTagsHTML,
@@ -310,6 +556,9 @@
       history = {};
       stats = {};
       pending = {};
+      // Прогресс и звания обнуляются, а кулдаун бонуса — нет:
+      // иначе сброс давал бы лишнюю бесплатную тысячу.
+      progress = normalizeProgress(null);
       Object.keys(GAMES).forEach(ensureGame);
       persist();
     },

@@ -26,7 +26,8 @@ const check = (cond, msg) => {
   }
 };
 
-const KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1', 'casino.sound.v1', 'bj21.save.v1'];
+const KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1',
+  'casino.sound.v1', 'casino.progress.v1', 'casino.topup.v1', 'bj21.save.v1'];
 
 function open(pageHtml, scripts, seed) {
   const dom = new JSDOM(pageHtml, { url: 'https://example.org/', pretendToBeVisual: true, runScripts: 'outside-only' });
@@ -198,6 +199,124 @@ hub.document.querySelector('[data-filter="all"]').click();
 check(hub.document.querySelectorAll('.history-round').length === 3, 'фильтр «все» вернул все записи');
 hub.document.querySelector('#modalClose').click();
 check(hub.document.querySelector('#overlay').hidden, 'история закрывается');
+
+// ---------- Бонус раз в 30 минут ----------
+console.log('• Бонус и кулдаун');
+{
+  // Часы двигаем вручную, иначе ждать полчаса.
+  const clockDom = new JSDOM(hubHtml, {
+    url: 'https://example.org/',
+    pretendToBeVisual: true,
+    runScripts: 'outside-only',
+  });
+  let clock = Date.now();
+  clockDom.window.Date.now = () => clock;
+  clockDom.window.eval(rawCasino);
+  clockDom.window.eval(rawHub);
+  const bonus = clockDom.window.Casino;
+
+  const first = bonus.getTopUp();
+  check(first.ready === true, 'первый бонус доступен сразу');
+  check(first.amount === 1000, 'бонус — 1 000 ₽');
+  check(first.cooldown === 30 * 60 * 1000, 'кулдаун 30 минут');
+
+  const claim = bonus.claimTopUp();
+  check(claim.ok === true, 'бонус получен');
+  check(bonus.getBalance() === 2000, `баланс вырос до 2 000, получено ${bonus.getBalance()}`);
+  check(bonus.getTopUp().ready === false, 'сразу второй бонус недоступен');
+  check(Math.round(bonus.getTopUp().remaining / 60000) === 30, 'после получения ждать 30 минут');
+
+  const tooEarly = bonus.claimTopUp();
+  check(tooEarly.ok === false, 'повторный бонус отклонён');
+  check(bonus.getBalance() === 2000, 'баланс не изменился');
+
+  clock += 10 * 60 * 1000;
+  check(Math.round(bonus.getTopUp().remaining / 60000) === 20, 'через 10 минут остаётся 20');
+
+  clock += 21 * 60 * 1000;
+  check(bonus.getTopUp().ready === true, 'через 31 минуту бонус снова доступен');
+  check(bonus.claimTopUp().ok === true, 'второй бонус получен');
+
+  // Часы назад не сокращают ожидание.
+  clock -= 60 * 60 * 1000;
+  check(bonus.getTopUp().remaining >= 30 * 60 * 1000, 'перевод часов назад не ускоряет бонус');
+
+  // Кулдаун переживает перезагрузку: localStorage + cookie.
+  bonus.save();
+  const reload = new JSDOM(hubHtml, {
+    url: 'https://example.org/',
+    pretendToBeVisual: true,
+    runScripts: 'outside-only',
+  });
+  reload.window.Date.now = () => clock;
+  ['casino.wallet.v1', 'casino.progress.v1', 'casino.topup.v1'].forEach((key) => {
+    reload.window.localStorage.setItem(key, clockDom.window.localStorage.getItem(key));
+  });
+  reload.window.document.cookie = clockDom.window.document.cookie;
+  reload.window.eval(rawCasino);
+  check(reload.window.Casino.getTopUp().ready === false, 'после перезагрузки кулдаун сохраняется');
+
+  // Очистка localStorage не сбрасывает таймер: остаётся cookie.
+  const cookieOnly = new JSDOM(hubHtml, {
+    url: 'https://example.org/',
+    pretendToBeVisual: true,
+    runScripts: 'outside-only',
+  });
+  cookieOnly.window.Date.now = () => clock;
+  cookieOnly.window.document.cookie = clockDom.window.document.cookie;
+  cookieOnly.window.eval(rawCasino);
+  check(cookieOnly.window.Casino.getTopUp().ready === false,
+    'без localStorage кулдаун читается из cookie');
+}
+
+// ---------- Цели и звания ----------
+console.log('• Цели, звания и бонусы');
+{
+  const win = open(hubHtml, [rawCasino, rawHub], {});
+  const profile = win.Casino.profile();
+  check(profile.title === 'Новичок', 'стартовое звание — Новичок');
+  check(profile.shields === 0, 'страховок пока нет');
+  check(profile.maxBet === 2500, 'лимит стола 2 500 ₽');
+  check(profile.goals.length === 6, 'шесть целей');
+  check(profile.goals[0].target === 5000, 'первая цель — 5 000 ₽');
+  check(profile.goals.every((g) => !g.claimed), 'ни одна цель ещё не достигнута');
+
+  // Чистый выигрыш 12 000 ₽ закрывает первые две цели.
+  win.Casino.stats('roulette').net = 12000;
+  const reached = win.Casino.checkGoals();
+  check(reached.length === 2, `закрылись две цели, получено ${reached.length}`);
+  check(win.Casino.getBalance() === 1000 + 500 + 1000,
+    `награда 1 500 ₽ на балансе, получено ${win.Casino.getBalance()}`);
+  check(win.Casino.goalTitle() === 'Опытный', 'звание сменилось на Опытный');
+  check(win.Casino.shields() === 2, 'две страховки за две цели');
+  check(win.Casino.maxBet() === 4500, `лимит вырос до 4 500, получено ${win.Casino.maxBet()}`);
+  check(win.Casino.checkGoals().length === 0, 'повторно цели не начисляются');
+
+  const goals = win.Casino.goals();
+  check(goals[0].claimed && goals[1].claimed, 'первые две цели отмечены полученными');
+  check(goals[2].progress === 12000, 'у следующей цели виден прогресс');
+
+  check(win.Casino.takeGoalNotices().length === 2, 'уведомления о целях созданы');
+  check(win.Casino.takeGoalNotices().length === 0, 'уведомления выдаются один раз');
+
+  check(win.Casino.useShield() === true, 'страховка тратится');
+  check(win.Casino.shields() === 1, 'осталась одна страховка');
+
+  // Экран целей показывает прогресс и звание.
+  win.document.querySelector('#goalsBtn').click();
+  check(!win.document.querySelector('#overlay').hidden, 'окно целей открывается');
+  check(win.document.querySelectorAll('.goal-card').length === 6, 'в окне все шесть целей');
+  check(win.document.querySelectorAll('.goal-card.claimed').length === 2, 'две цели отмечены выполненными');
+  check(win.document.querySelector('.title-chip.big').textContent.includes('Опытный'),
+    'в окне видно звание');
+  win.document.querySelector('#modalClose').click();
+
+  // Сброс обнуляет цели, но не кулдаун бонуса.
+  win.Casino.resetAll();
+  check(win.Casino.goalTitle() === 'Новичок', 'сброс вернул звание Новичок');
+  check(win.Casino.shields() === 0, 'сброс убрал страховки');
+  check(win.Casino.maxBet() === 2500, 'сброс вернул лимит 2 500 ₽');
+}
 
 // ---------- Хаб: карточки со статистикой ----------
 console.log('• Карточки игр');

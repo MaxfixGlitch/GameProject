@@ -10,7 +10,7 @@ const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
 const rawGame = fs.readFileSync(`${root}games/blackjack/game.js`, 'utf8');
 const game = rawGame.replace(
   '  // ---------- Старт ----------',
-  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI };\n  // ---------- Старт ----------'
+  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI, renderRebuy };\n  // ---------- Старт ----------'
 );
 if (game === rawGame) throw new Error('Не удалось внедрить тестовый хук');
 
@@ -21,6 +21,11 @@ const dom = new JSDOM(html, {
 });
 const { window } = dom;
 const doc = window.document;
+
+// Часы можно двигать: бесплатный бонус раз в 30 минут.
+let clock = Date.now();
+window.Date.now = () => clock;
+const advanceTime = (ms) => { clock += ms; };
 window.addEventListener('unhandledrejection', (event) => {
   failures++;
   console.error('  ✗ необработанная ошибка в окне:', event.reason && event.reason.stack || event.reason);
@@ -35,7 +40,8 @@ window.eval(game);
 
 // Новая вкладка со своим localStorage (в jsdom у каждого окна он отдельный).
 // seed — либо окно-источник, либо объект «ключ → значение».
-const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1', 'casino.sound.v1'];
+const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1',
+  'casino.sound.v1', 'casino.progress.v1', 'casino.topup.v1'];
 function boot(seed) {
   const fresh = new JSDOM(html, { url: 'https://example.org/', pretendToBeVisual: true, runScripts: 'outside-only' });
   const store = fresh.window.localStorage;
@@ -159,7 +165,11 @@ let busts = 0;
 
 for (let i = 0; i < 400; i++) {
   // Пополнение, если денег не хватает
-  if (!doc.querySelector('#rebuyPanel').hidden) click('#rebuyBtn');
+  if (!doc.querySelector('#rebuyPanel').hidden) {
+    advanceTime(31 * 60 * 1000); // ждём бесплатный бонус
+    api.renderRebuy();           // в реальном браузере это делает таймер раз в секунду
+    click('#rebuyBtn');
+  }
   if (bankroll() < 25) {
     console.error('  ✗ нет доступных фишек при балансе', bankroll());
     break;

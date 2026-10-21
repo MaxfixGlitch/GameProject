@@ -29,6 +29,7 @@
   <div class="tools">
     <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук">🔊</button>
     <button class="icon-btn" id="historyBtn" title="История" aria-label="История ставок">🗂</button>
+    <button class="icon-btn" id="goalsBtn" title="Цели и звания" aria-label="Цели и звания">🏅</button>
     <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика">📊</button>
     <button class="icon-btn" id="resetBtn" title="Сбросить казино" aria-label="Сбросить казино">↺</button>
   </div>
@@ -41,9 +42,14 @@
       <div class="hub-hero-label">В кошельке</div>
       <div class="hub-hero-balance" id="heroBalance">1 000 ₽</div>
       <div class="hub-hero-total" id="heroTotal"></div>
+      <div class="hub-hero-badges">
+        <button class="title-chip" id="titleChip" type="button" title="Цели и звания">Новичок</button>
+        <span class="shield-chip" id="shieldChip" hidden>🛡 0</span>
+        <button class="goal-next" id="goalNext" type="button" hidden></button>
+      </div>
     </div>
     <div class="hub-hero-actions">
-      <button class="primary-btn" id="topUpBtn" hidden>Пополнить +1 000 ₽</button>
+      <button class="primary-btn" id="topUpBtn">Бонус +1 000 ₽</button>
       <button class="ghost-btn" id="heroHistoryBtn">История</button>
     </div>
   </section>

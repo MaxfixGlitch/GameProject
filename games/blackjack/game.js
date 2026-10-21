@@ -18,9 +18,9 @@
   // Кошелёк, история и статистика живут в общем ядре казино.
   const Casino = window.Casino;
   const GAME_ID = 'blackjack';
-  const START_BANKROLL = Casino.START_BANKROLL;
   const MIN_BET = Casino.MIN_BET;
-  const MAX_BET = Casino.MAX_BET;
+  // Лимит стола растёт с достигнутыми целями.
+  const maxBet = () => Casino.maxBet();
 
   // Стопка фишек на столе: видно не больше BET_STACK_MAX штук,
   // нижняя стоит над суммой ставки, верх не выходит за круг.
@@ -111,6 +111,10 @@
   const numFmt = new Intl.NumberFormat('ru-RU');
   const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
   const fmtDelta = (n) => `${n > 0 ? '+' : '−'}${numFmt.format(Math.abs(Math.round(n)))} ₽`;
+  const mmss = (ms) => {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  };
 
   // ---------- Случайность ----------
   function randomInt(max) {
@@ -444,13 +448,14 @@
   // ---------- История раздач ----------
   const handTotal = (cards) => (Array.isArray(cards) ? handValue(cards) : 0);
 
-  function recordHistoryEntry(net, totalBet) {
+  function recordHistoryEntry(net, totalBet, insurance = 0) {
     const dealerCards = Array.isArray(state.dealer) ? state.dealer : [];
     const entry = {
       n: state.stats.rounds,
       ts: Date.now(),
       bet: Math.round(totalBet),
       net: Math.round(net),
+      insurance: Math.round(insurance),
       dealerTotal: handTotal(dealerCards),
       dealerCards: dealerCards.length,
       dealerNatural: isNatural(dealerCards),
@@ -621,17 +626,26 @@
     return rankValue(hand.cards[0].rank) === rankValue(hand.cards[1].rank);
   }
 
+  function renderRebuy() {
+    const info = Casino.getTopUp();
+    el.rebuyBtn.disabled = !info.ready;
+    el.rebuyBtn.textContent = info.ready
+      ? `Пополнить + ${numFmt.format(info.amount)} ₽`
+      : `Бонус через ${mmss(info.remaining)}`;
+  }
+
   function renderPanels() {
     const inRound = state.phase !== 'betting';
     const broke = state.phase === 'betting' && state.bankroll < MIN_BET && state.bet === 0;
 
     el.rebuyPanel.hidden = !broke;
+    if (!el.rebuyPanel.hidden) renderRebuy();
     el.betPanel.hidden = inRound || broke;
     el.actionPanel.hidden = !inRound;
 
     el.chips.forEach((chip) => {
       const value = Number(chip.dataset.chip);
-      chip.disabled = state.phase !== 'betting' || state.bankroll < value || state.bet + value > MAX_BET;
+      chip.disabled = state.phase !== 'betting' || state.bankroll < value || state.bet + value > maxBet();
     });
 
     el.dealBtn.disabled = state.phase !== 'betting' || state.busy || state.bet < MIN_BET;
@@ -674,8 +688,8 @@
   function addChip(value) {
     if (state.phase !== 'betting' || state.busy) return;
     if (state.bankroll < value) return;
-    if (state.bet + value > MAX_BET) {
-      setMessage(`Максимальная ставка — ${fmt(MAX_BET)}`, 'lose');
+    if (state.bet + value > maxBet()) {
+      setMessage(`Максимальная ставка — ${fmt(maxBet())}`, 'lose');
       return;
     }
     if (state.hands.length) clearTable();
@@ -1010,13 +1024,20 @@
       totalPayout += hand.payout;
     });
 
-    const net = totalPayout - totalBet;
+    const baseNet = totalPayout - totalBet;
 
-    state.bankroll += totalPayout;
+    // Страховка из целей: при проигрыше возвращает половину потерь.
+    let insurance = 0;
+    if (baseNet < 0 && Casino.shields() > 0 && Casino.useShield()) {
+      insurance = Math.ceil(-baseNet / 2);
+    }
+    const net = baseNet + insurance;
+
+    state.bankroll += totalPayout + insurance;
     state.stats.rounds++;
     state.stats.net += net;
     if (net > 0) state.stats.bestWin = Math.max(state.stats.bestWin, net);
-    recordHistoryEntry(net, totalBet);
+    recordHistoryEntry(net, totalBet, insurance);
 
     state.phase = 'betting';
     state.busy = false;
@@ -1027,26 +1048,44 @@
     const gotBlackjack = state.hands.some((h) => h.result === 'blackjack');
     const allBust = state.hands.every((h) => h.result === 'bust');
 
+    let message;
+    let messageClass = '';
     if (gotBlackjack) {
-      setMessage(`Блэкджек! Выигрыш ${fmt(net)}`, 'gold');
+      message = `Блэкджек! Выигрыш ${fmt(net)}`;
+      messageClass = 'gold';
       sfx('blackjack');
     } else if (net > 0) {
-      setMessage(state.hands.length > 1
+      message = state.hands.length > 1
         ? `Итог раунда: выигрыш ${fmt(net)}`
-        : `Вы выиграли ${fmt(net)}`, 'win');
+        : `Вы выиграли ${fmt(net)}`;
+      messageClass = 'win';
       sfx('win');
     } else if (net < 0) {
-      if (allBust) setMessage('Перебор — ставка проиграна', 'lose');
-      else if (dealerBJ) setMessage('Блэкджек у дилера — вы проиграли', 'lose');
-      else if (dealerBust) setMessage('Дилер перебрал, но… увы, ставка проиграна', 'lose');
-      else setMessage(`Вы проиграли ${fmt(-net)}`, 'lose');
+      if (allBust) message = 'Перебор — ставка проиграна';
+      else if (dealerBJ) message = 'Блэкджек у дилера — вы проиграли';
+      else if (dealerBust) message = 'Дилер перебрал, но… увы, ставка проиграна';
+      else message = `Вы проиграли ${fmt(-net)}`;
+      if (insurance > 0) message += ` · страховка вернула ${fmt(insurance)}`;
+      messageClass = 'lose';
       sfx('lose');
     } else {
-      setMessage('Ничья — ставка возвращена', 'push');
+      message = 'Ничья — ставка возвращена';
+      messageClass = 'push';
       sfx('push');
     }
 
-    showDelta(net);
+    // Достигнутые цели: награда уже на балансе, сообщаем игроку.
+    const reached = Casino.checkGoals();
+    const goalReward = reached.reduce((sum, goal) => sum + goal.reward, 0);
+    if (reached.length) {
+      const best = reached[reached.length - 1];
+      message += ` · цель ${fmt(best.target)}: +${fmt(goalReward)} ₽, звание «${best.title}»`;
+      messageClass = 'gold';
+    }
+
+    setMessage(message, messageClass);
+
+    showDelta(net + goalReward);
     updateUI();
     save();
   }
@@ -1054,8 +1093,13 @@
   // ---------- Пополнение ----------
   function rebuy() {
     if (state.phase !== 'betting') return;
-    Casino.addBalance(START_BANKROLL);
-    setMessage('Демо-пополнение получено. Приятной игры!', 'gold');
+    const result = Casino.claimTopUp();
+    if (!result.ok) {
+      renderRebuy();
+      setMessage(`Бесплатный бонус будет доступен через ${mmss(result.remaining)}`, 'lose');
+      return;
+    }
+    setMessage(`Бонус получен: +${fmt(result.amount)}. Приятной игры!`, 'gold');
     sfx('chip');
     updateUI();
     save();
@@ -1132,7 +1176,9 @@
         <li>6 колод в шузе, перемешивание автоматическое.</li>
         <li>Дилер останавливается на 17 очках (включая мягкие 17).</li>
         <li>Блэкджек после сплита оплачивается 1 : 1.</li>
-        <li>Минимальная ставка — 25 ₽, максимальная — 2 500 ₽.</li>
+        <li>Минимальная ставка — 25 ₽, максимальная — ${fmt(maxBet())}.</li>
+        <li>Лимит растёт на 1 000 ₽ за каждую достигнутую цель.</li>
+        <li>Бесплатный бонус +1 000 ₽ — раз в 30 минут, в том числе из панели пополнения.</li>
         <li>Игра на демо-фишки. Реальные деньги не используются.</li>
       </ul>
 
@@ -1231,6 +1277,9 @@
   el.doubleBtn.addEventListener('click', doubleDown);
   el.splitBtn.addEventListener('click', splitHand);
   el.rebuyBtn.addEventListener('click', rebuy);
+  setInterval(() => {
+    if (!el.rebuyPanel.hidden) renderRebuy();
+  }, 1000);
   el.rulesBtn.addEventListener('click', openRules);
   el.statsBtn.addEventListener('click', openStats);
   el.historyBtn.addEventListener('click', openHistory);
