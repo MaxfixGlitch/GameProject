@@ -145,7 +145,6 @@
     `).join('');
 
     const soon = [
-      { icon: '🎲', title: 'Кости', tagline: 'Ставки на суммы и дубли — в планах' },
       { icon: '🂡', title: 'Баккара', tagline: 'Игра на игрока, банкира или ничью' },
     ].map((game) => `
       <div class="game-card soon">

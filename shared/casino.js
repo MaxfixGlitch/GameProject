@@ -50,6 +50,10 @@
       spins: 0, wins: 0, losses: 0, pushes: 0,
       wagered: 0, bestWin: 0, net: 0,
     },
+    dice: {
+      rolls: 0, wins: 0, losses: 0, pushes: 0, doubles: 0,
+      wagered: 0, bestWin: 0, net: 0,
+    },
   };
 
   const GAMES = {
@@ -74,6 +78,17 @@
       tagline: '37 секторов, ставки на числа, цвет, чётность и дюжины',
       counterKey: 'spins',
       counterLabel: 'спинов',
+    },
+    dice: {
+      id: 'dice',
+      title: 'Кости',
+      short: 'Кости',
+      icon: '🎲',
+      href: 'games/dice/index.html',
+      color: '#fbbf24',
+      tagline: 'Две кости: суммы, чётность, больше-меньше и дубли',
+      counterKey: 'rolls',
+      counterLabel: 'бросков',
     },
   };
 
@@ -115,6 +130,29 @@
     return ROULETTE_OUTSIDE[type] || raw;
   }
 
+  // ---------- Кости: чтение ставок ----------
+  const DICE_OUTSIDE = {
+    even: 'ЧЁТ',
+    odd: 'НЕЧЁТ',
+    over: 'БОЛЬШЕ 7',
+    under: 'МЕНЬШЕ 7',
+    double: 'ЛЮБОЙ ДУБЛЬ',
+  };
+
+  function diceBetLabel(key) {
+    const raw = String(key || '');
+    const [type, arg] = raw.split(':');
+    const value = Number(arg);
+    if (type === 'sum') return Number.isFinite(value) ? `сумма ${value}` : 'сумма';
+    if (type === 'pair') return Number.isFinite(value) ? `дубль ${value}–${value}` : 'дубль';
+    return DICE_OUTSIDE[type] || '';
+  }
+
+  // Ставки разных игр не пересекаются, поэтому подпись выбирается сама.
+  function betLabel(key) {
+    return diceBetLabel(key) || rouletteBetLabel(key);
+  }
+
   const moneyFmt = new Intl.NumberFormat('ru-RU');
   const money = (value) => `${moneyFmt.format(num(value))} ₽`;
 
@@ -128,7 +166,7 @@
       const won = winSet.has(key);
       return `<span class="bet-tag${won ? ' is-win' : ''}"`
         + `${won ? ' title="Ставка выиграла"' : ''}>`
-        + `<span class="bet-tag-label">${rouletteBetLabel(key)}</span>`
+        + `<span class="bet-tag-label">${betLabel(key)}</span>`
         + `<span class="bet-tag-amount">${money(amount)}</span>`
         + `${won ? '<span class="bet-tag-check" aria-hidden="true">✓</span>' : ''}</span>`;
     }).join('');
@@ -528,8 +566,10 @@
       };
     },
 
-    // ---------- Рулетка ----------
+    // ---------- Подписи ставок ----------
     rouletteBetLabel,
+    diceBetLabel,
+    betLabel,
     betTagsHTML,
 
     // ---------- Служебное ----------
