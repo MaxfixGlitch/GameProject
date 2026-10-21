@@ -619,11 +619,23 @@
   }
 
   function canSplit(hand) {
-    if (!hand || state.phase !== 'player' || state.busy || hand.done) return false;
-    if (state.hands.length >= 4) return false;
-    if (hand.cards.length !== 2) return false;
-    if (state.bankroll < hand.bet) return false;
-    return rankValue(hand.cards[0].rank) === rankValue(hand.cards[1].rank);
+    return splitHint(hand) === '';
+  }
+
+  // Почему сплит недоступен — одной фразой. Пустая строка значит «можно».
+  function splitHint(hand) {
+    if (state.phase === 'betting') return 'Сплит доступен в игре: нужны две карты одного достоинства';
+    if (state.phase !== 'player' || state.busy) return 'Сейчас не ваш ход';
+    if (!hand || hand.done) return 'Эта рука уже сыграна';
+    if (state.hands.length >= 4) return 'Больше 4 рук после сплита не бывает';
+    if (hand.cards.length !== 2) return 'Сплит возможен только с двумя картами на руке';
+    if (rankValue(hand.cards[0].rank) !== rankValue(hand.cards[1].rank)) {
+      return 'Нужны две карты одного достоинства — например, 8 и 8';
+    }
+    if (state.bankroll < hand.bet) {
+      return `Нужно ещё ${fmt(hand.bet - state.bankroll)}, чтобы повторить ставку`;
+    }
+    return '';
   }
 
   function renderRebuy() {
@@ -657,7 +669,11 @@
     el.hitBtn.disabled = !playerTurn || !hand || hand.done;
     el.standBtn.disabled = !playerTurn || !hand || hand.done;
     el.doubleBtn.disabled = !canDouble(hand);
-    el.splitBtn.disabled = !canSplit(hand);
+    const hint = splitHint(hand);
+    el.splitBtn.disabled = hint !== '';
+    el.splitBtn.title = hint || `Разделить ${hand ? hand.cards[0].rank : ''} и ${hand ? hand.cards[1].rank : ''} `
+      + 'на две руки, поставив ещё столько же';
+    el.splitBtn.setAttribute('aria-description', el.splitBtn.title);
   }
 
   function updateUI() {
@@ -1162,6 +1178,11 @@
         <li><span class="accent">Удвоить</span> — удвоить ставку и получить ровно одну карту.</li>
         <li><span class="accent">Сплит</span> — разделить пару одинаковых карт на две руки
         (до 4 рук). После сплита тузов даётся по одной карте.</li>
+        <li>Сплит требует ещё одну ставку того же размера: пара 8 и 8 за 100 ₽ —
+        это 200 ₽ на столе. Поэтому кнопка неактивна, если на балансе не хватает
+        на вторую ставку.</li>
+        <li>Почему кнопка «Сплит» недоступна, написано во всплывающей подсказке:
+        наведите на неё курсор.</li>
       </ul>
 
       <h3>Выплаты</h3>

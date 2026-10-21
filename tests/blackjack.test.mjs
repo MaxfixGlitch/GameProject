@@ -10,7 +10,7 @@ const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
 const rawGame = fs.readFileSync(`${root}games/blackjack/game.js`, 'utf8');
 const game = rawGame.replace(
   '  // ---------- Старт ----------',
-  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI, renderRebuy };\n  // ---------- Старт ----------'
+  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI, renderRebuy, splitHint };\n  // ---------- Старт ----------'
 );
 if (game === rawGame) throw new Error('Не удалось внедрить тестовый хук');
 
@@ -427,6 +427,54 @@ async function waitSettled() {
 async function action(id) {
   await waitFor(() => !doc.querySelector(`#${id}Btn`).disabled, `кнопка ${id} доступна`);
   click(`#${id}Btn`);
+}
+
+// ---------- Кнопка «Сплит» ----------
+console.log('• Кнопка «Сплит» объясняет, почему недоступна');
+{
+  await resetUI();
+  const splitBtn = () => doc.querySelector('#splitBtn');
+
+  check(splitBtn().disabled, 'в фазе ставок сплит недоступен');
+  check(splitBtn().title.includes('две карты одного достоинства'),
+    `в фазе ставок подсказка объясняет условие: ${splitBtn().title}`);
+
+  // Пара 8 и 8 при достаточном балансе — сплит доступен.
+  await beginRound(['8', '10', '8', '9']);
+  await waitFor(() => api.state.phase === 'player', 'ход игрока с парой');
+  check(!splitBtn().disabled, 'с парой 8 и 8 сплит доступен');
+  check(splitBtn().title.includes('две руки'), `подсказка про две руки: ${splitBtn().title}`);
+  api.state.hands[0].done = true;
+  api.updateUI();
+  check(splitBtn().disabled, 'сыгранная рука не даёт сплит');
+  check(splitBtn().title.includes('уже сыграна'), `подсказка про сыгранную руку: ${splitBtn().title}`);
+  api.state.hands[0].done = false;
+  api.updateUI();
+  await action('split');
+  await waitFor(() => api.state.hands.length === 2, 'две руки после сплита');
+  await action('stand');
+  await waitFor(() => api.state.active === 1, 'переход ко второй руке');
+  await action('stand');
+  await waitSettled();
+
+  // Разные карты — сплит недоступен.
+  await resetUI();
+  await beginRound(['8', '10', '7', '9']);
+  await waitFor(() => api.state.phase === 'player', 'ход игрока с разными картами');
+  check(splitBtn().disabled, 'с разными картами сплит недоступен');
+  check(splitBtn().title.includes('одного достоинства'),
+    `подсказка про одинаковые карты: ${splitBtn().title}`);
+
+  // Пара есть, но на вторую ставку не хватает денег.
+  await resetUI();
+  await beginRound(['9', '10', '9', '9']);
+  await waitFor(() => api.state.phase === 'player', 'ход игрока с парой 9');
+  window.Casino.setBalance(40);
+  api.updateUI();
+  check(splitBtn().disabled, 'без денег на вторую ставку сплит недоступен');
+  check(splitBtn().title.includes('Нужно ещё'),
+    `подсказка называет нехватку: ${splitBtn().title}`);
+  check(splitBtn().title.includes('60'), `нехватка посчитана: ${splitBtn().title}`);
 }
 
 // 1. Блэкджек игрока: K + A, у дилера 9 + 7
