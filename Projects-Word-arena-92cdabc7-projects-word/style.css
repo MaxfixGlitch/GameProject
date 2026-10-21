@@ -819,6 +819,108 @@ button:disabled { cursor: not-allowed; }
 .modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
 .modal-actions .primary-btn { flex: 1; padding-inline: 18px; }
 
+/* ---------------- История раздач ---------------- */
+
+.history-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.history-empty {
+  margin: 0;
+  padding: 18px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(233, 196, 106, .28);
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.history-list { display: flex; flex-direction: column; gap: 8px; }
+
+.history-round {
+  padding: 10px 12px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-left: 3px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .035);
+}
+.history-round:has(.history-round-net.plus) { border-left-color: var(--win); }
+.history-round:has(.history-round-net.minus) { border-left-color: var(--lose); }
+.history-round:has(.history-round-net.zero) { border-left-color: var(--push); }
+
+.history-round-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.history-round-num { font-weight: 800; color: var(--gold); letter-spacing: .04em; }
+.history-round-net {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.history-round-net.plus { color: var(--win); }
+.history-round-net.minus { color: var(--lose); }
+.history-round-net.zero { color: var(--push); }
+.history-round-bet { color: var(--muted); white-space: nowrap; font-size: 11px; }
+
+.history-dealer {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: #cfdcd5;
+}
+.history-dealer-label {
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.history-dealer-total { font-weight: 800; font-variant-numeric: tabular-nums; }
+.history-dealer-cards { margin-left: auto; color: var(--muted); font-size: 11px; }
+
+.history-hands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.history-hand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(0, 0, 0, .22);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.history-hand-total { font-weight: 800; color: var(--text); }
+.history-hand-total[title] { border-bottom: 1px dotted rgba(157, 179, 167, .55); cursor: help; }
+.history-hand-result { color: var(--muted); }
+.history-hand-bet { color: var(--gold-soft); font-weight: 700; }
+
+.history-hand.win, .history-hand.blackjack { border-color: rgba(74, 222, 128, .4); }
+.history-hand.win .history-hand-result,
+.history-hand.blackjack .history-hand-result { color: var(--win); }
+.history-hand.lose, .history-hand.bust { border-color: rgba(248, 113, 113, .38); }
+.history-hand.lose .history-hand-result,
+.history-hand.bust .history-hand-result { color: var(--lose); }
+.history-hand.push { border-color: rgba(251, 191, 36, .38); }
+.history-hand.push .history-hand-result { color: var(--push); }
+
 /* ---------------- Адаптив ---------------- */
 
 @media (max-width: 720px) {
@@ -854,6 +956,11 @@ button:disabled { cursor: not-allowed; }
   .shoe-badge { display: none; }
   .bet-actions { width: 100%; }
   .bet-actions .primary-btn { flex: 1; }
+  .modal { padding: 22px 16px 18px; }
+  .history-round { padding: 9px 10px 10px; }
+  .history-round-head { flex-wrap: wrap; gap: 4px 8px; }
+  .history-round-bet { margin-left: auto; }
+  .history-hand { flex-wrap: wrap; white-space: normal; }
 }
 
 @media (max-height: 720px) and (min-width: 721px) {

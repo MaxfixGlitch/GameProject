@@ -26,6 +26,10 @@
   const BET_STACK_CEIL = 93;
   const CHIP_TILT = [-5, 3, -2, 4.5, -3.5, 2, -4, 5];
   const CHIP_SWAY = [-1.5, 1.5, 0, -2, 1, 2, -1, 0.5];
+
+  // История раздач: храним последние HISTORY_MAX раундов (свежие сверху).
+  const HISTORY_MAX = 60;
+  const HISTORY_RESULTS = ['win', 'blackjack', 'lose', 'bust', 'push'];
   const RESULT_LABEL = {
     win: 'Победа',
     blackjack: 'Блэкджек!',
@@ -60,6 +64,7 @@
     message: '',
     messageClass: '',
     stats: defaultStats(),
+    history: [],
     shoe: [],
     handSeq: 0,
   };
@@ -77,6 +82,7 @@
     dealerHand: $('#dealerHand'),
     dealerTotal: $('#dealerTotal'),
     hands: $('#hands'),
+    historyBtn: $('#historyBtn'),
     message: $('#message'),
     betSpot: $('#betSpot'),
     betChips: $('#betChips'),
@@ -193,10 +199,39 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         bankroll: state.bankroll,
         stats: state.stats,
+        history: state.history.slice(0, HISTORY_MAX),
         sound: state.sound,
         pending: pendingStake(),
       }));
     } catch (_) { /* приватный режим — просто играем без сохранения */ }
+  }
+
+  // История из localStorage может быть старой или битой — приводим к безопасному виду.
+  function sanitizeHistory(raw) {
+    if (!Array.isArray(raw)) return [];
+    const num = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : 0);
+    return raw.slice(0, HISTORY_MAX).map((entry, index) => {
+      const hands = Array.isArray(entry?.hands) ? entry.hands : [];
+      return {
+        n: num(entry?.n) || index + 1,
+        bet: Math.max(0, num(entry?.bet)),
+        net: num(entry?.net),
+        dealerTotal: Math.max(0, num(entry?.dealerTotal)),
+        dealerCards: Math.max(0, num(entry?.dealerCards)),
+        dealerNatural: Boolean(entry?.dealerNatural),
+        hands: hands.slice(0, 4).map((hand) => ({
+          total: Math.max(0, num(hand?.total)),
+          soft: Boolean(hand?.soft),
+          softTotal: hand?.softTotal === null || hand?.softTotal === undefined
+            ? null
+            : Math.max(0, num(hand.softTotal)),
+          result: HISTORY_RESULTS.includes(hand?.result) ? hand.result : 'lose',
+          bet: Math.max(0, num(hand?.bet)),
+          payout: Math.max(0, num(hand?.payout)),
+          doubled: Boolean(hand?.doubled),
+        })),
+      };
+    });
   }
 
   function load() {
@@ -205,6 +240,7 @@
       if (!raw || typeof raw.bankroll !== 'number') return;
       state.bankroll = Math.max(0, Math.round(raw.bankroll + (Number(raw.pending) || 0)));
       state.stats = Object.assign(defaultStats(), raw.stats || {});
+      state.history = sanitizeHistory(raw.history);
       state.sound = raw.sound !== false;
     } catch (_) { /* игнорируем битые данные */ }
   }
@@ -417,6 +453,106 @@
     });
   }
 
+  // ---------- История раздач ----------
+  const handTotal = (cards) => (Array.isArray(cards) ? handValue(cards) : 0);
+
+  function recordHistoryEntry(net, totalBet) {
+    const dealerCards = Array.isArray(state.dealer) ? state.dealer : [];
+    const entry = {
+      n: state.stats.rounds,
+      bet: Math.round(totalBet),
+      net: Math.round(net),
+      dealerTotal: handTotal(dealerCards),
+      dealerCards: dealerCards.length,
+      dealerNatural: isNatural(dealerCards),
+      hands: (state.hands || []).map((hand) => {
+        const total = handTotal(hand.cards);
+        let result = hand.result || 'lose';
+        // Перебор узнаём по очкам: старые сохранения могли не иметь флага.
+        if (result === 'lose' && total > 21) result = 'bust';
+        // Мягкая рука записывается как на столе: 7/17.
+        const base = softBase(hand.cards);
+        const soft = base !== null && !isNatural(hand.cards);
+        return {
+          total,
+          soft,
+          softTotal: soft ? base : null,
+          result,
+          bet: Math.round(hand.bet),
+          payout: Math.round(hand.payout || 0),
+          doubled: Boolean(hand.doubled),
+        };
+      }),
+    };
+    state.history.unshift(entry);
+    if (state.history.length > HISTORY_MAX) state.history.length = HISTORY_MAX;
+  }
+
+  // Короткие подписи: в истории они стоят внутри компактных плашек.
+  const HISTORY_RESULT_LABEL = {
+    win: 'победа',
+    blackjack: 'блэкджек',
+    lose: 'проигрыш',
+    bust: 'перебор',
+    push: 'ничья',
+  };
+
+  function historyResultLabel(result) {
+    return HISTORY_RESULT_LABEL[result] || '';
+  }
+
+  function renderHistory() {
+    // Узел существует только пока открыто модальное окно.
+    const body = el.modalBody.querySelector('#historyBody');
+    if (!body) return;
+    const history = Array.isArray(state.history) ? state.history : [];
+
+    if (!history.length) {
+      body.innerHTML = `
+        <p class="history-empty">Здесь появятся последние раздачи: очки, ставка
+        и результат каждого раунда. Сыграйте первую руку.</p>
+      `;
+      return;
+    }
+
+    const rounds = history.map((entry) => {
+      const sign = entry.net > 0 ? 'plus' : entry.net < 0 ? 'minus' : 'zero';
+      const netText = entry.net === 0
+        ? '0 ₽'
+        : `${entry.net > 0 ? '+' : '−'}${numFmt.format(Math.abs(entry.net))} ₽`;
+
+      const hands = (entry.hands || []).map((hand) => `
+        <div class="history-hand ${hand.result}">
+          <span class="history-hand-total"${hand.soft ? ' title="Мягкая рука: туз считается за 11"' : ''}>${hand.soft && hand.softTotal ? `${hand.softTotal}/${hand.total}` : hand.total}</span>
+          <span class="history-hand-result">${historyResultLabel(hand.result)}</span>
+          <span class="history-hand-bet">${hand.doubled ? '×2 · ' : ''}${fmt(hand.bet)}</span>
+        </div>
+      `).join('');
+
+      return `
+        <article class="history-round">
+          <header class="history-round-head">
+            <span class="history-round-num">#${entry.n}</span>
+            <span class="history-round-net ${sign}">${netText}</span>
+            <span class="history-round-bet">ставка ${fmt(entry.bet)}</span>
+          </header>
+          <div class="history-dealer">
+            <span class="history-dealer-label">Дилер</span>
+            <span class="history-dealer-total">${entry.dealerTotal}${entry.dealerNatural ? ' · блэкджек' : ''}</span>
+            <span class="history-dealer-cards">${entry.dealerCards} карт.</span>
+          </div>
+          <div class="history-hands">${hands}</div>
+        </article>
+      `;
+    }).join('');
+
+    body.innerHTML = `
+      <p class="history-note">Раздач в истории: ${history.length}, свежие сверху.
+      Очки показаны по каждой руке игрока.</p>
+      <div class="history-list">${rounds}</div>
+    `;
+  }
+
   // ---------- Ставка и стопка фишек ----------
   let shownBetChips = null;
 
@@ -527,6 +663,8 @@
     el.soundBtn.classList.toggle('off', !state.sound);
     el.soundBtn.textContent = state.sound ? '🔊' : '🔇';
     el.soundBtn.setAttribute('aria-pressed', String(state.sound));
+    // Если история открыта во время анимации раунда — обновляем её на лету.
+    if (!el.overlay.hidden) renderHistory();
   }
 
   // ---------- Ставки ----------
@@ -883,6 +1021,7 @@
     state.stats.rounds++;
     state.stats.net += net;
     if (net > 0) state.stats.bestWin = Math.max(state.stats.bestWin, net);
+    recordHistoryEntry(net, totalBet);
 
     state.phase = 'betting';
     state.busy = false;
@@ -1033,9 +1172,26 @@
         Статистика хранится в этом браузере.
       </p>
       <div class="modal-actions">
+        <button class="ghost-btn" data-action="history">История раздач</button>
         <button class="primary-btn" data-close>Закрыть</button>
       </div>
     `);
+    const historyBtn = el.modalBody.querySelector('[data-action="history"]');
+    if (historyBtn) historyBtn.addEventListener('click', openHistory);
+  }
+
+  function openHistory() {
+    openModal(`
+      <h2>История раздач</h2>
+      <div id="historyBody"></div>
+      <div class="modal-actions">
+        <button class="ghost-btn" data-action="stats">Общая статистика</button>
+        <button class="primary-btn" data-close>Закрыть</button>
+      </div>
+    `);
+    const statsBtn = el.modalBody.querySelector('[data-action="stats"]');
+    if (statsBtn) statsBtn.addEventListener('click', openStats);
+    renderHistory();
   }
 
   function openReset() {
@@ -1056,6 +1212,7 @@
     state.bet = 0;
     state.betChips = [];
     state.stats = defaultStats();
+    state.history = [];
     state.phase = 'betting';
     state.busy = false;
     state.active = 0;
@@ -1080,6 +1237,7 @@
   el.rebuyBtn.addEventListener('click', rebuy);
   el.rulesBtn.addEventListener('click', openRules);
   el.statsBtn.addEventListener('click', openStats);
+  el.historyBtn.addEventListener('click', openHistory);
   el.resetBtn.addEventListener('click', openReset);
   el.modalClose.addEventListener('click', closeModal);
 
