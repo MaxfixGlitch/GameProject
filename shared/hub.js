@@ -110,16 +110,16 @@
     renderTopUp();
   }
 
+  // Кнопка всегда открывает окно пополнения: там и способы оплаты, и бонус.
+  // Точка на кнопке подсказывает, что бесплатный бонус сейчас доступен.
   function renderTopUp() {
     const info = Casino.getTopUp();
-    el.topUpBtn.disabled = !info.ready;
-    el.topUpBtn.classList.toggle('waiting', !info.ready);
-    el.topUpBtn.textContent = info.ready
-      ? `Бонус + ${numFmt.format(info.amount)} ₽`
-      : `Бонус через ${mmss(info.remaining)}`;
+    el.topUpBtn.disabled = false;
+    el.topUpBtn.classList.toggle('has-bonus', info.ready);
     el.topUpBtn.title = info.ready
-      ? 'Бесплатные фишки: доступны, заберите бонус'
-      : `Следующий бесплатный бонус через ${mmss(info.remaining)}`;
+      ? 'Доступен бесплатный бонус — откройте пополнение'
+      : `Способы оплаты и бесплатный бонус (через ${mmss(info.remaining)})`;
+    renderBonusBlock();
   }
 
   function gameStatsHTML(gameId) {
@@ -320,6 +320,143 @@
     `);
   }
 
+  // ---------- Пополнение баланса ----------
+  // Настоящие российские способы оплаты — и все отключены: это демо-казино
+  // на демо-фишки. Бесплатный бонус — единственный работающий способ.
+  const PAYMENT_METHODS = [
+    { id: 'sbp', name: 'СБП', note: 'Система быстрых платежей', icon: '⚡' },
+    { id: 'sber', name: 'СберБанк', note: 'Онлайн-банк', icon: '🟢' },
+    { id: 'tbank', name: 'Т-Банк', note: 'Мобильный банк', icon: '🟡' },
+    { id: 'alfa', name: 'Альфа-Банк', note: 'Мобильный банк', icon: '🔴' },
+    { id: 'yoomoney', name: 'ЮMoney', note: 'Кошелёк', icon: '💜' },
+    { id: 'card', name: 'Банковская карта', note: 'Мир, Visa, Mastercard', icon: '💳' },
+    { id: 'mobile', name: 'Мобильный платёж', note: 'Со счёта телефона', icon: '📱' },
+  ];
+
+  function paymentTileHTML(method) {
+    return `<button class="pay-method" type="button" data-pay="${method.id}">
+      <span class="pay-icon" aria-hidden="true">${method.icon}</span>
+      <span class="pay-text"><b>${method.name}</b><small>${method.note}</small></span>
+    </button>`;
+  }
+
+  function bonusBlockHTML() {
+    const info = Casino.getTopUp();
+    const ready = info.ready;
+    return `
+      <div class="deposit-bonus${ready ? ' ready' : ''}" id="depositBonus">
+        <div class="deposit-bonus-head">
+          <span class="deposit-bonus-icon" aria-hidden="true">🎁</span>
+          <div class="deposit-bonus-text">
+            <b>Бесплатный бонус</b>
+            <small>${numFmt.format(info.amount)} ₽ раз в 30 минут — без оплаты</small>
+          </div>
+        </div>
+        <button class="primary-btn" id="claimBonusBtn" type="button" ${ready ? '' : 'disabled'}>
+          ${ready ? `Забрать ${numFmt.format(info.amount)} ₽` : `Бонус через ${mmss(info.remaining)}`}
+        </button>
+        <p class="deposit-bonus-hint" id="bonusHint">
+          ${ready ? 'Бонус доступен — забирайте.' : 'Пока ждёте, можно играть на текущий баланс.'}
+        </p>
+      </div>`;
+  }
+
+  function openDeposit() {
+    renderProfile();
+    openModal(`
+      <h2>Пополнить баланс</h2>
+      <p class="deposit-lede">Выберите способ оплаты.</p>
+      <div class="pay-grid">${PAYMENT_METHODS.map(paymentTileHTML).join('')}</div>
+      <p class="pay-answer" id="payAnswer" role="status" hidden></p>
+      ${bonusBlockHTML()}
+      <p class="deposit-disclaimer">
+        Казино демонстрационное: реальные деньги не принимаются, все способы оплаты
+        отключены. Играем на демо-фишки — их даёт бесплатный бонус.
+      </p>
+      <div class="modal-actions">
+        <button class="primary-btn" data-close>Закрыть</button>
+      </div>
+    `);
+
+    const answer = el.modalBody.querySelector('#payAnswer');
+    el.modalBody.querySelectorAll('[data-pay]').forEach((tile) => {
+      tile.addEventListener('click', () => {
+        const method = PAYMENT_METHODS.find((item) => item.id === tile.dataset.pay);
+        if (!method) return;
+        el.modalBody.querySelectorAll('.pay-method').forEach((node) => {
+          if (node !== tile) node.classList.remove('tried', 'shake');
+        });
+        tile.classList.remove('shake');
+        void tile.offsetWidth;
+        tile.classList.add('tried', 'shake');
+
+        answer.hidden = false;
+        answer.innerHTML = `<b>Способ оплаты «${method.name}» пока недоступен.</b> `
+          + 'Это демо-казино, оплата отключена. Заберите бесплатный бонус ниже.';
+        beep({ freq: 180, dur: 0.16, type: 'square', gain: 0.02 });
+
+        // Подсказываем, что ниже есть рабочий вариант.
+        const bonus = el.modalBody.querySelector('#depositBonus');
+        if (bonus) {
+          bonus.classList.remove('nudge');
+          void bonus.offsetWidth;
+          bonus.classList.add('nudge');
+          if (typeof bonus.scrollIntoView === 'function') {
+            bonus.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        }
+      });
+    });
+
+    el.modalBody.querySelector('#claimBonusBtn').addEventListener('click', claimBonusInModal);
+  }
+
+  function claimBonusInModal() {
+    const result = Casino.claimTopUp();
+    if (!result.ok) {
+      renderBonusBlock();
+      return;
+    }
+    Casino.save();
+    renderBalance(true);
+    renderGames();
+    const bonus = el.modalBody.querySelector('#depositBonus');
+    const answer = el.modalBody.querySelector('#payAnswer');
+    if (answer) {
+      answer.hidden = false;
+      answer.className = 'pay-answer win';
+      answer.innerHTML = `<b>+${fmt(result.amount)} зачислено на баланс.</b> `
+        + 'Бесплатный бонус — единственный работающий способ пополнения.';
+    }
+    if (bonus) {
+      bonus.classList.add('claimed');
+      setTimeout(() => bonus.classList.remove('claimed'), 900);
+    }
+    renderBonusBlock();
+    beep({ freq: 880, dur: 0.08, type: 'triangle' });
+  }
+
+  // Обновляем кнопку бонуса, пока окно пополнения открыто.
+  function renderBonusBlock() {
+    const node = el.modalBody.querySelector('#depositBonus');
+    if (!node || el.overlay.hidden) return;
+    const info = Casino.getTopUp();
+    node.classList.toggle('ready', info.ready);
+    const btn = node.querySelector('#claimBonusBtn');
+    if (btn) {
+      btn.disabled = !info.ready;
+      btn.textContent = info.ready
+        ? `Забрать ${numFmt.format(info.amount)} ₽`
+        : `Бонус через ${mmss(info.remaining)}`;
+    }
+    const hint = node.querySelector('#bonusHint');
+    if (hint) {
+      hint.textContent = info.ready
+        ? 'Бонус доступен — забирайте.'
+        : 'Пока ждёте, можно играть на текущий баланс.';
+    }
+  }
+
   // ---------- Цели и звания ----------
   function goalCardHTML(goal) {
     const pct = goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0;
@@ -390,18 +527,7 @@
     if (Casino.getSound()) beep({ freq: 880, dur: 0.06 });
   });
 
-  el.topUpBtn.addEventListener('click', () => {
-    const result = Casino.claimTopUp();
-    if (!result.ok) {
-      renderTopUp();
-      return;
-    }
-    Casino.save();
-    renderBalance(true);
-    renderGames();
-    renderTopUp();
-    beep({ freq: 880, dur: 0.08, type: 'triangle' });
-  });
+  el.topUpBtn.addEventListener('click', openDeposit);
 
   el.historyBtn.addEventListener('click', openHistory);
   el.heroHistoryBtn.addEventListener('click', openHistory);

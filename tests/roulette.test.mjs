@@ -290,11 +290,30 @@ console.log('• Сила и длительность спина меняютс�
   const turns = new Set(spins.map((s) => Math.round(s.wheelTurns * 10)));
   check(durations.size >= 6, `длительность вращения разная: ${durations.size} значений из 10`);
   check(turns.size >= 4, `сила раскрутки разная: ${turns.size} значений из 10`);
-  check(Math.min(...spins.map((s) => s.wheelTurns)) < 6
-    && Math.max(...spins.map((s) => s.wheelTurns)) > 8,
-  'бывают и слабые, и сильные спины');
   check(spins.every((s) => Number.isInteger(s.ballTurns)),
     'число оборотов шарика целое — иначе он не попадёт в карман');
+  check(spins.every((s) => s.duration >= 78 && s.duration <= 100 * 1.12),
+    'длительность укладывается в заявленный разброс');
+
+  // Края разброса проверяем детерминированно: Math.random подменяем.
+  // Иначе тест ловит случайность и изредка падает.
+  const realRandom = game.window.Math.random;
+  const spinWith = async (value) => {
+    game.window.Math.random = () => value;
+    const number = (Math.round(value * 30) + 5) % 37;
+    game.api.forceNumber(number);
+    game.api.placeBet(`straight:${number}`, 25);
+    await game.api.spin();
+    return { ...game.api.state.lastSpin };
+  };
+  const weak = await spinWith(0);
+  const strong = await spinWith(0.999);
+  game.window.Math.random = realRandom;
+
+  check(weak.wheelTurns < 5, `слабый бросок — около 4.5 оборота, получено ${weak.wheelTurns.toFixed(2)}`);
+  check(strong.wheelTurns > 11, `сильный бросок — около 11.5 оборота, получено ${strong.wheelTurns.toFixed(2)}`);
+  check(strong.duration > weak.duration, 'сильный бросок крутится дольше слабого');
+  check(strong.wheelTurns - weak.wheelTurns > 6, 'разброс силы — больше шести оборотов');
 }
 
 // ---------- История спинов ----------

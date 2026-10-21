@@ -269,6 +269,69 @@ console.log('• Бонус и кулдаун');
     'без localStorage кулдаун читается из cookie');
 }
 
+// ---------- Окно пополнения ----------
+console.log('• Пополнение: способы оплаты и бонус');
+{
+  const shop = open(hubHtml, [rawCasino, rawHub], {});
+  const doc = shop.document;
+  const topUpBtn = doc.querySelector('#topUpBtn');
+
+  check(topUpBtn.textContent.includes('Пополнить баланс'), 'кнопка называется «Пополнить баланс»');
+  check(topUpBtn.disabled === false, 'кнопка пополнения всегда доступна');
+  check(topUpBtn.classList.contains('has-bonus'), 'на кнопке точка: бонус доступен');
+
+  topUpBtn.click();
+  check(!doc.querySelector('#overlay').hidden, 'окно пополнения открывается');
+  check(doc.querySelector('#modalBody h2').textContent.includes('Пополнить баланс'), 'заголовок окна');
+
+  const methods = [...doc.querySelectorAll('.pay-method')];
+  check(methods.length === 7, `семь способов оплаты, получено ${methods.length}`);
+  const names = methods.map((m) => m.querySelector('b').textContent);
+  ['СБП', 'СберБанк', 'Т-Банк', 'ЮMoney', 'Банковская карта'].forEach((name) => {
+    check(names.includes(name), `есть способ «${name}»`);
+  });
+  check(doc.querySelector('.deposit-disclaimer').textContent.includes('реальные деньги не принимаются'),
+    'в окне сказано, что это демо');
+
+  // Любой способ оплаты отвечает, что он недоступен.
+  const answer = doc.querySelector('#payAnswer');
+  check(answer.hidden, 'сначала ответа нет');
+  doc.querySelector('[data-pay="sbp"]').click();
+  check(!answer.hidden, 'после клика появился ответ');
+  check(answer.textContent.includes('СБП'), 'в ответе назван выбранный способ');
+  check(answer.textContent.includes('недоступен'), 'в ответе сказано, что способ недоступен');
+  check(answer.textContent.includes('бонус'), 'ответ отправляет к бесплатному бонусу');
+  check(doc.querySelector('[data-pay="sbp"]').classList.contains('shake'), 'плитка дрогнула');
+
+  doc.querySelector('[data-pay="card"]').click();
+  check(answer.textContent.includes('Банковская карта'), 'ответ обновился на новый способ');
+  check(!doc.querySelector('[data-pay="sbp"]').classList.contains('shake'), 'старая плитка сброшена');
+
+  // Бонус живёт в том же окне.
+  const bonusBlock = doc.querySelector('#depositBonus');
+  check(bonusBlock !== null, 'внизу окна блок бонуса');
+  check(bonusBlock.classList.contains('ready'), 'бонус помечен доступным');
+  const claim = doc.querySelector('#claimBonusBtn');
+  check(claim.textContent.includes('Забрать'), 'кнопка предлагает забрать бонус');
+
+  claim.click();
+  check(shop.Casino.getBalance() === 2000, `бонус зачислен: 2 000, получено ${shop.Casino.getBalance()}`);
+  check(claim.disabled, 'после получения кнопка заблокирована');
+  check(claim.textContent.includes('Бонус через'), 'на кнопке обратный отсчёт');
+  check(answer.textContent.includes('зачислено'), 'в окне подтверждение зачисления');
+  check(!topUpBtn.classList.contains('has-bonus'), 'точка на кнопке погасла');
+
+  // Кнопка бонуса и кнопка пополнения — разные вещи.
+  check(doc.querySelectorAll('.pay-method.tried').length === 1, 'помечен только один способ');
+
+  doc.querySelector('#modalClose').click();
+  check(doc.querySelector('#overlay').hidden, 'окно пополнения закрывается');
+  topUpBtn.click();
+  check(!doc.querySelector('#overlay').hidden, 'окно открывается снова');
+  check(doc.querySelector('#claimBonusBtn').disabled, 'после перезагрузки окна бонус всё ещё на кулдауне');
+  doc.querySelector('#modalClose').click();
+}
+
 // ---------- Цели и звания ----------
 console.log('• Цели, звания и бонусы');
 {

@@ -742,6 +742,40 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
 .action-btn.split { border-color: rgba(192, 132, 252, .38); }
 .action-btn.split:hover:not(:disabled) { background: rgba(192, 132, 252, .14); border-color: rgba(192, 132, 252, .7); }
 
+/* Сплит стал доступен впервые за руку — мягко подсвечиваем кнопку. */
+.action-btn.split.split-ready {
+  border-color: rgba(192, 132, 252, .95);
+  background: rgba(192, 132, 252, .2);
+  animation: splitReady 1.1s ease-in-out 3;
+}
+.action-btn.split.split-ready kbd { color: #e9d5ff; background: rgba(192, 132, 252, .3); }
+.action-btn.split.split-ready::after {
+  content: 'можно разделить';
+  position: absolute;
+  transform: translateY(-34px);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(192, 132, 252, .92);
+  color: #1b0b2a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: splitTag .3s ease-out;
+}
+.action-btn.split { position: relative; }
+
+@keyframes splitReady {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
+  45% { box-shadow: 0 0 0 6px rgba(192, 132, 252, .28); }
+}
+
+@keyframes splitTag {
+  from { opacity: 0; transform: translateY(-26px) scale(.9); }
+  to { opacity: 1; transform: translateY(-34px) scale(1); }
+}
+
 .rebuy-panel { flex-direction: column; gap: 10px; text-align: center; }
 .rebuy-panel p { margin: 0; color: var(--muted); font-size: 14px; }
 

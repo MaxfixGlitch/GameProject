@@ -64,6 +64,7 @@
     messageClass: '',
     shoe: [],
     handSeq: 0,
+    splitPulseFor: null, // какую руку уже подсветили подсказкой о сплите
   };
 
   // Поколение игры: сброс увеличивает счётчик, чтобы незавершённые
@@ -638,6 +639,19 @@
     return '';
   }
 
+  const reduceMotion = () => window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function pulseSplitBtn() {
+    if (reduceMotion()) return;
+    el.splitBtn.classList.remove('split-ready');
+    // Перезапуск анимации: без этого повторный вызов ничего не покажет.
+    void el.splitBtn.offsetWidth;
+    el.splitBtn.classList.add('split-ready');
+    clearTimeout(pulseSplitBtn.timer);
+    pulseSplitBtn.timer = setTimeout(() => el.splitBtn.classList.remove('split-ready'), 3600);
+  }
+
   function renderRebuy() {
     const info = Casino.getTopUp();
     el.rebuyBtn.disabled = !info.ready;
@@ -674,6 +688,19 @@
     el.splitBtn.title = hint || `Разделить ${hand ? hand.cards[0].rank : ''} и ${hand ? hand.cards[1].rank : ''} `
       + 'на две руки, поставив ещё столько же';
     el.splitBtn.setAttribute('aria-description', el.splitBtn.title);
+
+    // Первый раз за руку, когда сплит стал доступен, — подсвечиваем кнопку,
+    // чтобы её не пропустили. Дальше не мигаем: это раздражает.
+    if (hint === '') {
+      if (hand && state.splitPulseFor !== hand.id) {
+        state.splitPulseFor = hand.id;
+        pulseSplitBtn();
+      }
+    } else if (el.splitBtn.classList.contains('split-ready')) {
+      // Сплит снова недоступен — снимаем подсветку, чтобы она не висела зря.
+      clearTimeout(pulseSplitBtn.timer);
+      el.splitBtn.classList.remove('split-ready');
+    }
   }
 
   function updateUI() {

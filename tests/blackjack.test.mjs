@@ -10,7 +10,7 @@ const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
 const rawGame = fs.readFileSync(`${root}games/blackjack/game.js`, 'utf8');
 const game = rawGame.replace(
   '  // ---------- Старт ----------',
-  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI, renderRebuy, splitHint };\n  // ---------- Старт ----------'
+  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI, renderRebuy, splitHint };\n  window.__BJ_REDUCE_MOTION__ = false;\n  // ---------- Старт ----------'
 );
 if (game === rawGame) throw new Error('Не удалось внедрить тестовый хук');
 
@@ -35,6 +35,12 @@ window.addEventListener('unhandledrejection', (event) => {
 const realTimeout = window.setTimeout.bind(window);
 window.setTimeout = (fn, ms, ...args) => realTimeout(fn, Math.max(1, Math.round((ms || 0) / 60)), ...args);
 
+window.matchMedia = (query) => ({
+  matches: query.includes('prefers-reduced-motion') ? false : false,
+  media: query,
+  addEventListener() {},
+  removeEventListener() {},
+});
 window.eval(rawCasino);
 window.eval(game);
 
@@ -475,6 +481,44 @@ console.log('• Кнопка «Сплит» объясняет, почему н
   check(splitBtn().title.includes('Нужно ещё'),
     `подсказка называет нехватку: ${splitBtn().title}`);
   check(splitBtn().title.includes('60'), `нехватка посчитана: ${splitBtn().title}`);
+}
+
+// ---------- Подсветка кнопки «Сплит» ----------
+console.log('• Кнопка «Сплит» подсвечивается, когда становится доступной');
+{
+  await resetUI();
+  const splitBtn = () => doc.querySelector('#splitBtn');
+  check(!splitBtn().classList.contains('split-ready'), 'до раздачи подсветки нет');
+
+  // Пара восьмёрок: сплит впервые доступен — кнопка подсвечивается.
+  await beginRound(['8', '10', '8', '9']);
+  await waitFor(() => api.state.phase === 'player', 'ход игрока с парой');
+  check(splitBtn().classList.contains('split-ready'), 'кнопка подсветилась при первой возможности');
+  check(splitBtn().title.includes('две руки'), 'подсказка объясняет действие');
+
+  // Повторные перерисовки не перезапускают подсветку.
+  splitBtn().classList.remove('split-ready');
+  api.updateUI();
+  api.updateUI();
+  check(!splitBtn().classList.contains('split-ready'),
+    'повторная отрисовка не мигает заново');
+
+  // Делаем сплит: кнопка больше не доступна — подсветка снимается.
+  await action('split');
+  await waitFor(() => api.state.hands.length === 2, 'две руки после сплита');
+  check(!splitBtn().classList.contains('split-ready') || !splitBtn().disabled,
+    'подсветка не висит на недоступной кнопке');
+  // Доигрываем обе руки «Хватит» и ждём расчёта.
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    if (api.state.phase === 'betting' && !api.state.busy) break;
+    const stand = doc.querySelector('#standBtn');
+    if (api.state.phase === 'player' && !api.state.busy && !stand.disabled) {
+      stand.click();
+    }
+    await sleep(20);
+  }
+  await waitSettled();
 }
 
 // 1. Блэкджек игрока: K + A, у дилера 9 + 7

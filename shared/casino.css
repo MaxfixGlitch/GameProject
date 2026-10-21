@@ -464,6 +464,133 @@ button { font-family: inherit; cursor: pointer; }
 
 .hub-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
+/* ---------------- Пополнение баланса ---------------- */
+
+/* Точка на кнопке: бесплатный бонус доступен. */
+#topUpBtn { position: relative; }
+#topUpBtn.has-bonus::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--win);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, .25);
+  animation: bonusDot 1.6s ease-in-out infinite;
+}
+
+@keyframes bonusDot {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(74, 222, 128, .25); }
+  50% { box-shadow: 0 0 0 7px rgba(74, 222, 128, .08); }
+}
+
+.deposit-lede { margin: 4px 0 10px; font-size: 13px; color: var(--muted); }
+
+.pay-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.pay-method {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .045);
+  color: var(--text);
+  text-align: left;
+  transition: .16s;
+}
+.pay-method:hover { border-color: rgba(233, 196, 106, .55); background: rgba(233, 196, 106, .1); transform: translateY(-1px); }
+.pay-method.tried { border-color: rgba(248, 113, 113, .55); background: rgba(248, 113, 113, .08); }
+
+.pay-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, .3);
+  font-size: 16px;
+  flex: none;
+}
+.pay-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.pay-text b { font-size: 13px; font-weight: 700; }
+.pay-text small { font-size: 10.5px; color: var(--muted); }
+
+.pay-method.shake { animation: payShake .38s cubic-bezier(.36, .07, .19, .97); }
+@keyframes payShake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+.pay-answer {
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border-radius: 11px;
+  border: 1px solid rgba(248, 113, 113, .35);
+  background: rgba(248, 113, 113, .09);
+  color: #ffd9d9;
+  font-size: 12px;
+  line-height: 1.5;
+  animation: goalPop .25s ease-out;
+}
+.pay-answer.win {
+  border-color: rgba(74, 222, 128, .4);
+  background: rgba(74, 222, 128, .1);
+  color: #d8ffe5;
+}
+.pay-answer b { color: #fff; }
+
+.deposit-bonus {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(233, 196, 106, .35);
+  background: rgba(0, 0, 0, .25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: .2s;
+}
+.deposit-bonus.ready {
+  border-color: rgba(74, 222, 128, .55);
+  background: rgba(74, 222, 128, .08);
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, .2) inset;
+}
+.deposit-bonus.claimed { animation: goalPop .4s ease-out; }
+.deposit-bonus.nudge {
+  border-color: var(--gold);
+  animation: bonusNudge .9s ease-in-out 2;
+}
+@keyframes bonusNudge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(233, 196, 106, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(233, 196, 106, .3); }
+}
+
+.deposit-bonus-head { display: flex; align-items: center; gap: 10px; }
+.deposit-bonus-icon { font-size: 22px; }
+.deposit-bonus-text { display: flex; flex-direction: column; gap: 2px; }
+.deposit-bonus-text b { font-size: 13px; color: var(--gold-soft); }
+.deposit-bonus-text small { font-size: 11px; color: var(--muted); }
+
+.deposit-bonus .primary-btn { width: 100%; }
+.deposit-bonus-hint { margin: 0; font-size: 11px; color: var(--muted); text-align: center; }
+
+.deposit-disclaimer {
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
 /* ---------------- Звания и цели ---------------- */
 
 .hub-hero-badges {
