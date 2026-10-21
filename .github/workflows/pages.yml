@@ -22,7 +22,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Получить репозиторий
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Собрать статику игры
         run: |
@@ -33,15 +33,15 @@ jobs:
              _site/
 
       - name: Включить GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
 
       - name: Загрузить артефакт
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
       - name: Опубликовать
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

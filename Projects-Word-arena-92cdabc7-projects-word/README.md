@@ -27,22 +27,25 @@ python3 -m http.server 8080
 # http://localhost:8080
 ```
 
-## Публикация на GitHub Pages
+## Играть онлайн
 
-Игра статическая, поэтому её можно выложить на GitHub Pages — тогда она открывается
-по ссылке с любого устройства, без установки и локального сервера.
+**https://maxfixglitch.github.io/GameProject/** — игра опубликована на GitHub Pages
+и открывается с любого устройства, без установки и локального сервера.
 
-В репозитории уже есть workflow `.github/workflows/pages.yml`: он собирает `index.html`,
-`style.css` и `game.js` (без тестов и служебных файлов) и публикует их при каждом пуше в `main`.
+### Как устроена публикация
 
-Что нужно один раз включить в настройках репозитория:
+Workflow `.github/workflows/pages.yml` собирает `index.html`, `style.css` и `game.js`
+(без тестов, `package.json` и служебных файлов) и публикует их при каждом пуше в `main`.
+Ничего настраивать вручную не нужно: Pages включён, источник — GitHub Actions,
+HTTPS форсируется.
 
-1. **Settings → General → Danger zone → Change visibility → Make public.**
-   GitHub Pages для приватных репозиториев доступен только на платных тарифах (Pro/Team/Enterprise).
-2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
-   Workflow может включить это и сам, но проверить настройку не помешает.
+Локальная проверка сборки перед пушем:
 
-После этого игра будет доступна по адресу `https://<ваш-логин>.github.io/GameProject/`.
+```bash
+mkdir -p _site
+cp index.html style.css game.js _site/
+python3 -m http.server 8080 --directory _site
+```
 
 ## Тесты
 
