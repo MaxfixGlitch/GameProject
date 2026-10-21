@@ -59,6 +59,7 @@
     settled: false,
     highlight: new Set(),
     numbers: [],       // последние выпавшие числа
+    hubNumber: null,   // число в ступице колеса (последнее выпавшее)
     sound: true,
     wheelAngle: 0,
     ballAngle: 0,
@@ -342,11 +343,12 @@
         <text x="${CX}" y="${CY - 26}" text-anchor="middle"
           font-family="Georgia, serif" font-size="9" letter-spacing="3"
           fill="rgba(233,196,106,.55)">CASINO</text>
-        <text x="${CX}" y="${CY}" dy="0.35em" text-anchor="middle"
-          font-family="Georgia, serif" font-size="26" font-weight="700" fill="rgba(247,231,182,.85)">21</text>
-        <text x="${CX}" y="${CY + 32}" text-anchor="middle"
+        <text id="hubNumber" x="${CX}" y="${CY}" dy="0.35em" text-anchor="middle"
+          font-family="Georgia, serif" font-size="26" font-weight="700"
+          fill="${hubColor(state.hubNumber)}">${hubNumberText()}</text>
+        <text id="hubCaption" x="${CX}" y="${CY + 32}" text-anchor="middle"
           font-family="Georgia, serif" font-size="8" letter-spacing="2.4"
-          fill="rgba(233,196,106,.45)">ROULETTE</text>
+          fill="rgba(233,196,106,.45)">${Number.isInteger(state.hubNumber) ? 'ВЫПАЛО' : 'ROULETTE'}</text>
       </g>
       ${diamonds}
       <circle id="ball" cx="${px(state.ballAngle, state.ballRadius).toFixed(2)}"
@@ -355,6 +357,32 @@
 
     el.rotor = el.wheel.querySelector('#wheelRotor');
     el.ball = el.wheel.querySelector('#ball');
+  }
+
+  // ---------- Число в ступице ----------
+  // Раньше в центре всегда стояло «21» — его легко было принять за результат.
+  // Теперь там последнее выпавшее число, а до первого спина — прочерк.
+  function hubNumberText() {
+    return Number.isInteger(state.hubNumber) ? String(state.hubNumber) : '—';
+  }
+
+  function hubColor(number) {
+    if (!Number.isInteger(number)) return 'rgba(247,231,182,.4)';
+    const color = colorOf(number);
+    if (color === 'red') return '#f4908a';
+    if (color === 'black') return '#d7dee8';
+    return '#86e3ae';
+  }
+
+  function updateHub() {
+    if (!el.wheel) return;
+    const number = el.wheel.querySelector('#hubNumber');
+    const caption = el.wheel.querySelector('#hubCaption');
+    if (number) {
+      number.textContent = hubNumberText();
+      number.setAttribute('fill', hubColor(state.hubNumber));
+    }
+    if (caption) caption.textContent = Number.isInteger(state.hubNumber) ? 'ВЫПАЛО' : 'ROULETTE';
   }
 
   function drawWheel() {
@@ -797,6 +825,9 @@
     state.highlight = new Set(winKeys);
     highlightWedge(number);
 
+    state.hubNumber = number;
+    updateHub();
+
     el.badge.hidden = false;
     el.badge.className = `result-badge ${color}`;
     el.badge.textContent = String(number);
@@ -948,12 +979,14 @@
   });
 
   document.addEventListener('keydown', (event) => {
+    // Casino.keyOf смотрит на физическую клавишу, поэтому русская
+    // раскладка не ломает Space, C и H.
+    const key = Casino.keyOf(event);
     if (!el.overlay.hidden) {
-      if (event.key === 'Escape') closeModal();
+      if (key === 'escape') closeModal();
       return;
     }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-    const key = event.key.toLowerCase();
     if (key === ' ' || key === 'enter') {
       event.preventDefault();
       if (!el.spinBtn.disabled) spin();
@@ -1136,14 +1169,17 @@
   Casino.settlePending(GAME_ID);
   state.sound = Casino.getSound();
 
-  buildWheel();
-  drawWheel();
-
   const lastNumbers = Casino.history(GAME_ID)
     .slice(0, 12)
     .map((entry) => Number(entry.number))
     .filter((n) => Number.isFinite(n));
   state.numbers = lastNumbers;
+  // После перезагрузки в центре колеса — последнее число из истории,
+  // а не случайное и не всегдашняя «21».
+  state.hubNumber = lastNumbers.length ? lastNumbers[0] : null;
+
+  buildWheel();
+  drawWheel();
 
   updateUI();
   renderSpins();

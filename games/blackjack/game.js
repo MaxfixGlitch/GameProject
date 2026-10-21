@@ -1346,13 +1346,14 @@
   });
 
   document.addEventListener('keydown', (event) => {
+    // Casino.keyOf смотрит на физическую клавишу, поэтому русская
+    // раскладка не ломает Enter, H, S, D и P.
+    const key = Casino.keyOf(event);
     if (!el.overlay.hidden) {
-      if (event.key === 'Escape') closeModal();
+      if (key === 'escape') closeModal();
       return;
     }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-
-    const key = event.key.toLowerCase();
 
     if (state.phase === 'betting' && (key === 'enter' || key === ' ')) {
       event.preventDefault();

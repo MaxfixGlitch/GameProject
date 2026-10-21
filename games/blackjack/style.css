@@ -3,6 +3,8 @@
    ============================================================ */
 
 :root {
+  /* Тёмная тема для системных элементов: ползунков, полей, подсказок. */
+  color-scheme: dark;
   --gold: #e9c46a;
   --gold-soft: #f7e7b6;
   --gold-deep: #b98f33;
@@ -23,6 +25,40 @@
 }
 
 * { box-sizing: border-box; }
+
+/* ---------------- Ползунки ---------------- */
+/* То же золото на тёмном фетре, что и на остальных страницах казино.
+   Стандартные свойства ставим только для Firefox: в Chrome они
+   отключают псевдоэлементы ::-webkit-scrollbar. */
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background: linear-gradient(180deg, rgba(247, 231, 182, .7), rgba(185, 143, 51, .85));
+  background-clip: padding-box;
+  min-height: 34px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold-deep));
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:active { background: var(--gold); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(233, 196, 106, .5) rgba(255, 255, 255, .06);
+  }
+}
 
 html, body { height: 100%; }
 

@@ -545,6 +545,38 @@
     save: persist,
     load,
 
+    /**
+     * Клавиша независимо от раскладки.
+     *
+     * На русской раскладке event.key для клавиши C — это «с», и горячие
+     * клавиши переставали работать. Физическая клавиша (event.code) от
+     * раскладки не зависит, поэтому она в приоритете, а event.key — запасной
+     * вариант для старых браузеров и синтетических событий.
+     */
+    keyOf(event) {
+      if (!event) return '';
+      const code = typeof event.code === 'string' ? event.code : '';
+      const special = {
+        Space: ' ',
+        Spacebar: ' ',
+        Enter: 'enter',
+        NumpadEnter: 'enter',
+        Escape: 'escape',
+        Esc: 'escape',
+        ArrowUp: 'arrowup',
+        ArrowDown: 'arrowdown',
+        ArrowLeft: 'arrowleft',
+        ArrowRight: 'arrowright',
+        Backspace: 'backspace',
+      };
+      if (special[code]) return special[code];
+      if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+      if (/^(Digit|Numpad)\d$/.test(code)) return code.slice(code.length - 1);
+      const key = typeof event.key === 'string' ? event.key : '';
+      if (key === ' ' || key === 'Spacebar') return ' ';
+      return key.toLowerCase();
+    },
+
     resetGame(gameId) {
       stats[gameId] = Object.assign({}, STAT_TEMPLATES[gameId] || {});
       history[gameId] = [];

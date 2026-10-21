@@ -216,8 +216,6 @@
   /* Запас по краям: подъём клетки при наведении и чипы ставок не должны
      упираться в границу и обрезаться. */
   padding: 10px 10px 6px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(233, 196, 106, .4) transparent;
 }
 
 .bet-table {
@@ -331,8 +329,6 @@
   max-height: min(58vh, 520px);
   overflow-y: auto;
   padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(233, 196, 106, .4) transparent;
 }
 
 .spin-empty {

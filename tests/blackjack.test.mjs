@@ -123,6 +123,27 @@ check(doc.querySelector('#betAmount').textContent.includes('100'), 'ставка
 click('#clearBet');
 check(bankroll() === 1000 && api.state.bet === 0, 'сброс ставки возвращает фишки');
 
+// ---------- Горячие клавиши при русской раскладке ----------
+console.log('• Русская раскладка');
+{
+  const dom = boot();
+  const d = dom.window.document;
+  const key = (event) => dom.window.Casino.keyOf(event);
+  check(key({ key: 'с', code: 'KeyC' }) === 'c', 'C на русской раскладке распознаётся');
+  check(key({ key: 'ф', code: 'KeyH' }) === 'h', 'H на русской раскладке распознаётся');
+  check(key({ key: 'ы', code: 'KeyS' }) === 's', 'S на русской раскладке распознаётся');
+  check(key({ key: 'в', code: 'KeyD' }) === 'd', 'D на русской раскладке распознаётся');
+
+  // Ставка и раздача по Enter на русской раскладке — физическая клавиша та же.
+  d.querySelector('[data-chip="100"]').click();
+  d.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'н', code: 'KeyH' }));
+  check(dom.window.__BJ_TEST__.state.bet === 100, 'ставка не слетела от посторонней клавиши');
+  d.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter' }));
+  check(dom.window.__BJ_TEST__.state.phase !== 'betting', 'Enter раздаёт карты');
+  d.querySelector('#standBtn').click();
+  await sleep(20);
+}
+
 // ---------- Стопка фишек на столе ----------
 console.log('• Стопка фишек на столе');
 const stackEl = doc.querySelector('#betChips');

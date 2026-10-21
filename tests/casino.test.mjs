@@ -387,6 +387,25 @@ console.log('• Цели, звания и бонусы');
 }
 
 // ---------- Хаб: карточки со статистикой ----------
+console.log('• Горячие клавиши при русской раскладке');
+{
+  const dom = open(hubHtml, [rawCasino, rawHub]);
+  const Casino = dom.window.Casino;
+  const keyOf = (event) => Casino.keyOf(event);
+
+  // На русской раскладке event.key для клавиши C — «с», а физическая та же.
+  check(keyOf({ key: 'с', code: 'KeyC' }) === 'c', 'C на русской раскладке — это c');
+  check(keyOf({ key: 'р', code: 'KeyH' }) === 'h', 'H на русской раскладке — это h');
+  check(keyOf({ key: 'я', code: 'KeyZ' }) === 'z', 'Z на русской раскладке — это z');
+  check(keyOf({ key: ' ', code: 'Space' }) === ' ', 'пробел определяется по code');
+  check(keyOf({ key: 'Enter', code: 'NumpadEnter' }) === 'enter', 'Enter с цифрового блока');
+  check(keyOf({ key: 'Escape' }) === 'escape', 'Escape без code тоже работает');
+  check(keyOf({ key: 'H' }) === 'h', 'заглавная буква без code приводится к строчной');
+  check(keyOf({ key: 'ArrowDown' }) === 'arrowdown', 'стрелки распознаются');
+  check(keyOf({ key: 'с' }) === 'с', 'если code нет, остаётся исходный символ');
+  check(keyOf(null) === '', 'пустое событие не ломает обработчик');
+}
+
 console.log('• Карточки игр');
 // Статистика засевается до загрузки страницы: карточки рисуются при старте.
 const board = open(hubHtml, [rawCasino, rawHub], {

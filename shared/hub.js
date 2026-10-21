@@ -550,7 +550,7 @@
   });
 
   document.addEventListener('keydown', (event) => {
-    if (!el.overlay.hidden && event.key === 'Escape') closeModal();
+    if (!el.overlay.hidden && Casino.keyOf(event) === 'escape') closeModal();
   });
 
   function renderSound() {

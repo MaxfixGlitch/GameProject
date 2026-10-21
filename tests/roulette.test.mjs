@@ -147,6 +147,10 @@ await api.spin();
 await sleep(5);
 
 check(api.state.numbers[0] === 17, `выпало 17, получено ${api.state.numbers[0]}`);
+check(doc.querySelector('#hubNumber').textContent === '17',
+  `в центре колеса выпавшее число, получено «${doc.querySelector('#hubNumber').textContent}»`);
+check(doc.querySelector('#hubCaption').textContent === 'ВЫПАЛО',
+  'под числом в центре подпись «выпало»');
 check(api.state.bets && Object.keys(api.state.bets).length === 0, 'после расчёта ставки убраны');
 check(balance() === 900 + 3600, `выплата 35:1: ожидалось 4500, получено ${balance()}`);
 const stats = window.Casino.stats('roulette');
@@ -390,6 +394,12 @@ console.log('• История спинов: что выбрано и что в
   check(!game.doc.querySelector('#overlay').hidden, 'клавиша H открывает историю');
   game.doc.dispatchEvent(new game.window.KeyboardEvent('keydown', { key: 'Escape' }));
   check(game.doc.querySelector('#overlay').hidden, 'Escape закрывает историю');
+
+  // Русская раскладка: event.key — «р», но физическая клавиша та же H.
+  game.doc.dispatchEvent(new game.window.KeyboardEvent('keydown', { key: 'р', code: 'KeyH' }));
+  check(!game.doc.querySelector('#overlay').hidden, 'клавиша H работает на русской раскладке');
+  game.doc.dispatchEvent(new game.window.KeyboardEvent('keydown', { key: 'Escape' }));
+  check(game.doc.querySelector('#overlay').hidden, 'окно закрывается');
 
   game.doc.querySelector('#historyTopBtn').click();
   check(!game.doc.querySelector('#overlay').hidden, 'иконка истории в шапке открывает окно');
