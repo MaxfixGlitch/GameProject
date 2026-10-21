@@ -1122,7 +1122,7 @@
     const goalReward = reached.reduce((sum, goal) => sum + goal.reward, 0);
     if (reached.length) {
       const best = reached[reached.length - 1];
-      message += ` · цель ${fmt(best.target)}: +${fmt(goalReward)} ₽, звание «${best.title}»`;
+      message += ` · цель ${fmt(best.target)}: +${fmt(goalReward)}, звание «${best.title}»`;
       messageClass = 'gold';
     }
 

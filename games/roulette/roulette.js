@@ -371,16 +371,25 @@
   }
 
   // ---------- Стол ----------
+  // Сумма в чипе должна влезать в узкую клетку, поэтому крупные ставки
+  // сокращаются: 1 000 → «1k», 2 500 → «2,5k».
+  function chipAmount(amount) {
+    if (amount < 1000) return String(amount);
+    const k = amount / 1000;
+    return `${Number.isInteger(k) ? k : k.toFixed(1).replace('.', ',')}k`;
+  }
+
   function cellHTML({ key, label, className, style }) {
     const amount = state.bets[key] || 0;
     const chip = amount
-      ? `<span class="cell-chip">${numFmt.format(amount)}</span>`
+      ? `<span class="cell-chip" title="${numFmt.format(amount)} ₽">${chipAmount(amount)}</span>`
       : '';
     const winning = state.highlight.has(key);
     const losing = state.highlight.size > 0 && amount > 0 && !winning;
     const cls = ['cell', className, winning ? 'is-win' : '', losing ? 'is-lose' : ''].filter(Boolean).join(' ');
     return `<button type="button" class="${cls}" data-bet="${key}" style="${style}"
-      ${state.spinning ? 'disabled' : ''} aria-label="${label}">${label}${chip}</button>`;
+      ${state.spinning ? 'disabled' : ''} aria-label="${label}">`
+      + `<span class="cell-num">${label}</span>${chip}</button>`;
   }
 
   function renderTable() {
@@ -818,7 +827,7 @@
     const goalReward = reached.reduce((sum, goal) => sum + goal.reward, 0);
     if (reached.length) {
       const best = reached[reached.length - 1];
-      message += ` · цель ${fmt(best.target)}: +${fmt(goalReward)} ₽, звание «${best.title}»`;
+      message += ` · цель ${fmt(best.target)}: +${fmt(goalReward)}, звание «${best.title}»`;
       messageClass = 'win';
     }
 
@@ -1104,6 +1113,7 @@
     renderSpins,
     analyzeBets,
     payoutFor,
+    chipAmount,
     spinRowHTML,
     setTiming({ spin: nextSpin, settle: nextSettle } = {}) {
       if (Number.isFinite(nextSpin)) spinMs = nextSpin;

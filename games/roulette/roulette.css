@@ -171,7 +171,7 @@
   flex-wrap: wrap;
   min-height: 26px;
   margin-bottom: 10px;
-  padding: 0 2px;
+  padding: 0 12px;
 }
 
 .strip-num {
@@ -209,8 +209,13 @@
 }
 
 .table-scroll {
+  /* Только по горизонтали: иначе браузер может показать вертикальный
+     ползунок из-за дробных высот строк. */
   overflow-x: auto;
-  padding-bottom: 4px;
+  overflow-y: hidden;
+  /* Запас по краям: подъём клетки при наведении и чипы ставок не должны
+     упираться в границу и обрезаться. */
+  padding: 10px 10px 6px;
   scrollbar-width: thin;
   scrollbar-color: rgba(233, 196, 106, .4) transparent;
 }
@@ -225,9 +230,12 @@
 
 .cell {
   position: relative;
-  display: grid;
-  place-items: center;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 3px;
   border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, .14);
   background: rgba(255, 255, 255, .05);
@@ -235,9 +243,11 @@
   font-size: clamp(11px, 1.15vw, 14px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
   transition: transform .1s, box-shadow .15s, border-color .15s, background .15s;
-  overflow: visible;
+  overflow: hidden;
 }
+.cell-num { line-height: 1; }
 .cell:hover:not(:disabled) { border-color: rgba(233, 196, 106, .65); transform: translateY(-1px); }
 .cell:active:not(:disabled) { transform: scale(.96); }
 .cell:disabled { cursor: default; }
@@ -258,24 +268,25 @@
 .cell.is-lose { opacity: .45; }
 
 .cell-chip {
-  position: absolute;
-  top: -7px;
-  right: -5px;
-  min-width: 26px;
-  height: 20px;
-  padding: 0 5px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
+  flex: none;
+  min-width: 0;
+  max-width: 100%;
+  height: 14px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, .55);
   background: radial-gradient(circle at 35% 30%, #f7e7b6, #b98f33 78%);
   color: #241a06;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   line-height: 1;
-  box-shadow: 0 3px 7px rgba(0, 0, 0, .5);
+  white-space: nowrap;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .45);
   pointer-events: none;
-  z-index: 3;
 }
 
 .table-legend {
@@ -283,7 +294,7 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin: 12px 2px 2px;
+  margin: 12px 12px 2px;
   font-size: 11px;
   color: var(--muted);
 }
@@ -422,9 +433,10 @@
     gap: 3px;
     min-width: 480px;
   }
-  .cell { font-size: 10px; border-radius: 6px; }
+  .cell { font-size: 10px; border-radius: 6px; padding: 2px 2px; }
   .cell.zero { font-size: 14px; }
-  .cell-chip { min-width: 22px; height: 17px; font-size: 9px; top: -6px; right: -4px; }
+  /* Узкие числовые клетки: чип должен влезать целиком, даже «2,5k». */
+  .cell-chip { height: 12px; padding: 0 2px; font-size: 7.5px; border-radius: 5px; }
   .table-legend { font-size: 10px; }
   .legend-pay { margin-left: 0; }
   .hint { display: none; }

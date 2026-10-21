@@ -109,8 +109,14 @@ check(balance() === 1000, `стартовый баланс 1000, получен�
 cell('straight:17').click();
 check(balance() === 900, `после фишки 100 баланс 900, получено ${balance()}`);
 check(betTotal() === 100, `ставка 100, получено ${betTotal()}`);
-check(doc.querySelector('[data-bet="straight:17"] .cell-chip').textContent === '100',
-  'на клетке видна сумма ставки');
+const chipNode = doc.querySelector('[data-bet="straight:17"] .cell-chip');
+check(chipNode.textContent === '100', 'на клетке видна сумма ставки');
+check(chipNode.parentElement === doc.querySelector('[data-bet="straight:17"]'),
+  'чип вложен в свою клетку, а не висит поверх соседней');
+check(doc.querySelector('[data-bet="straight:17"] .cell-num').textContent === '17',
+  'номер клетки лежит отдельно от суммы');
+check(!doc.querySelector('[data-bet="straight:17"]').style.position.includes('absolute'),
+  'клетка не позиционирует чип поверх соседей');
 check(JSON.parse(window.localStorage.getItem('casino.pending.v1')).roulette === 100,
   'ставка отложена в незавершённом спине');
 
@@ -126,6 +132,11 @@ api.clearBets();
 check(betTotal() === 0 && balance() === 1000, 'очистка возвращает все фишки');
 check(JSON.parse(window.localStorage.getItem('casino.pending.v1')).roulette === undefined,
   'после очистки долг по ставке снят');
+
+// Крупная ставка сокращается, чтобы чип влезал в узкую клетку.
+check(api.chipAmount(25) === '25', 'мелкая ставка в чипе без сокращений');
+check(api.chipAmount(1000) === '1k', `1000 в чипе как 1k, получено ${api.chipAmount(1000)}`);
+check(api.chipAmount(2500) === '2,5k', `2500 в чипе как 2,5k, получено ${api.chipAmount(2500)}`);
 
 // ---------- Спин: выигрыш на число ----------
 console.log('• Спин: число 17');
