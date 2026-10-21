@@ -275,10 +275,11 @@
 
   // ---------- Статистика ----------
   function openStats() {
-    const rows = Object.values(Casino.GAMES).map((game) => {
+    const rows = Object.values(Casino.GAMES).map((game, index) => {
       const s = Casino.stats(game.id);
       return `
-        <span>${game.icon} ${game.short}</span><span>${numFmt.format(s[game.counterKey] || 0)} ${game.counterLabel}</span>
+        ${index ? '<div class="stat-sep" aria-hidden="true"></div>' : ''}
+        <span class="stat-game">${game.icon} ${game.short}</span><span>${numFmt.format(s[game.counterKey] || 0)} ${game.counterForms ? plural(s[game.counterKey] || 0, game.counterForms) : game.counterLabel}</span>
         <span>Ставок сделано</span><span>${fmt(s.wagered || 0)}</span>
         <span>Побед / поражений</span><span>${numFmt.format(s.wins || 0)} / ${numFmt.format(s.losses || 0)}</span>
         <span>Лучший раунд</span><span>${fmt(s.bestWin || 0)}</span>
@@ -293,6 +294,7 @@
       <h2>Статистика</h2>
       <div class="stat-grid">
         ${rows}
+        <div class="stat-sep total" aria-hidden="true"></div>
         <span>Всего ставок</span><span>${fmt(wagered)}</span>
         <span>Общий итог</span><span>${signed(totalNet)}</span>
         <span>Баланс</span><span>${fmt(Casino.getBalance())}</span>
@@ -468,18 +470,20 @@
   }
 
   // ---------- Цели и звания ----------
-  function goalCardHTML(goal) {
+  function goalCardHTML(goal, isCurrent = false) {
     const pct = goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0;
     const state = goal.claimed ? 'claimed' : goal.reached ? 'reached' : '';
+    const cls = ['goal-card', state, isCurrent ? 'current' : ''].filter(Boolean).join(' ');
     const status = goal.claimed
       ? '✓ Получено'
       : goal.reached
         ? 'Цель достигнута'
         : `${numFmt.format(goal.progress)} из ${numFmt.format(goal.target)} ₽`;
     return `
-      <article class="goal-card ${state}">
+      <article class="${cls}">
         <header class="goal-head">
           <span class="goal-target">${numFmt.format(goal.target)} ₽</span>
+          ${isCurrent ? '<span class="goal-now">следующая</span>' : ''}
           <span class="goal-reward">+${numFmt.format(goal.reward)} ₽</span>
         </header>
         <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${goal.target}"
@@ -492,10 +496,20 @@
     `;
   }
 
+  // Игрок видит только уже полученные цели и ту, к которой идёт сейчас.
+  // Остальные не рендерим вовсе, чтобы их условия оставались сюрпризом.
+  function visibleGoals(goals) {
+    const list = goals.filter((goal) => goal.claimed).map((goal) => goalCardHTML(goal));
+    const current = goals.find((goal) => !goal.claimed);
+    if (current) list.push(goalCardHTML(current, true));
+    return { list, hidden: goals.length - list.length };
+  }
+
   function openGoals(notices = []) {
     renderProfile();
     const profile = Casino.profile();
     const topUp = profile.topUp;
+    const goals = visibleGoals(profile.goals);
     const celebrate = notices.length
       ? `<div class="goal-celebrate">
           <b>Цель достигнута!</b>
@@ -518,7 +532,11 @@
         Круговорот ставок цель не приближает — казино всегда оставляет себе 2,7%.
         Достигнутые цели не отбираются, даже если потом уйти в минус.
       </p>
-      <div class="goal-list">${profile.goals.map(goalCardHTML).join('')}</div>
+      <div class="goal-list">${goals.list.join('')}</div>
+      ${goals.hidden > 0
+        ? '<p class="goals-note goals-veiled">Следующие цели откроются по мере роста чистого '
+          + 'выигрыша — их условия пока скрыты.</p>'
+        : ''}
       <p class="goals-note">
         За каждую цель — деньги на баланс, новое звание, страховка и +1 000 ₽ к лимиту стола.
         Страховка при проигрыше возвращает половину потерь и тратится автоматически.

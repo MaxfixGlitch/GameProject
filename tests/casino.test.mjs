@@ -386,8 +386,17 @@ console.log('• Цели, звания и бонусы');
   // Экран целей показывает прогресс и звание.
   win.document.querySelector('#goalsBtn').click();
   check(!win.document.querySelector('#overlay').hidden, 'окно целей открывается');
-  check(win.document.querySelectorAll('.goal-card').length === 6, 'в окне все шесть целей');
+  // Будущие цели скрыты: видно только полученные и одну следующую.
+  check(win.document.querySelectorAll('.goal-card').length === 3,
+    `в окне две полученные и одна следующая цель, получено ${win.document.querySelectorAll('.goal-card').length}`);
   check(win.document.querySelectorAll('.goal-card.claimed').length === 2, 'две цели отмечены выполненными');
+  check(win.document.querySelectorAll('.goal-card.current').length === 1, 'следующая цель подсвечена');
+  const goalText = win.document.querySelector('.goal-list').textContent.replace(/\s+/g, ' ');
+  check(goalText.includes('20 000'), 'следующая цель — 20 000 ₽');
+  check(goalText.includes('Хайтейлер'), 'у следующей цели видно её звание');
+  check(!goalText.includes('Мастер'), 'названия будущих целей скрыты');
+  check(!goalText.includes('250 000'), 'условия дальних целей не видны');
+  check(!!win.document.querySelector('.goals-veiled'), 'есть подсказка, что цели ещё будут');
   check(win.document.querySelector('.title-chip.big').textContent.includes('Опытный'),
     'в окне видно звание');
   win.document.querySelector('#modalClose').click();
@@ -397,6 +406,13 @@ console.log('• Цели, звания и бонусы');
   check(win.Casino.goalTitle() === 'Новичок', 'сброс вернул звание Новичок');
   check(win.Casino.shields() === 0, 'сброс убрал страховки');
   check(win.Casino.maxBet() === 2500, 'сброс вернул лимит 2 500 ₽');
+
+  // После сброса игрок видит только первую цель.
+  win.document.querySelector('#goalsBtn').click();
+  check(win.document.querySelectorAll('.goal-card').length === 1, 'новичку видна только первая цель');
+  check(win.document.querySelector('.goal-card.current .goal-target').textContent.replace(/\s+/g, ' ').includes('5 000'),
+    'это цель на 5 000 ₽');
+  win.document.querySelector('#modalClose').click();
 }
 
 // ---------- Хаб: карточки со статистикой ----------
@@ -417,6 +433,21 @@ console.log('• Горячие клавиши при русской раскл�
   check(keyOf({ key: 'ArrowDown' }) === 'arrowdown', 'стрелки распознаются');
   check(keyOf({ key: 'с' }) === 'с', 'если code нет, остаётся исходный символ');
   check(keyOf(null) === '', 'пустое событие не ломает обработчик');
+}
+
+console.log('• Общая статистика');
+{
+  const statsHub = open(hubHtml, [rawCasino, rawHub], {});
+  statsHub.document.querySelector('#statsBtn').click();
+  check(!statsHub.document.querySelector('#overlay').hidden, 'статистика открывается');
+  check(statsHub.document.querySelectorAll('.stat-game').length === 4, 'в статистике четыре игры');
+  check(statsHub.document.querySelectorAll('.stat-sep:not(.total)').length === 3,
+    'между играми три разделительные черты');
+  check(statsHub.document.querySelectorAll('.stat-sep.total').length === 1, 'перед итогами отдельная черта');
+  const text = statsHub.document.querySelector('.stat-grid').textContent.replace(/\s+/g, ' ');
+  check(text.includes('0 спинов') && text.includes('0 раундов') && text.includes('0 бросков')
+    && text.includes('0 раздач'), 'счётчики игр склоняются верно');
+  statsHub.document.querySelector('#modalClose').click();
 }
 
 console.log('• Карточки игр');
