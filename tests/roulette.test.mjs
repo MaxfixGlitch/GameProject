@@ -1,0 +1,221 @@
+import { JSDOM } from 'jsdom';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const html = fs.readFileSync(`${root}games/roulette/index.html`, 'utf8')
+  .replace('<script src="../../shared/casino.js"></script>', '')
+  .replace('<script src="roulette.js"></script>', '');
+const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
+const rawGame = fs.readFileSync(`${root}games/roulette/roulette.js`, 'utf8');
+
+let failures = 0;
+const check = (cond, msg) => {
+  if (!cond) {
+    failures++;
+    console.error('  ✗', msg);
+  }
+};
+
+const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1', 'casino.sound.v1'];
+
+// Каждое окно jsdom имеет собственный localStorage, поэтому данные
+// переносим вручную — как «перезагрузка вкладки».
+function boot(seed) {
+  const dom = new JSDOM(html, { url: 'https://example.org/roulette/', pretendToBeVisual: true, runScripts: 'outside-only' });
+  const store = dom.window.localStorage;
+  if (seed && seed.localStorage) {
+    CASINO_KEYS.forEach((key) => {
+      const value = seed.localStorage.getItem(key);
+      if (value !== null) store.setItem(key, value);
+    });
+  } else if (seed) {
+    Object.entries(seed).forEach(([key, value]) => store.setItem(key, value));
+  }
+  dom.window.eval(rawCasino);
+  dom.window.eval(rawGame);
+  return { dom, window: dom.window, doc: dom.window.document, api: dom.window.__RL_TEST__ };
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const { window, doc, api } = boot();
+api.setTiming({ spin: 1, settle: 1 });
+
+const balance = () => window.Casino.getBalance();
+// По умолчанию выбрана фишка 25 — для сценариев берём 100.
+const selectChip = (targetDoc, value = 100) => {
+  const chip = targetDoc.querySelector(`[data-chip="${value}"]`);
+  if (!chip) throw new Error(`Нет фишки ${value}`);
+  chip.click();
+};
+selectChip(doc, 100);
+const betTotal = () => api.totalBet();
+const cell = (key) => doc.querySelector(`[data-cell="${key}"]`) || doc.querySelector(`[data-bet="${key}"]`);
+
+// ---------- Колесо ----------
+console.log('• Колесо и цвета');
+check(doc.querySelectorAll('#wheel .wedge').length === 37, 'на колесе 37 секторов');
+check(api.WHEEL_ORDER.length === 37, 'в порядке колеса 37 чисел');
+const uniqueNumbers = new Set(api.WHEEL_ORDER);
+check(uniqueNumbers.size === 37, 'все числа от 0 до 36 уникальны');
+check([...uniqueNumbers].every((n) => n >= 0 && n <= 36), 'числа в диапазоне 0–36');
+check(api.WHEEL_ORDER[0] === 0, 'зеро стоит первым');
+check(api.WHEEL_ORDER[1] === 32, 'после зеро идёт 32 — порядок европейского колеса');
+
+const redCount = [...uniqueNumbers].filter((n) => api.colorOf(n) === 'red').length;
+const blackCount = [...uniqueNumbers].filter((n) => api.colorOf(n) === 'black').length;
+check(redCount === 18 && blackCount === 18, `18 красных и 18 чёрных, получено ${redCount}/${blackCount}`);
+check(api.colorOf(0) === 'green', 'зеро зелёное');
+check(api.colorLabel(0) === 'зеро', 'подпись зеро');
+
+// ---------- Правила ставок ----------
+console.log('• Правила ставок и выплаты');
+check(api.betWins('straight:17', 17), 'ставка на число совпадает');
+check(!api.betWins('straight:17', 18), 'ставка на число не совпадает');
+check(api.betWins('straight:0', 0), 'можно ставить на зеро');
+check(api.betWins('red', 1) && api.betWins('red', 36), 'красное на 1 и 36');
+check(!api.betWins('red', 2) && !api.betWins('black', 1), 'цвета не путаются');
+check(!api.betWins('red', 0) && !api.betWins('black', 0), 'зеро проигрывает цветам');
+check(!api.betWins('even', 0) && !api.betWins('odd', 0), 'зеро не чёт и не нечет');
+check(api.betWins('even', 4) && api.betWins('odd', 7), 'чёт и нечет работают');
+check(api.betWins('low', 1) && api.betWins('low', 18), 'нижняя половина 1–18');
+check(!api.betWins('low', 19) && api.betWins('high', 19), 'верхняя половина с 19');
+check(api.betWins('dozen:1', 12) && api.betWins('dozen:2', 13) && api.betWins('dozen:3', 36), 'дюжины');
+check(!api.betWins('dozen:1', 13), 'дюжина не захватывает соседнюю');
+for (let k = 1; k <= 3; k++) {
+  const numbers = [];
+  for (let n = 1; n <= 36; n++) if (api.betWins(`column:${k}`, n)) numbers.push(n);
+  check(numbers.length === 12, `в колонке ${k} 12 чисел, получено ${numbers.length}`);
+  check(numbers.every((n) => ((n - 1) % 3) + 1 === k), `колонка ${k} собрана верно`);
+}
+check(api.multiplier('straight:7') === 36, 'выплата за число 35:1 (×36)');
+check(api.multiplier('dozen:2') === 3 && api.multiplier('column:1') === 3, 'дюжина и колонка 2:1 (×3)');
+check(api.multiplier('red') === 2 && api.multiplier('even') === 2 && api.multiplier('low') === 2, 'внешние ставки 1:1 (×2)');
+
+const zeroWins = ['red', 'black', 'even', 'odd', 'low', 'high', 'dozen:1', 'column:2']
+  .filter((key) => api.betWins(key, 0));
+check(zeroWins.length === 0, `зеро не оплачивает внешние ставки (${zeroWins.join(', ')})`);
+
+// ---------- Ставки на столе ----------
+console.log('• Ставки на столе');
+check(doc.querySelectorAll('[data-bet]').length === 49, 'на столе 49 клеток');
+check(balance() === 1000, `стартовый баланс 1000, получено ${balance()}`);
+
+cell('straight:17').click();
+check(balance() === 900, `после фишки 100 баланс 900, получено ${balance()}`);
+check(betTotal() === 100, `ставка 100, получено ${betTotal()}`);
+check(doc.querySelector('[data-bet="straight:17"] .cell-chip').textContent === '100',
+  'на клетке видна сумма ставки');
+check(JSON.parse(window.localStorage.getItem('casino.pending.v1')).roulette === 100,
+  'ставка отложена в незавершённом спине');
+
+cell('red').click();
+cell('red').click();
+check(betTotal() === 300, `на красное добавилось 200, всего ${betTotal()}`);
+check(balance() === 700, `баланс 700, получено ${balance()}`);
+
+api.undoBet();
+check(betTotal() === 200 && balance() === 800, 'отмена возвращает последнюю фишку');
+
+api.clearBets();
+check(betTotal() === 0 && balance() === 1000, 'очистка возвращает все фишки');
+check(JSON.parse(window.localStorage.getItem('casino.pending.v1')).roulette === undefined,
+  'после очистки долг по ставке снят');
+
+// ---------- Спин: выигрыш на число ----------
+console.log('• Спин: число 17');
+cell('straight:17').click();
+check(betTotal() === 100 && balance() === 900, 'ставка на 17 сделана');
+api.forceNumber(17);
+await api.spin();
+await sleep(5);
+
+check(api.state.numbers[0] === 17, `выпало 17, получено ${api.state.numbers[0]}`);
+check(api.state.bets && Object.keys(api.state.bets).length === 0, 'после расчёта ставки убраны');
+check(balance() === 900 + 3600, `выплата 35:1: ожидалось 4500, получено ${balance()}`);
+const stats = window.Casino.stats('roulette');
+check(stats.spins === 1, `счётчик спинов 1, получено ${stats.spins}`);
+check(stats.wins === 1, 'победа засчитана');
+check(stats.wagered === 100, `оборот 100, получено ${stats.wagered}`);
+check(stats.net === 3500, `чистый итог 3500, получено ${stats.net}`);
+check(stats.bestWin === 3500, 'лучший спин записан');
+
+const history = window.Casino.history('roulette');
+check(history.length === 1, 'в истории один спин');
+check(history[0].number === 17 && history[0].net === 3500, 'в истории число и итог');
+check(history[0].summary.includes('17'), 'в истории есть описание');
+check(JSON.parse(window.localStorage.getItem('casino.pending.v1')).roulette === undefined,
+  'после спина долг снят');
+
+// ---------- Спин: зеро против красного ----------
+console.log('• Спин: зеро против красного');
+cell('red').click();
+check(balance() === 4400, `после ставки на красное 4400, получено ${balance()}`);
+api.forceNumber(0);
+await api.spin();
+await sleep(5);
+check(api.state.numbers[0] === 0, 'выпало зеро');
+check(balance() === 4400, `зеро не платит за красное, баланс ${balance()}`);
+check(window.Casino.stats('roulette').losses === 1, 'поражение засчитано');
+
+// ---------- Спин: дюжина ----------
+console.log('• Спин: дюжина');
+cell('dozen:2').click();
+api.forceNumber(15);
+await api.spin();
+await sleep(5);
+check(balance() === 4400 - 100 + 300, `дюжина платит 2:1, баланс ${balance()}`);
+
+// ---------- Спин: ничья по деньгам (1:1) ----------
+console.log('• Спин: возврат при 1:1');
+cell('even').click();
+api.forceNumber(8);
+await api.spin();
+await sleep(5);
+check(balance() === 4600 - 100 + 200, `чёт платит 1:1, баланс ${balance()}`);
+
+// ---------- Перезагрузка ----------
+console.log('• Сохранение между заходами');
+const balanceAfter = balance();
+const reloaded = boot(window);
+check(reloaded.window.Casino.getBalance() === balanceAfter,
+  `баланс пережил перезагрузку: ${reloaded.window.Casino.getBalance()} != ${balanceAfter}`);
+check(reloaded.window.Casino.stats('roulette').spins === 4, 'статистика спинов пережила перезагрузку');
+check(reloaded.window.Casino.history('roulette').length === 4, 'история пережила перезагрузку');
+check(reloaded.doc.querySelectorAll('.strip-num').length === 4, 'лента последних чисел восстановлена');
+
+// ---------- Ставка, зависшая в незавершённом спине ----------
+console.log('• Возврат ставки при закрытии вкладки');
+const half = boot();
+half.api.setTiming({ spin: 1, settle: 1 });
+selectChip(half.doc, 100);
+half.doc.querySelector('[data-bet="straight:5"]').click();
+half.doc.querySelector('[data-bet="black"]').click();
+check(half.window.Casino.getBalance() === 800, 'две фишки списаны');
+const reopened = boot(half.window);
+check(reopened.window.Casino.getBalance() === 1000,
+  `незавершённый спин вернул 200 ₽, получено ${reopened.window.Casino.getBalance()}`);
+
+// ---------- Ставка на зеро ----------
+console.log('• Ставка на само зеро');
+const zeroGame = boot();
+zeroGame.api.setTiming({ spin: 1, settle: 1 });
+selectChip(zeroGame.doc, 100);
+zeroGame.doc.querySelector('[data-bet="straight:0"]').click();
+zeroGame.api.forceNumber(0);
+await zeroGame.api.spin();
+await sleep(5);
+check(zeroGame.window.Casino.getBalance() === 900 + 3600, 'зеро платит 35:1');
+
+// ---------- Сброс игры ----------
+console.log('• Сброс рулетки');
+doc.querySelector('#statsBtn').click();
+check(doc.querySelector('#modalBody').textContent.includes('Статистика рулетки'), 'статистика открывается');
+doc.querySelector('[data-action="reset"]').click();
+check(window.Casino.stats('roulette').spins === 0, 'сброс обнулил спины');
+check(window.Casino.history('roulette').length === 0, 'сброс обнулил историю рулетки');
+check(balance() > 0, 'сброс не тронул общий баланс');
+
+console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);
+process.exit(failures === 0 ? 0 : 1);

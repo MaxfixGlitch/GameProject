@@ -24,13 +24,12 @@ jobs:
       - name: Получить репозиторий
         uses: actions/checkout@v7
 
-      - name: Собрать статику игры
+      - name: Собрать статику казино
         run: |
           mkdir -p _site
-          cp Projects-Word-arena-92cdabc7-projects-word/index.html \
-             Projects-Word-arena-92cdabc7-projects-word/style.css \
-             Projects-Word-arena-92cdabc7-projects-word/game.js \
-             _site/
+          cp index.html _site/
+          cp -r shared games _site/
+          echo "Опубликовано:"; find _site -type f | sort
 
       - name: Включить GitHub Pages
         uses: actions/configure-pages@v6

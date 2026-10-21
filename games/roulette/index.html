@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Рулетка — Казино «Двадцать одно»</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Европейская рулетка: 37 секторов, ставки на числа, цвет, чётность, дюжины и колонки.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b3d28'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='34' font-weight='700' fill='%23e9c46a' text-anchor='middle'%3E21%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../shared/casino.css">
+<link rel="stylesheet" href="roulette.css">
+</head>
+<body class="casino-page roulette-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="../../" title="Все игры" aria-label="Вернуться ко всем играм">21</a>
+    <div class="brand-text">
+      <span>ROULETTE</span>
+      <small>Европейская рулетка</small>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000 ₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <a class="icon-btn" href="../../" title="Все игры" aria-label="Все игры">⌂</a>
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук">🔊</button>
+    <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила игры">?</button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика рулетки">📊</button>
+  </div>
+</header>
+
+<main class="roulette-main">
+
+  <section class="wheel-area">
+    <div class="wheel-wrap">
+      <svg id="wheel" viewBox="0 0 400 400" role="img" aria-label="Колесо европейской рулетки"></svg>
+      <div class="result-badge" id="resultBadge" hidden>—</div>
+    </div>
+
+    <div class="wheel-panel">
+      <div class="message" id="message" aria-live="polite">Выберите фишку и поставьте на стол</div>
+
+      <div class="bet-total">
+        <span>Всего на столе</span>
+        <strong id="betTotal">0 ₽</strong>
+      </div>
+
+      <div class="chips-row" id="chipsRow">
+        <button class="chip c25" data-chip="25" aria-label="Фишка 25"><span>25</span></button>
+        <button class="chip c50" data-chip="50" aria-label="Фишка 50"><span>50</span></button>
+        <button class="chip c100" data-chip="100" aria-label="Фишка 100"><span>100</span></button>
+        <button class="chip c250" data-chip="250" aria-label="Фишка 250"><span>250</span></button>
+        <button class="chip c500" data-chip="500" aria-label="Фишка 500"><span>500</span></button>
+      </div>
+
+      <div class="roulette-actions">
+        <button class="primary-btn" id="spinBtn" disabled>Крутить</button>
+        <div class="minor-actions">
+          <button class="ghost-btn" id="undoBtn" disabled>Отменить</button>
+          <button class="ghost-btn" id="clearBtn" disabled>Очистить</button>
+          <button class="ghost-btn" id="repeatBtn" hidden>Повторить</button>
+        </div>
+      </div>
+
+      <p class="hint">Фишка ставится кликом по столу. <kbd>Space</kbd> — крутить, <kbd>C</kbd> — очистить.</p>
+    </div>
+  </section>
+
+  <section class="table-section">
+    <div class="numbers-strip" id="numbersStrip" aria-label="Последние выпавшие числа"></div>
+    <div class="table-scroll">
+      <div class="bet-table" id="betTable" role="group" aria-label="Стол для ставок"></div>
+    </div>
+    <p class="table-legend">
+      <span><i class="legend-dot red"></i>красное</span>
+      <span><i class="legend-dot black"></i>чёрное</span>
+      <span><i class="legend-dot green"></i>зеро</span>
+      <span class="legend-pay">Выплаты: число 35:1 · дюжина и колонка 2:1 · цвет, чётность, половина 1:1</span>
+    </p>
+  </section>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="../../shared/casino.js"></script>
+<script src="roulette.js"></script>
+</body>
+</html>

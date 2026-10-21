@@ -3,12 +3,14 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const html = fs.readFileSync(`${root}index.html`, 'utf8')
+const html = fs.readFileSync(`${root}games/blackjack/index.html`, 'utf8')
+  .replace('<script src="../../shared/casino.js"></script>', '')
   .replace('<script src="game.js"></script>', '');
-const rawGame = fs.readFileSync(`${root}game.js`, 'utf8');
+const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
+const rawGame = fs.readFileSync(`${root}games/blackjack/game.js`, 'utf8');
 const game = rawGame.replace(
   '  // ---------- Старт ----------',
-  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX };\n  // ---------- Старт ----------'
+  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI };\n  // ---------- Старт ----------'
 );
 if (game === rawGame) throw new Error('Не удалось внедрить тестовый хук');
 
@@ -28,7 +30,30 @@ window.addEventListener('unhandledrejection', (event) => {
 const realTimeout = window.setTimeout.bind(window);
 window.setTimeout = (fn, ms, ...args) => realTimeout(fn, Math.max(1, Math.round((ms || 0) / 60)), ...args);
 
+window.eval(rawCasino);
 window.eval(game);
+
+// Новая вкладка со своим localStorage (в jsdom у каждого окна он отдельный).
+// seed — либо окно-источник, либо объект «ключ → значение».
+const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1', 'casino.sound.v1'];
+function boot(seed) {
+  const fresh = new JSDOM(html, { url: 'https://example.org/', pretendToBeVisual: true, runScripts: 'outside-only' });
+  const store = fresh.window.localStorage;
+  if (seed && seed.localStorage) {
+    CASINO_KEYS.forEach((key) => {
+      const value = seed.localStorage.getItem(key);
+      if (value !== null) store.setItem(key, value);
+    });
+  } else if (seed) {
+    Object.entries(seed).forEach(([key, value]) => store.setItem(key, value));
+  }
+  fresh.window.eval(rawCasino);
+  fresh.window.eval(rawGame.replace(
+    '  // ---------- Старт ----------',
+    '  window.__BJ_TEST__ = { state, handValue };\n  // ---------- Старт ----------'
+  ));
+  return fresh;
+}
 
 const api = window.__BJ_TEST__;
 const sleep = (ms) => new Promise((r) => realTimeout(r, ms));
@@ -291,7 +316,7 @@ check(!doc.querySelector('#overlay').hidden, 'история открывает�
 check(doc.querySelector('#modalBody').textContent.includes('История раздач'), 'заголовок окна истории');
 const roundCards = [...doc.querySelectorAll('.history-round')];
 check(roundCards.length === api.state.history.length, 'каждая раздача выведена карточкой');
-check(roundCards.length <= 60, 'в окне не больше 60 раздач');
+check(roundCards.length <= api.HISTORY_MAX, `в окне не больше ${api.HISTORY_MAX} раздач`);
 const firstCard = roundCards[0];
 check(firstCard.querySelector('.history-dealer-total').textContent.trim()
   .startsWith(String(api.state.history[0].dealerTotal)), 'в карточке видны очки дилера');
@@ -328,14 +353,17 @@ click('#modalClose');
 
 // ---------- Сохранение ----------
 console.log('• Сохранение и сброс');
-const savedBalance = bankroll();
-check(parseMoney(window.localStorage.getItem('bj21.save.v1') || '{}') >= 0 || true, 'localStorage доступен');
+check(typeof JSON.parse(window.localStorage.getItem('casino.wallet.v1')).bankroll === 'number',
+  'баланс хранится в общем кошельке казино');
+const balanceBeforeReset = bankroll();
 click('#resetBtn');
 check(!doc.querySelector('#overlay').hidden, 'окно сброса открыто');
 doc.querySelector('[data-action="reset"]').click();
 await sleep(20);
-check(bankroll() === 1000, `после сброса 1000, получено ${bankroll()}`);
-check(api.state.stats.rounds === 0, 'статистика обнулена');
+check(bankroll() === balanceBeforeReset,
+  `сброс блэкджека не трогает общий баланс (${balanceBeforeReset})`);
+check(api.state.stats.rounds === 0, 'статистика блэкджека обнулена');
+check(api.state.history.length === 0, 'история блэкджека очищена');
 check(doc.querySelector('#overlay').hidden, 'окно сброса закрыто');
 
 // ---------- Туз: 11/1 ----------
@@ -360,6 +388,11 @@ async function resetUI() {
   if (!confirmBtn) throw new Error('Нет кнопки подтверждения сброса');
   confirmBtn.click();
   await sleep(10);
+  // Сброс игры больше не обнуляет общий баланс, поэтому для сценариев
+  // выставляем стартовые 1000 ₽ явно.
+  window.Casino.setBalance(1000);
+  window.Casino.save();
+  api.updateUI();
   check(api.state.phase === 'betting' && api.state.bankroll === 1000, 'сброс перед сценарием');
 }
 
@@ -502,29 +535,32 @@ stackShoe(['10', '10', '6', '6', '10']);
 click('[data-chip="100"]');
 click('#dealBtn');
 await waitFor(() => api.state.phase === 'dealing', 'раздача началась');
-const savedRaw = JSON.parse(window.localStorage.getItem('bj21.save.v1'));
-check(Array.isArray(savedRaw.history) && savedRaw.history.length === 0,
-  'сброс игры очистил историю раздач и в сохранении');
-check(savedRaw.pending === 100, `в сохранении отложена ставка 100, получено ${savedRaw.pending}`);
-const restored = savedRaw.bankroll + savedRaw.pending;
-check(restored === 1000, `перезагрузка вернёт 1000, получено ${restored}`);
+const savedWallet = JSON.parse(window.localStorage.getItem('casino.wallet.v1'));
+const savedPending = JSON.parse(window.localStorage.getItem('casino.pending.v1') || '{}');
+const savedHistory = JSON.parse(window.localStorage.getItem('casino.history.v1') || '{}');
+check(savedWallet.bankroll === 900, `с баланса списана ставка 100, осталось ${savedWallet.bankroll}`);
+check(savedPending.blackjack === 100, `отложена ставка 100, получено ${savedPending.blackjack}`);
+check(savedHistory.blackjack.length === 0, 'сброс игры очистил историю раздач и в сохранении');
+check(savedWallet.bankroll + savedPending.blackjack === 1000,
+  'перезагрузка вернёт 1000 (баланс + отложенная ставка)');
 
-const dom2 = new JSDOM(html, { url: 'https://example.org/', pretendToBeVisual: true, runScripts: 'outside-only' });
-dom2.window.localStorage.setItem('bj21.save.v1', window.localStorage.getItem('bj21.save.v1'));
-dom2.window.eval(rawGame.replace('  // ---------- Старт ----------', '  window.__BJ_TEST__ = { state };\n  // ---------- Старт ----------'));
-check(dom2.window.__BJ_TEST__.state.bankroll === 1000, 'новая сессия восстановила баланс 1000');
+const dom2 = boot(window);
+check(dom2.window.__BJ_TEST__.state.bankroll === 1000,
+  `новая сессия вернула ставку: ${dom2.window.__BJ_TEST__.state.bankroll}`);
 check(dom2.window.__BJ_TEST__.state.phase === 'betting', 'новая сессия стартует со ставок');
 
-// История переживает перезагрузку
-const dom3 = new JSDOM(html, { url: 'https://example.org/', pretendToBeVisual: true, runScripts: 'outside-only' });
-dom3.window.eval(rawGame.replace('  // ---------- Старт ----------', '  window.__BJ_TEST__ = { state };\n  // ---------- Старт ----------'));
-dom3.window.localStorage.setItem('bj21.save.v1', JSON.stringify({
-  bankroll: 900,
-  stats: { rounds: 2, wins: 1, losses: 1, pushes: 0, blackjacks: 0, wagered: 200, bestWin: 100, net: 0 },
-  history: [
-    { n: 2, bet: 100, net: -100, dealerTotal: 20, dealerCards: 2, dealerNatural: false,
+// История переживает перезагрузку и чистится от мусора
+const dom4 = boot({
+  'casino.wallet.v1': JSON.stringify({ bankroll: 900 }),
+  'casino.pending.v1': JSON.stringify({}),
+  'casino.stats.v1': JSON.stringify({
+    blackjack: { rounds: 2, wins: 1, losses: 1, pushes: 0, blackjacks: 0, wagered: 200, bestWin: 100, net: 0 },
+  }),
+  'casino.history.v1': JSON.stringify({
+  blackjack: [
+    { n: 2, ts: 1700000000000, bet: 100, net: -100, dealerTotal: 20, dealerCards: 2, dealerNatural: false,
       hands: [{ total: 19, soft: false, result: 'lose', bet: 100, payout: 0, doubled: false }] },
-    { n: 1, bet: 100, net: 100, dealerTotal: 26, dealerCards: 3, dealerNatural: false,
+    { n: 1, ts: 1699999999000, bet: 100, net: 100, dealerTotal: 26, dealerCards: 3, dealerNatural: false,
       hands: [{ total: 20, soft: false, result: 'win', bet: 100, payout: 200, doubled: false },
               { total: 25, soft: false, result: 'bust', bet: 50, payout: 0, doubled: true },
               { total: 21, soft: false, result: 'blackjack', bet: 50, payout: 125, doubled: false },
@@ -532,11 +568,8 @@ dom3.window.localStorage.setItem('bj21.save.v1', JSON.stringify({
               { total: 17, soft: true, result: 'push', bet: 25, payout: 25, doubled: false }] },
     { n: 'мусор', hands: 'не массив' },
   ],
-}));
-dom3.window.eval(''); // ничего не делаем — данные прочитаются при инициализации ниже
-const dom4 = new JSDOM(html, { url: 'https://example.org/', pretendToBeVisual: true, runScripts: 'outside-only' });
-dom4.window.localStorage.setItem('bj21.save.v1', dom3.window.localStorage.getItem('bj21.save.v1'));
-dom4.window.eval(rawGame.replace('  // ---------- Старт ----------', '  window.__BJ_TEST__ = { state };\n  // ---------- Старт ----------'));
+  }),
+});
 const restoredHistory = dom4.window.__BJ_TEST__.state.history;
 check(restoredHistory.length === 3, `из сохранения прочитаны 3 записи, получено ${restoredHistory.length}`);
 check(restoredHistory[0].n === 2 && restoredHistory[0].hands[0].total === 19, 'данные первой записи целы');

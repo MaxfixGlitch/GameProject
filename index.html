@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Казино «Двадцать одно» — игры</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Домашнее казино: блэкджек и европейская рулетка с общим балансом, историей и статистикой.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b3d28'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='34' font-weight='700' fill='%23e9c46a' text-anchor='middle'%3E21%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="shared/casino.css">
+</head>
+<body class="casino-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="./" aria-label="Казино «Двадцать одно»">21</a>
+    <div class="brand-text">
+      <span>CASINO</span>
+      <small>Казино «Двадцать одно»</small>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000 ₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук">🔊</button>
+    <button class="icon-btn" id="historyBtn" title="История" aria-label="История ставок">🗂</button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика">📊</button>
+    <button class="icon-btn" id="resetBtn" title="Сбросить казино" aria-label="Сбросить казино">↺</button>
+  </div>
+</header>
+
+<main class="page">
+
+  <section class="hub-hero">
+    <div>
+      <div class="hub-hero-label">В кошельке</div>
+      <div class="hub-hero-balance" id="heroBalance">1 000 ₽</div>
+      <div class="hub-hero-total" id="heroTotal"></div>
+    </div>
+    <div class="hub-hero-actions">
+      <button class="primary-btn" id="topUpBtn" hidden>Пополнить +1 000 ₽</button>
+      <button class="ghost-btn" id="heroHistoryBtn">История</button>
+    </div>
+  </section>
+
+  <div class="page-head">
+    <h1 class="page-title">Выберите игру</h1>
+    <p class="page-sub">Баланс общий на всё казино, история ставок тоже. Статистика ведётся отдельно по каждой игре.</p>
+  </div>
+
+  <section class="games-grid" id="gamesGrid" aria-label="Игры"></section>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="shared/casino.js"></script>
+<script src="shared/hub.js"></script>
+</body>
+</html>

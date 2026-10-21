@@ -13,11 +13,14 @@
   ];
   const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
   const DECKS = 6;
-  const START_BANKROLL = 1000;
-  const MIN_BET = 25;
-  const MAX_BET = 2500;
   const SHOE_REBUILD_AT = 30;
-  const STORAGE_KEY = 'bj21.save.v1';
+
+  // Кошелёк, история и статистика живут в общем ядре казино.
+  const Casino = window.Casino;
+  const GAME_ID = 'blackjack';
+  const START_BANKROLL = Casino.START_BANKROLL;
+  const MIN_BET = Casino.MIN_BET;
+  const MAX_BET = Casino.MAX_BET;
 
   // Стопка фишек на столе: видно не больше BET_STACK_MAX штук,
   // нижняя стоит над суммой ставки, верх не выходит за круг.
@@ -28,7 +31,7 @@
   const CHIP_SWAY = [-1.5, 1.5, 0, -2, 1, 2, -1, 0.5];
 
   // История раздач: храним последние HISTORY_MAX раундов (свежие сверху).
-  const HISTORY_MAX = 60;
+  const HISTORY_MAX = Casino.HISTORY_MAX;
   const HISTORY_RESULTS = ['win', 'blackjack', 'lose', 'bust', 'push'];
   const RESULT_LABEL = {
     win: 'Победа',
@@ -39,19 +42,15 @@
   };
 
   // ---------- Состояние ----------
-  const defaultStats = () => ({
-    rounds: 0,
-    wins: 0,
-    losses: 0,
-    pushes: 0,
-    blackjacks: 0,
-    wagered: 0,
-    bestWin: 0,
-    net: 0,
-  });
-
   const state = {
-    bankroll: START_BANKROLL,
+    // Эти три поля живут в общем ядре казино: баланс общий на все игры,
+    // история и статистика — отдельные для блэкджека.
+    get bankroll() { return Casino.getBalance(); },
+    set bankroll(value) { Casino.setBalance(value); },
+    get stats() { return Casino.stats(GAME_ID); },
+    set stats(value) { Casino.setStats(GAME_ID, value); },
+    get history() { return Casino.history(GAME_ID); },
+    set history(value) { Casino.setHistory(GAME_ID, value); },
     bet: 0,
     betChips: [],
     phase: 'betting', // betting | dealing | player | dealer
@@ -63,8 +62,6 @@
     sound: true,
     message: '',
     messageClass: '',
-    stats: defaultStats(),
-    history: [],
     shoe: [],
     handSeq: 0,
   };
@@ -195,15 +192,9 @@
   }
 
   function save() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        bankroll: state.bankroll,
-        stats: state.stats,
-        history: state.history.slice(0, HISTORY_MAX),
-        sound: state.sound,
-        pending: pendingStake(),
-      }));
-    } catch (_) { /* приватный режим — просто играем без сохранения */ }
+    Casino.setPending(GAME_ID, pendingStake());
+    Casino.setSound(state.sound);
+    Casino.save();
   }
 
   // История из localStorage может быть старой или битой — приводим к безопасному виду.
@@ -235,14 +226,11 @@
   }
 
   function load() {
-    try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-      if (!raw || typeof raw.bankroll !== 'number') return;
-      state.bankroll = Math.max(0, Math.round(raw.bankroll + (Number(raw.pending) || 0)));
-      state.stats = Object.assign(defaultStats(), raw.stats || {});
-      state.history = sanitizeHistory(raw.history);
-      state.sound = raw.sound !== false;
-    } catch (_) { /* игнорируем битые данные */ }
+    // Незавершённый раунд (закрытая вкладка) возвращает ставку на баланс.
+    Casino.settlePending(GAME_ID);
+    state.sound = Casino.getSound();
+    state.history = sanitizeHistory(state.history);
+    Casino.save();
   }
 
   // ---------- Звук ----------
@@ -460,6 +448,7 @@
     const dealerCards = Array.isArray(state.dealer) ? state.dealer : [];
     const entry = {
       n: state.stats.rounds,
+      ts: Date.now(),
       bet: Math.round(totalBet),
       net: Math.round(net),
       dealerTotal: handTotal(dealerCards),
@@ -484,6 +473,12 @@
         };
       }),
     };
+    // Краткое описание для общей истории на хабе.
+    const handTotals = entry.hands.map((h) => h.total).join(', ');
+    entry.summary = entry.dealerNatural
+      ? `Блэкджек у дилера · ваши: ${handTotals}`
+      : `Дилер ${entry.dealerTotal} · ваши: ${handTotals}`;
+
     state.history.unshift(entry);
     if (state.history.length > HISTORY_MAX) state.history.length = HISTORY_MAX;
   }
@@ -1059,7 +1054,7 @@
   // ---------- Пополнение ----------
   function rebuy() {
     if (state.phase !== 'betting') return;
-    state.bankroll += START_BANKROLL;
+    Casino.addBalance(START_BANKROLL);
     setMessage('Демо-пополнение получено. Приятной игры!', 'gold');
     sfx('chip');
     updateUI();
@@ -1196,29 +1191,30 @@
 
   function openReset() {
     openModal(`
-      <h2>Начать заново?</h2>
-      <p>Баланс вернётся к <span class="accent">1 000 ₽</span>, а статистика обнулится.
-      Текущая игра будет прервана.</p>
+      <h2>Сбросить блэкджек?</h2>
+      <p>Обнулятся <span class="accent">статистика и история раздач блэкджека</span>.
+      Текущая раздача будет прервана.</p>
+      <p>Общий баланс и другие игры не изменятся.</p>
       <div class="modal-actions">
         <button class="ghost-btn" data-close>Отмена</button>
-        <button class="primary-btn" data-action="reset">Начать заново</button>
+        <button class="primary-btn" data-action="reset">Сбросить</button>
       </div>
     `);
   }
 
   function resetGame() {
     session++;
-    state.bankroll = START_BANKROLL;
+    // Ставка прерванного раунда возвращается: сброс не должен съедать деньги.
+    Casino.settlePending(GAME_ID);
     state.bet = 0;
     state.betChips = [];
-    state.stats = defaultStats();
-    state.history = [];
+    Casino.resetGame(GAME_ID);
     state.phase = 'betting';
     state.busy = false;
     state.active = 0;
     clearTable();
     buildShoe();
-    setMessage('Новая игра. Поставьте фишки и нажмите «Раздать»');
+    setMessage('Блэкджек сброшен. Поставьте фишки и нажмите «Раздать»');
     updateUI();
     save();
   }

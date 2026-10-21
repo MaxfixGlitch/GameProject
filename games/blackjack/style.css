@@ -72,6 +72,10 @@ button:disabled { cursor: not-allowed; }
 
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
+a.brand-mark, a.icon-btn { text-decoration: none; }
+a.icon-btn { display: grid; place-items: center; color: var(--gold-soft); font-size: 16px; }
+a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
+
 .brand-mark {
   width: 46px;
   height: 46px;
