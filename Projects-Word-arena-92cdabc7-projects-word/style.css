@@ -355,24 +355,81 @@ button:disabled { cursor: not-allowed; }
 }
 .bet-spot.empty .bet-amount { color: rgba(255, 255, 255, .35); font-weight: 600; }
 
-.bet-chips { position: relative; width: 100%; height: 100%; }
+.bet-chips {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  container-type: size;
+  --chip-size: 36%;
+  --chip-step: 8%;
+  --chip-base: 30%;
+}
 
 .mini-chip {
   position: absolute;
   left: 50%;
-  width: 40px;
-  height: 40px;
-  margin-left: -20px;
-  transition: top .2s;
+  bottom: calc(var(--chip-base) + var(--i, 0) * var(--chip-step));
+  width: var(--chip-size);
+  height: var(--chip-size);
+  transform: translateX(calc(-50% + var(--sway, 0px))) rotate(var(--tilt, 0deg));
   border-radius: 50%;
-  border: 3px dashed rgba(255, 255, 255, .55);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, .45), inset 0 0 0 2px rgba(0, 0, 0, .18);
+  border: 2px dashed rgba(255, 255, 255, .66);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, .5),
+    0 5px 9px rgba(0, 0, 0, .38),
+    inset 0 0 0 2px rgba(0, 0, 0, .16),
+    inset 0 -4px 6px rgba(0, 0, 0, .22);
   display: grid;
   place-items: center;
-  font-size: 10px;
+  /* Запасной вариант, если браузер не умеет container queries */
+  font-size: clamp(7px, 1.9vw, 10px);
   font-weight: 800;
-  color: rgba(255, 255, 255, .92);
+  line-height: 1;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, .95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .65);
+  will-change: transform;
 }
+
+/* Номинал масштабируется вместе с самой фишкой */
+@supports (font-size: 1cqw) {
+  .mini-chip { font-size: min(11px, calc(var(--chip-size-n, 36) * 0.26cqw)); }
+}
+
+.mini-chip.is-new { animation: chip-drop .24s cubic-bezier(.22, .9, .32, 1.25) both; }
+
+@keyframes chip-drop {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-50% + var(--sway, 0px))) translateY(-18px) rotate(var(--tilt, 0deg)) scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(calc(-50% + var(--sway, 0px))) translateY(0) rotate(var(--tilt, 0deg)) scale(1);
+  }
+}
+
+.chip-more {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid rgba(233, 196, 106, .5);
+  background: rgba(4, 20, 13, .9);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .5);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+
 .mini-chip.c25 { background: radial-gradient(circle at 35% 30%, #4ade80, #15803d 72%); }
 .mini-chip.c50 { background: radial-gradient(circle at 35% 30%, #60a5fa, #1d4ed8 72%); }
 .mini-chip.c100 { background: radial-gradient(circle at 35% 30%, #4b5563, #111827 72%); }

@@ -18,6 +18,14 @@
   const MAX_BET = 2500;
   const SHOE_REBUILD_AT = 30;
   const STORAGE_KEY = 'bj21.save.v1';
+
+  // Стопка фишек на столе: видно не больше BET_STACK_MAX штук,
+  // нижняя стоит над суммой ставки, верх не выходит за круг.
+  const BET_STACK_MAX = 8;
+  const BET_STACK_BASE = 30;
+  const BET_STACK_CEIL = 93;
+  const CHIP_TILT = [-5, 3, -2, 4.5, -3.5, 2, -4, 5];
+  const CHIP_SWAY = [-1.5, 1.5, 0, -2, 1, 2, -1, 0.5];
   const RESULT_LABEL = {
     win: 'Победа',
     blackjack: 'Блэкджек!',
@@ -409,20 +417,58 @@
     });
   }
 
+  // ---------- Ставка и стопка фишек ----------
+  let shownBetChips = null;
+
   function renderBetSpot() {
     const amount = state.bet;
     el.betAmount.textContent = fmt(amount);
     el.betSpot.classList.toggle('empty', amount === 0);
 
+    const chips = state.betChips || [];
+    const key = chips.join(',');
+    // Пересобираем стопку только когда изменился набор фишек:
+    // так анимация падения играет только у действительно новой фишки.
+    if (key === shownBetChips) return;
+
+    const grew = shownBetChips !== null
+      && key.length > shownBetChips.length
+      && key.startsWith(shownBetChips);
+    shownBetChips = key;
+
     el.betChips.innerHTML = '';
-    const shown = state.betChips.slice(0, 8);
-    shown.forEach((value, i) => {
+
+    // Сверху лежат последние фишки; старые скрываем под счётчиком.
+    const visible = chips.slice(-BET_STACK_MAX);
+    const size = visible.length > 4 ? 32 : 36;
+    const step = visible.length > 1
+      ? Math.min(11, (BET_STACK_CEIL - BET_STACK_BASE - size) / (visible.length - 1))
+      : 0;
+
+    el.betChips.style.setProperty('--chip-size', `${size}%`);
+    el.betChips.style.setProperty('--chip-size-n', String(size));
+    el.betChips.style.setProperty('--chip-step', `${step}%`);
+    el.betChips.style.setProperty('--chip-base', `${BET_STACK_BASE}%`);
+
+    visible.forEach((value, i) => {
       const chip = document.createElement('div');
       chip.className = `mini-chip c${value}`;
-      chip.style.top = `calc(50% - 20px - ${i * 3}px)`;
-      chip.textContent = value;
+      chip.style.setProperty('--i', String(i));
+      chip.style.setProperty('--tilt', `${CHIP_TILT[i % CHIP_TILT.length]}deg`);
+      chip.style.setProperty('--sway', `${CHIP_SWAY[i % CHIP_SWAY.length]}px`);
+      chip.textContent = String(value);
+      if (grew && i === visible.length - 1) chip.classList.add('is-new');
       el.betChips.appendChild(chip);
     });
+
+    const hidden = chips.length - visible.length;
+    if (hidden > 0) {
+      const more = document.createElement('span');
+      more.className = 'chip-more';
+      more.textContent = `+${hidden}`;
+      more.title = `В ставке ${chips.length} фишек`;
+      el.betChips.appendChild(more);
+    }
   }
 
   function canDouble(hand) {

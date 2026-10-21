@@ -8,7 +8,7 @@ const html = fs.readFileSync(`${root}index.html`, 'utf8')
 const rawGame = fs.readFileSync(`${root}game.js`, 'utf8');
 const game = rawGame.replace(
   '  // ---------- Старт ----------',
-  '  window.__BJ_TEST__ = { state, handValue, isNatural };\n  // ---------- Старт ----------'
+  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX };\n  // ---------- Старт ----------'
 );
 if (game === rawGame) throw new Error('Не удалось внедрить тестовый хук');
 
@@ -78,6 +78,44 @@ check(doc.querySelector('#betAmount').textContent.includes('100'), 'ставка
 
 click('#clearBet');
 check(bankroll() === 1000 && api.state.bet === 0, 'сброс ставки возвращает фишки');
+
+// ---------- Стопка фишек на столе ----------
+console.log('• Стопка фишек на столе');
+const stackEl = doc.querySelector('#betChips');
+const stackChips = () => [...stackEl.querySelectorAll('.mini-chip')];
+const styleNum = (node, name) => parseFloat(node.style.getPropertyValue(name));
+
+click('[data-chip="25"]');
+click('[data-chip="25"]');
+let stack = stackChips();
+check(stack.length === 2, `две фишки лежат в стопке, получено ${stack.length}`);
+check(stack.every((node) => node.textContent === '25'), 'на фишках указан номинал');
+check(stack.every((node, i) => node.style.getPropertyValue('--i') === String(i)),
+  'фишки пронумерованы снизу вверх');
+check(stack[1].classList.contains('is-new') && !stack[0].classList.contains('is-new'),
+  'падение анимируется только у новой фишки');
+const step2 = styleNum(stackEl, '--chip-step');
+const size2 = styleNum(stackEl, '--chip-size');
+check(step2 > 5, `вторая фишка заметно выступает из-под первой (${step2}%)`);
+check(size2 > step2, 'фишки перекрываются, а не висят отдельно');
+check(30 + step2 + size2 <= 100, 'стопка помещается в круг ставки');
+check(api.state.bet === 50 && bankroll() === 950, 'ставка 50 списана с баланса');
+
+for (let i = 0; i < 8; i++) click('[data-chip="25"]');
+stack = stackChips();
+check(stack.length === api.BET_STACK_MAX,
+  `в стопке не больше ${api.BET_STACK_MAX} фишек, получено ${stack.length}`);
+check(api.state.bet === 250, `ставка 250, получено ${api.state.bet}`);
+check(stackEl.querySelector('.chip-more')?.textContent === '+2', 'счётчик скрытых фишек показывает +2');
+const stepMany = styleNum(stackEl, '--chip-step');
+const sizeMany = styleNum(stackEl, '--chip-size');
+check(stepMany > 0 && stepMany < step2, 'у большой стопки шаг меньше');
+check(30 + stepMany * (stack.length - 1) + sizeMany <= 100, 'большая стопка не вылезает из круга');
+
+click('#clearBet');
+check(stackChips().length === 0, 'сброс ставки убирает фишки со стола');
+check(!stackEl.querySelector('.chip-more'), 'счётчик скрывается вместе со стопкой');
+check(bankroll() === 1000 && api.state.bet === 0, 'фишки вернулись на баланс');
 
 // ---------- Симуляция раундов ----------
 console.log('• Симуляция 400 раундов с разными действиями');
