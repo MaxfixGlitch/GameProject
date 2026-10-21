@@ -70,6 +70,49 @@
   let pending = {};
   let sound = true;
 
+  // ---------- Рулетка: чтение ставок ----------
+  // Подписи и разметка живут в общем ядре, чтобы страница игры и история
+  // на хабе показывали ставки одинаково.
+  const ROULETTE_OUTSIDE = {
+    red: 'КРАСНОЕ',
+    black: 'ЧЁРНОЕ',
+    even: 'ЧЁТ',
+    odd: 'НЕЧЁТ',
+    low: '1–18',
+    high: '19–36',
+  };
+  const DOZEN_LABELS = ['1–12', '13–24', '25–36'];
+
+  function rouletteBetLabel(key) {
+    const raw = String(key || '');
+    const [type, arg] = raw.split(':');
+    const value = Number(arg);
+    if (type === 'straight') return Number.isFinite(value) ? String(value) : 'число';
+    if (type === 'dozen') return DOZEN_LABELS[num(arg, 1) - 1] || 'дюжина';
+    if (type === 'column') return `колонка ${num(arg, 1)}`;
+    return ROULETTE_OUTSIDE[type] || raw;
+  }
+
+  const moneyFmt = new Intl.NumberFormat('ru-RU');
+  const money = (value) => `${moneyFmt.format(num(value))} ₽`;
+
+  // Фишки ставок для истории: выигравшие обведены зелёным.
+  function betTagsHTML(bets, wins) {
+    const entries = Object.entries(bets || {}).filter(([, amount]) => num(amount) > 0);
+    if (!entries.length) return '';
+    const winSet = new Set((Array.isArray(wins) ? wins : []).map(String));
+    const hasWins = entries.some(([key]) => winSet.has(key));
+    const tags = entries.map(([key, amount]) => {
+      const won = winSet.has(key);
+      return `<span class="bet-tag${won ? ' is-win' : ''}"`
+        + `${won ? ' title="Ставка выиграла"' : ''}>`
+        + `<span class="bet-tag-label">${rouletteBetLabel(key)}</span>`
+        + `<span class="bet-tag-amount">${money(amount)}</span>`
+        + `${won ? '<span class="bet-tag-check" aria-hidden="true">✓</span>' : ''}</span>`;
+    }).join('');
+    return `<div class="bet-tags${hasWins ? ' has-wins' : ''}">${tags}</div>`;
+  }
+
   function readJSON(key) {
     try {
       return JSON.parse(localStorage.getItem(key) || 'null');
@@ -238,6 +281,10 @@
       });
       return refunded;
     },
+
+    // ---------- Рулетка ----------
+    rouletteBetLabel,
+    betTagsHTML,
 
     // ---------- Служебное ----------
     getSound() {

@@ -296,6 +296,75 @@ console.log('• Сила и длительность спина меняютс�
     'число оборотов шарика целое — иначе он не попадёт в карман');
 }
 
+// ---------- История спинов ----------
+console.log('• История спинов: что выбрано и что выиграло');
+{
+  const game = boot();
+  game.api.setTiming({ spin: 120, settle: 1 });
+  game.window.Casino.setBalance(10000);
+
+  const list = game.doc.querySelector('#spinsList');
+  check(list.querySelectorAll('.spin-row').length === 0, 'до первого спина история пуста');
+  check(list.textContent.includes('Спинов пока нет'), 'пустая история подсказывает, что делать');
+
+  // Три ставки, из них две выигрывают: число 17 и НЕЧЁТ. КРАСНОЕ проигрывает.
+  game.api.forceNumber(17);
+  game.api.placeBet('straight:17', 100);
+  game.api.placeBet('red', 50);
+  game.api.placeBet('odd', 25);
+  await game.api.spin();
+  await sleep(5);
+
+  const row = list.querySelector('.spin-row');
+  check(row !== null, 'спин появился в истории');
+  check(row.querySelector('.spin-num').textContent.trim() === '17', 'в истории выпавшее число');
+  check(row.querySelector('.bet-tag-label') !== null, 'в истории видны ставки');
+  check(row.textContent.replace(/\s/g, '').includes('175'), 'в истории сумма всех ставок');
+  check(row.textContent.includes('выплата'), 'в истории выплата');
+  check(row.querySelector('.spin-net').textContent.replace(/\s/g, '').includes('+3475'),
+    `итог спина +3 475, получено ${row.querySelector('.spin-net').textContent}`);
+
+  const tags = [...row.querySelectorAll('.bet-tag')];
+  check(tags.length === 3, `все три ставки в истории, получено ${tags.length}`);
+  const won = tags
+    .filter((tag) => tag.classList.contains('is-win'))
+    .map((tag) => tag.querySelector('.bet-tag-label').textContent);
+  check(won.length === 2 && won.includes('17') && won.includes('НЕЧЁТ'),
+    `выиграли число и нечёт, получено: ${won.join(', ')}`);
+  check(!won.includes('КРАСНОЕ'), 'проигравшее красное без зелёной рамки');
+  check(row.querySelectorAll('.bet-tag.is-win').length === 2, 'выигравшие ставки обведены зелёным');
+  check(row.textContent.includes('чёрное'), 'в истории цвет выпавшего числа');
+
+  // Второй спин: только проигравшая ставка.
+  game.api.forceNumber(4);
+  game.api.placeBet('red', 25);
+  await game.api.spin();
+  await sleep(5);
+
+  const rows = list.querySelectorAll('.spin-row');
+  check(rows.length === 2, `в истории два спина, получено ${rows.length}`);
+  check(rows[0].querySelectorAll('.bet-tag').length === 1, 'у второго спина одна ставка');
+  check(rows[0].querySelectorAll('.bet-tag.is-win').length === 0, 'проигравшая ставка без зелёной рамки');
+  check(rows[0].classList.contains('minus'), 'проигранный спин помечен минусом');
+
+  // Полная история — в окне, открывается кнопкой и клавишей H.
+  game.doc.querySelector('#historyBtn').click();
+  check(!game.doc.querySelector('#overlay').hidden, 'окно истории открывается');
+  check(game.doc.querySelectorAll('.spin-history-full .spin-row').length
+    === game.window.Casino.history('roulette').length, 'в окне все спины');
+  game.doc.querySelector('#modalClose').click();
+  check(game.doc.querySelector('#overlay').hidden, 'окно истории закрывается');
+
+  game.doc.dispatchEvent(new game.window.KeyboardEvent('keydown', { key: 'h' }));
+  check(!game.doc.querySelector('#overlay').hidden, 'клавиша H открывает историю');
+  game.doc.dispatchEvent(new game.window.KeyboardEvent('keydown', { key: 'Escape' }));
+  check(game.doc.querySelector('#overlay').hidden, 'Escape закрывает историю');
+
+  game.doc.querySelector('#historyTopBtn').click();
+  check(!game.doc.querySelector('#overlay').hidden, 'иконка истории в шапке открывает окно');
+  game.doc.querySelector('#modalClose').click();
+}
+
 // ---------- Сброс игры ----------
 console.log('• Сброс рулетки');
 doc.querySelector('#statsBtn').click();
@@ -303,6 +372,7 @@ check(doc.querySelector('#modalBody').textContent.includes('Статистика
 doc.querySelector('[data-action="reset"]').click();
 check(window.Casino.stats('roulette').spins === 0, 'сброс обнулил спины');
 check(window.Casino.history('roulette').length === 0, 'сброс обнулил историю рулетки');
+check(doc.querySelectorAll('#spinsList .spin-row').length === 0, 'сброс очистил ленту спинов');
 check(balance() > 0, 'сброс не тронул общий баланс');
 
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);

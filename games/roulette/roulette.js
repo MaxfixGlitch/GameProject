@@ -84,10 +84,13 @@
     soundBtn: $('#soundBtn'),
     rulesBtn: $('#rulesBtn'),
     statsBtn: $('#statsBtn'),
+    historyTopBtn: $('#historyTopBtn'),
     overlay: $('#overlay'),
     modalBody: $('#modalBody'),
     modalClose: $('#modalClose'),
     numbersStrip: $('#numbersStrip'),
+    spinsList: $('#spinsList'),
+    historyBtn: $('#historyBtn'),
     chips: [...document.querySelectorAll('.chip')],
   };
 
@@ -712,7 +715,8 @@
       color,
       bets: Object.assign({}, state.bets),
       wins: winKeys,
-      summary: `Выпало ${number} (${colorLabel(number)}) · ставок ${Object.keys(state.bets).length}`,
+      payout,
+      summary: `Выпало ${number} · ${colorLabel(number)}`,
     });
     Casino.setPending(GAME_ID, 0);
     Casino.save();
@@ -745,6 +749,7 @@
     state.spinning = false;
     state.settled = true;
     updateUI(payout - total);
+    renderSpins();
 
     await sleep(Math.max(1, settleMs));
 
@@ -754,6 +759,75 @@
     state.highlight.clear();
     highlightWedge(-1);
     updateUI();
+  }
+
+  // ---------- История спинов ----------
+  // Короткая лента на странице и полная — в окне.
+  const SPINS_PREVIEW = 6;
+
+  function timeLabel(ts) {
+    const d = new Date(Number(ts) || Date.now());
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString()
+      ? time
+      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
+  }
+
+  // Один спин: что выпало, что было выбрано (выигравшие ставки — в зелёной рамке)
+  // и сколько в итоге вышло.
+  function spinRowHTML(entry) {
+    const number = Number(entry.number);
+    const hasNumber = entry.number !== null && entry.number !== undefined
+      && entry.number !== '' && Number.isFinite(number);
+    const color = entry.color || (hasNumber ? colorOf(number) : '');
+    const bet = Number(entry.bet) || 0;
+    const net = Number(entry.net) || 0;
+    const payout = Number.isFinite(Number(entry.payout))
+      ? Number(entry.payout)
+      : Math.max(0, bet + net);
+    const sign = net > 0 ? 'plus' : net < 0 ? 'minus' : 'zero';
+    const tags = Casino.betTagsHTML(entry.bets, entry.wins);
+    const title = hasNumber ? `Выпало ${number} · ${colorLabel(number)}` : 'Спин';
+
+    return `<article class="spin-row ${sign}">
+      <span class="spin-num ${color}${hasNumber ? '' : ' empty'}">${hasNumber ? number : '—'}</span>
+      <div class="spin-main">
+        <div class="spin-head">
+          <span class="spin-title">${title}</span>
+          <span class="spin-net ${sign}">${signed(net)}</span>
+        </div>
+        ${tags}
+        <div class="spin-foot">
+          <span>ставка ${fmt(bet)}</span>
+          <span>выплата ${fmt(payout)}</span>
+          <time>${timeLabel(entry.ts)}</time>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function renderSpins() {
+    if (!el.spinsList) return;
+    const list = Casino.history(GAME_ID);
+    if (!list.length) {
+      el.spinsList.innerHTML = '<p class="spin-empty">Спинов пока нет. Поставьте фишки на стол '
+        + 'и нажмите «Крутить» — здесь появится, что вы выбрали, что выпало и сколько выиграли.</p>';
+      return;
+    }
+    el.spinsList.innerHTML = list.slice(0, SPINS_PREVIEW).map(spinRowHTML).join('');
+  }
+
+  function openHistory() {
+    const list = Casino.history(GAME_ID);
+    openModal(`
+      <h2>История спинов</h2>
+      ${list.length
+        ? `<div class="spins-list spin-history-full">${list.map(spinRowHTML).join('')}</div>`
+        : '<p class="spin-empty">Спинов пока нет.</p>'}
+      <div class="modal-actions">
+        <button class="primary-btn" data-close>Закрыть</button>
+      </div>
+    `);
   }
 
   // ---------- События ----------
@@ -798,6 +872,8 @@
       if (!el.clearBtn.disabled) clearBets();
     } else if (key === 'u' || key === 'z') {
       if (!el.undoBtn.disabled) undoBet();
+    } else if (key === 'h') {
+      openHistory();
     }
   });
 
@@ -818,6 +894,7 @@
         Casino.save();
         closeModal();
         updateUI();
+        renderSpins();
         setMessage('Статистика рулетки сброшена');
       });
     }
@@ -855,6 +932,8 @@
         <li>«Отменить» убирает последнюю фишку, «Очистить» возвращает все.</li>
         <li>Нажмите «Крутить» (или <kbd>Space</kbd>) — колесо остановится на выпавшем числе.</li>
         <li>После спина можно нажать «Повторить», чтобы вернуть те же ставки.</li>
+        <li>Под столом — история спинов: что выпало, какие ставки были и что выиграло
+        (выигравшие обведены зелёным). Клавиша <kbd>H</kbd> открывает всю историю.</li>
       </ul>
 
       <h3>Про баланс</h3>
@@ -897,6 +976,8 @@
 
   el.rulesBtn.addEventListener('click', openRules);
   el.statsBtn.addEventListener('click', openStats);
+  el.historyBtn.addEventListener('click', openHistory);
+  el.historyTopBtn.addEventListener('click', openHistory);
 
   // ---------- Тестовый хук ----------
   window.__RL_TEST__ = {
@@ -916,6 +997,8 @@
     undoBet,
     spin,
     buildWheel,
+    renderSpins,
+    spinRowHTML,
     setTiming({ spin: nextSpin, settle: nextSettle } = {}) {
       if (Number.isFinite(nextSpin)) spinMs = nextSpin;
       if (Number.isFinite(nextSettle)) settleMs = nextSettle;
@@ -947,6 +1030,7 @@
   state.numbers = lastNumbers;
 
   updateUI();
+  renderSpins();
   setMessage('Выберите фишку и поставьте на стол');
 
   if (Casino.getBalance() < MIN_BET) {

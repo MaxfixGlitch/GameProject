@@ -31,6 +31,7 @@
     <a class="icon-btn" href="../../index.html" title="Все игры" aria-label="Все игры">⌂</a>
     <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук">🔊</button>
     <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила игры">?</button>
+    <button class="icon-btn" id="historyTopBtn" title="История спинов" aria-label="История спинов">🗂</button>
     <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика рулетки">📊</button>
   </div>
 </header>
@@ -68,7 +69,8 @@
         </div>
       </div>
 
-      <p class="hint">Фишка ставится кликом по столу. <kbd>Space</kbd> — крутить, <kbd>C</kbd> — очистить.</p>
+      <p class="hint">Фишка ставится кликом по столу. <kbd>Space</kbd> — крутить,
+        <kbd>C</kbd> — очистить, <kbd>H</kbd> — история спинов.</p>
     </div>
   </section>
 
@@ -83,6 +85,14 @@
       <span><i class="legend-dot green"></i>зеро</span>
       <span class="legend-pay">Выплаты: число 35:1 · дюжина и колонка 2:1 · цвет, чётность, половина 1:1</span>
     </p>
+  </section>
+
+  <section class="spins-section" aria-labelledby="spinsTitle">
+    <div class="spins-head">
+      <h2 id="spinsTitle">История спинов</h2>
+      <button class="ghost-btn" id="historyBtn" type="button">Вся история</button>
+    </div>
+    <div class="spins-list" id="spinsList"></div>
   </section>
 
 </main>

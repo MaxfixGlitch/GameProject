@@ -372,6 +372,39 @@ button { font-family: inherit; cursor: pointer; }
 .history-round-bet { color: var(--muted); white-space: nowrap; font-size: 11px; }
 .history-round-summary { margin: 5px 0 0; font-size: 12px; color: #cfdcd5; }
 
+/* ---------------- Фишки ставок в истории ---------------- */
+
+.bet-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.bet-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .05);
+  font-size: 11px;
+  line-height: 1.25;
+  color: #dbe7e0;
+  white-space: nowrap;
+}
+.bet-tag-label { font-weight: 700; letter-spacing: .03em; }
+.bet-tag-amount { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Выигравшая ставка — зелёная рамка. */
+.bet-tag.is-win {
+  border-color: var(--win);
+  background: rgba(74, 222, 128, .16);
+  color: #ecfff3;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, .35), 0 0 12px rgba(74, 222, 128, .22);
+}
+.bet-tag.is-win .bet-tag-amount { color: #b9f6cd; }
+.bet-tag-check { color: var(--win); font-weight: 900; }
+.bet-tags.has-wins .bet-tag:not(.is-win) { opacity: .6; }
+
+.history-round-payout { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+
 .history-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .history-filter button {
   padding: 7px 12px;

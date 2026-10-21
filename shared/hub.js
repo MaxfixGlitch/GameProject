@@ -158,6 +158,20 @@
     return sameDay ? time : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
   }
 
+  // В общей истории у рулетки показываем сами ставки: выигравшие —
+  // в зелёной рамке, чтобы сразу было видно, что сработало.
+  function rouletteDetails(entry) {
+    const tags = Casino.betTagsHTML(entry.bets, entry.wins);
+    if (!tags) return '';
+    const bet = Number(entry.bet) || 0;
+    const net = Number(entry.net) || 0;
+    const payout = Number.isFinite(Number(entry.payout))
+      ? Number(entry.payout)
+      : Math.max(0, bet + net);
+    return `${tags}
+      <p class="history-round-payout">выплата ${fmt(payout)}</p>`;
+  }
+
   function historyListHTML(filter) {
     const list = Casino.allHistory(filter);
     if (!list.length) {
@@ -174,6 +188,7 @@
             <span class="history-round-bet">ставка ${fmt(entry.bet)}</span>
           </header>
           <p class="history-round-summary">${entry.summary || ''}</p>
+          ${entry.game === 'roulette' ? rouletteDetails(entry) : ''}
           <header class="history-round-head" style="margin-top:4px">
             <span class="history-round-bet">${timeLabel(entry.ts)}</span>
           </header>

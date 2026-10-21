@@ -59,6 +59,15 @@ check(win.document.querySelector('[href="games/roulette/index.html"]'), 'ссы�
 check(win.document.querySelector('#bankroll').textContent.replace(/\s/g, '').includes('1000'), 'баланс на хабе');
 check(win.document.querySelector('#historyBtn'), 'кнопка истории на хабе');
 
+// ---------- Подписи ставок ----------
+console.log('• Подписи ставок');
+check(win.Casino.rouletteBetLabel('straight:0') === '0', 'ставка на число читается как число');
+check(win.Casino.rouletteBetLabel('red') === 'КРАСНОЕ', 'красное');
+check(win.Casino.rouletteBetLabel('odd') === 'НЕЧЁТ', 'нечёт');
+check(win.Casino.rouletteBetLabel('low') === '1–18', 'половина');
+check(win.Casino.rouletteBetLabel('dozen:3') === '25–36', 'третья дюжина');
+check(win.Casino.rouletteBetLabel('column:2') === 'колонка 2', 'колонка');
+
 // ---------- Кошелёк ----------
 console.log('• Общий кошелёк');
 win.Casino.stake('roulette', 300);
@@ -146,18 +155,47 @@ check(legacy.Casino.stats('blackjack').rounds === 0, 'сброс очистил 
 console.log('• Окно истории на хабе');
 const hub = open(hubHtml, [rawCasino, rawHub], {});
 hub.Casino.pushHistory('blackjack', { ts: 5000, bet: 100, net: -100, summary: 'Дилер 20 · ваши: 18' });
+// Старая запись без подробностей должна читаться как раньше.
 hub.Casino.pushHistory('roulette', { ts: 6000, bet: 50, net: 300, summary: 'Выпало 17 (чёрное)' });
+// Новая запись: видно, что было выбрано и что выиграло.
+hub.Casino.pushHistory('roulette', {
+  ts: 7000,
+  bet: 175,
+  net: 3475,
+  payout: 3650,
+  number: 17,
+  color: 'black',
+  bets: { 'straight:17': 100, red: 50, odd: 25 },
+  wins: ['straight:17', 'odd'],
+  summary: 'Выпало 17 · чёрное',
+});
 hub.Casino.save();
 hub.document.querySelector('#historyBtn').click();
 check(!hub.document.querySelector('#overlay').hidden, 'история открывается');
-check(hub.document.querySelectorAll('.history-round').length === 2, 'видны обе игры');
+check(hub.document.querySelectorAll('.history-round').length === 3, 'видны обе игры и все записи');
 check(hub.document.querySelectorAll('[data-filter]').length === 3, 'фильтры: все + две игры');
 hub.document.querySelector('[data-filter="roulette"]').click();
-check(hub.document.querySelectorAll('.history-round').length === 1, 'фильтр оставил одну игру');
+check(hub.document.querySelectorAll('.history-round').length === 2, 'фильтр оставил записи рулетки');
 check(hub.document.querySelector('.history-round-summary').textContent.includes('17'),
   'в карточке описание рулетки');
+
+// Ставки в истории: выигравшие — в зелёной рамке.
+const hubTags = [...hub.document.querySelectorAll('.bet-tag')];
+check(hubTags.length === 3, `в карточке все три ставки, получено ${hubTags.length}`);
+const hubWon = hubTags
+  .filter((tag) => tag.classList.contains('is-win'))
+  .map((tag) => tag.querySelector('.bet-tag-label').textContent);
+check(hubWon.length === 2 && hubWon.includes('17') && hubWon.includes('НЕЧЁТ'),
+  `на хабе выиграли число и нечёт, получено: ${hubWon.join(', ')}`);
+check(!hubWon.includes('КРАСНОЕ'), 'проигравшее красное на хабе без рамки');
+check(hub.document.querySelector('.history-round-payout').textContent.replace(/\s/g, '').includes('3650'),
+  'на хабе показана выплата');
+// Старая запись без ставок не ломает карточку.
+check(hub.document.querySelectorAll('.history-round')[1].querySelectorAll('.bet-tag').length === 0,
+  'запись без подробностей рисуется без ставок');
+
 hub.document.querySelector('[data-filter="all"]').click();
-check(hub.document.querySelectorAll('.history-round').length === 2, 'фильтр «все» вернул обе');
+check(hub.document.querySelectorAll('.history-round').length === 3, 'фильтр «все» вернул все записи');
 hub.document.querySelector('#modalClose').click();
 check(hub.document.querySelector('#overlay').hidden, 'история закрывается');
 
