@@ -365,6 +365,69 @@ console.log('• История спинов: что выбрано и что в
   game.doc.querySelector('#modalClose').click();
 }
 
+// ---------- Лимиты и сочетания ставок ----------
+console.log('• Лимит стола и подсказки о комбинациях');
+{
+  const game = boot();
+  game.api.setTiming({ spin: 1, settle: 1 });
+  game.window.Casino.setBalance(20000);
+  const hintNode = game.doc.querySelector('#betHint');
+  const hint = () => (hintNode.hidden ? '' : hintNode.textContent);
+
+  check(game.doc.querySelector('#betLimit').textContent.replace(/\s/g, '').includes('2500'),
+    'на столе виден лимит 2 500 ₽');
+
+  // Обычная ставка — без предупреждений.
+  game.api.placeBet('red', 100);
+  check(hint() === '', 'на обычную ставку подсказки нет');
+
+  // Красное + чёрное: правила разрешают, но выиграть нельзя.
+  game.api.placeBet('black', 100);
+  check(hint().includes('Зеркальные ставки'), `предупреждение о зеркальных ставках, получено: ${hint()}`);
+
+  // Математика: при любом числе, кроме зеро, возвращается ровно ставка.
+  check(game.api.payoutFor(17) === 200, `красное+чёрное вернут 200 на 17, получено ${game.api.payoutFor(17)}`);
+  check(game.api.payoutFor(0) === 0, 'на зеро зеркальная ставка возвращает ноль');
+
+  const start = game.window.Casino.getBalance() + 200; // до ставок
+  game.api.forceNumber(17);
+  await game.api.spin();
+  await sleep(5);
+  check(game.window.Casino.getBalance() === start, 'зеркальная ставка на 17 вернула ставку');
+  game.api.clearBets();
+
+  game.api.placeBet('red', 100);
+  game.api.placeBet('black', 100);
+  game.api.forceNumber(0);
+  await game.api.spin();
+  await sleep(5);
+  check(game.window.Casino.getBalance() === start - 200, 'на зеро зеркальная ставка теряет всё');
+
+  // Все 37 чисел: минус фишка при любом исходе.
+  const all = boot();
+  all.api.setTiming({ spin: 1, settle: 1 });
+  all.window.Casino.setBalance(5000);
+  for (let n = 0; n <= 36; n++) all.api.placeBet(`straight:${n}`, 25);
+  check(all.api.totalBet() === 925, `все числа по 25 = 925 ₽, получено ${all.api.totalBet()}`);
+  const allHint = all.doc.querySelector('#betHint');
+  check(!allHint.hidden && allHint.textContent.includes('925') && allHint.textContent.includes('900'),
+    `стол предупреждает о гарантированном минусе, получено: ${allHint.textContent}`);
+  const allStart = all.window.Casino.getBalance() + 925; // до ставок
+  all.api.forceNumber(7);
+  await all.api.spin();
+  await sleep(5);
+  check(all.window.Casino.getBalance() === allStart - 25, 'все числа по 25 дают −25 ₽');
+
+  // Лимит стола: больше 2 500 ₽ на спин поставить нельзя.
+  const limit = boot();
+  limit.window.Casino.setBalance(10000);
+  limit.api.placeBet('red', 2500);
+  check(limit.api.totalBet() === 2500, 'ставка на лимит принята');
+  check(limit.api.placeBet('black', 25) === false, 'ставка сверх лимита отклонена');
+  check(limit.api.totalBet() === 2500, 'сумма не превысила лимит');
+  check(limit.doc.querySelector('#betTotal').classList.contains('full'), 'лимит подсвечен на столе');
+}
+
 // ---------- Сброс игры ----------
 console.log('• Сброс рулетки');
 doc.querySelector('#statsBtn').click();

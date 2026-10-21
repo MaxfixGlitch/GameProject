@@ -73,6 +73,8 @@
     badge: $('#resultBadge'),
     message: $('#message'),
     betTotal: $('#betTotal'),
+    betLimit: $('#betLimit'),
+    betHint: $('#betHint'),
     chipsRow: $('#chipsRow'),
     table: $('#betTable'),
     spinBtn: $('#spinBtn'),
@@ -179,6 +181,32 @@
   }
 
   const totalBet = () => Object.values(state.bets).reduce((sum, v) => sum + v, 0);
+
+  // Сколько стол вернёт при каждом из 37 исходов. Нужно, чтобы честно
+  // предупредить игрока: «зеркальные» комбинации выиграть не могут.
+  function payoutFor(n) {
+    return Object.entries(state.bets).reduce((sum, [key, amount]) => (
+      betWins(key, n) ? sum + amount * multiplier(key) : sum
+    ), 0);
+  }
+
+  function analyzeBets() {
+    const total = totalBet();
+    if (total <= 0) return null;
+    const payouts = [];
+    for (let n = 0; n <= 36; n++) payouts.push(payoutFor(n));
+    const max = Math.max(...payouts);
+    const zero = payouts[0];
+    const restSame = payouts.slice(1).every((p) => p === payouts[1]);
+    return {
+      total,
+      max,
+      // При любом числе, кроме зеро, возвращается ровно ставка.
+      neutral: zero < total && restSame && payouts[1] === total,
+      // Даже лучший исход не покрывает ставку.
+      cannotWin: max <= total,
+    };
+  }
 
   // ---------- Сообщения ----------
   function setMessage(text, cls = '') {
@@ -427,9 +455,33 @@
     }
   }
 
+  // Подсказка не мешает ставить: правила разрешают любые комбинации,
+  // но о бессмысленных лучше сказать заранее.
+  function renderBetHint() {
+    if (!el.betHint) return;
+    // Во время спина и показа результата подсказка только мешает.
+    if (state.spinning || state.settled) {
+      el.betHint.hidden = true;
+      return;
+    }
+    const info = analyzeBets();
+    let text = '';
+    if (info && info.neutral) {
+      text = 'Зеркальные ставки уравновешивают друг друга: при любом числе, кроме зеро, '
+        + 'вы вернёте ровно ставку, а зеро забирает всё.';
+    } else if (info && info.cannotWin) {
+      text = `Такая комбинация не может выиграть: максимум вернётся ${fmt(info.max)} `
+        + `из ${fmt(info.total)}.`;
+    }
+    el.betHint.textContent = text;
+    el.betHint.hidden = !text;
+  }
+
   function updateUI(bump) {
     const total = totalBet();
     el.betTotal.textContent = fmt(total);
+    el.betTotal.classList.toggle('full', total >= MAX_BET);
+    renderBetHint();
     const locked = state.spinning || state.settled;
     el.spinBtn.disabled = locked || total < MIN_BET;
     el.undoBtn.disabled = locked || state.stack.length === 0;
@@ -936,9 +988,21 @@
         (выигравшие обведены зелёным). Клавиша <kbd>H</kbd> открывает всю историю.</li>
       </ul>
 
+      <h3>Лимиты и комбинации</h3>
+      <ul>
+        <li>Минимальная ставка — 25 ₽, максимум на один спин — 2 500 ₽
+        в сумме по всем клеткам (лимит стола).</li>
+        <li>Правила рулетки не запрещают ставить на любые клетки в любом сочетании:
+        можно накрыть несколько чисел, красное и чёт, дюжину и колонку — всё сразу.</li>
+        <li>Но «зеркальные» ставки (красное + чёрное, чёт + нечет, 1–18 + 19–36)
+        выиграть не могут: при любом числе, кроме зеро, вы вернёте ровно поставленное,
+        а зеро забирает всё.</li>
+        <li>Если накрыть все 37 чисел по 25 ₽ — это 925 ₽ ставки и 900 ₽ выплаты,
+        то есть минус 25 ₽ при любом исходе. Стол предупредит о таких комбинациях.</li>
+      </ul>
+
       <h3>Про баланс</h3>
-      <p>Баланс общий для всего казино, а статистика и история — отдельные по каждой игре.
-      Минимальная ставка — 25 ₽, максимум на один спин — 2 500 ₽.</p>
+      <p>Баланс общий для всего казино, а статистика и история — отдельные по каждой игре.</p>
 
       <div class="modal-actions">
         <button class="primary-btn" data-close>Понятно</button>
@@ -998,6 +1062,8 @@
     spin,
     buildWheel,
     renderSpins,
+    analyzeBets,
+    payoutFor,
     spinRowHTML,
     setTiming({ spin: nextSpin, settle: nextSettle } = {}) {
       if (Number.isFinite(nextSpin)) spinMs = nextSpin;
@@ -1019,6 +1085,8 @@
   // Ставки, «зависшие» в незавершённом спине, возвращаются на баланс.
   Casino.settlePending(GAME_ID);
   state.sound = Casino.getSound();
+
+  if (el.betLimit) el.betLimit.textContent = `из ${fmt(MAX_BET)}`;
 
   buildWheel();
   drawWheel();
