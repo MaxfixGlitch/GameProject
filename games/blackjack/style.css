@@ -124,8 +124,6 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
   display: block;
   height: 42px;
   width: auto;
-  /* Скругляем по контуру плашки: так белые уголки исходника не видны. */
-  border-radius: 7.5px;
 }
 
 /* На узких экранах вместо широкого логотипа — золотая монета с «F». */

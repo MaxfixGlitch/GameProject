@@ -124,8 +124,6 @@ button { font-family: inherit; cursor: pointer; }
   display: block;
   height: 42px;
   width: auto;
-  /* Скругляем по контуру плашки: так белые уголки исходника не видны. */
-  border-radius: 7.5px;
 }
 
 /* На узких экранах вместо широкого логотипа — золотая монета с «F». */
@@ -144,18 +142,6 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .brand-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-
-/* Подпись рядом с логотипом на главной — как вывеска над входом. */
-.brand-tag {
-  padding-left: 14px;
-  border-left: 1px solid rgba(233, 196, 106, .22);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .26em;
-  text-transform: uppercase;
-  color: rgba(233, 196, 106, .5);
-  white-space: nowrap;
-}
 .brand-text span {
   font-family: Georgia, serif;
   font-size: clamp(15px, 1.5vw, 19px);
@@ -952,7 +938,6 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
 
 @media (max-width: 900px) {
   .brand-text span { letter-spacing: .16em; font-size: 15px; }
-  .brand-tag { display: none; }
 }
 
 @media (max-width: 720px) {
