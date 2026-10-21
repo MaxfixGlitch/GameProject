@@ -330,10 +330,12 @@
 .bead-dot.banker { background: #ef4444; }
 .bead-head .ghost-btn { margin-left: auto; padding: 7px 13px; font-size: 11px; }
 
+/* Дорожка: небольшие квадраты фиксированного размера, чтобы на ПК
+   они не растягивались на пол-экрана, а буквы читались крупно. */
 .bead {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 5px;
+  grid-template-columns: repeat(auto-fill, 36px);
+  gap: 6px;
 }
 .bead-empty { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
 
@@ -341,10 +343,11 @@
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, .16);
-  font-size: 12px;
+  font-size: 19px;
   font-weight: 900;
+  line-height: 1;
   color: #fff;
   animation: beadIn .22s ease-out;
 }
@@ -490,7 +493,8 @@
   .bet-spot { min-height: 54px; border-radius: 12px; }
   .spot-name { font-size: 10.5px; letter-spacing: .06em; }
   .spot-odds { font-size: 9px; }
-  .bead { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .bead { grid-template-columns: repeat(auto-fill, 30px); gap: 5px; }
+  .bead-cell { font-size: 16px; border-radius: 7px; }
   .hand { gap: 6px; }
   .hint { display: none; }
   .bead-head .ghost-btn { padding: 6px 10px; }
@@ -500,7 +504,8 @@
 @media (max-width: 420px) {
   .bac-main { --card-w: 58px; }
   .minor-actions .ghost-btn { padding: 8px 10px; font-size: 11px; }
-  .bead { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .bead { grid-template-columns: repeat(auto-fill, 28px); }
+  .bead-cell { font-size: 15px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
