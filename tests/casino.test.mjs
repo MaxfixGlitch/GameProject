@@ -285,11 +285,15 @@ console.log('• Пополнение: способы оплаты и бонус
   check(doc.querySelector('#modalBody h2').textContent.includes('Пополнить баланс'), 'заголовок окна');
 
   const methods = [...doc.querySelectorAll('.pay-method')];
-  check(methods.length === 7, `семь способов оплаты, получено ${methods.length}`);
+  check(methods.length === 6, `шесть способов оплаты, получено ${methods.length}`);
   const names = methods.map((m) => m.querySelector('b').textContent);
-  ['СБП', 'СберБанк', 'Т-Банк', 'ЮMoney', 'Банковская карта'].forEach((name) => {
+  ['СБП', 'СберБанк', 'Т-Банк', 'Альфа-Банк', 'ЮMoney', 'Банковская карта'].forEach((name) => {
     check(names.includes(name), `есть способ «${name}»`);
   });
+  check(!names.some((name) => name.toLowerCase().includes('мобильный')),
+    'мобильного платежа нет');
+  check(methods.every((m) => m.querySelector('.pay-icon img, .pay-icon svg')),
+    'у каждого способа настоящий логотип, а не эмодзи');
   check(doc.querySelector('.deposit-disclaimer').textContent.includes('реальные деньги не принимаются'),
     'в окне сказано, что это демо');
 
@@ -301,6 +305,7 @@ console.log('• Пополнение: способы оплаты и бонус
   check(answer.textContent.includes('СБП'), 'в ответе назван выбранный способ');
   check(answer.textContent.includes('недоступен'), 'в ответе сказано, что способ недоступен');
   check(answer.textContent.includes('бонус'), 'ответ отправляет к бесплатному бонусу');
+  check(!answer.textContent.includes('демо-казино'), 'фразы про демо-казино в ответе нет');
   check(doc.querySelector('[data-pay="sbp"]').classList.contains('shake'), 'плитка дрогнула');
 
   doc.querySelector('[data-pay="card"]').click();

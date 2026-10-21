@@ -323,19 +323,36 @@
   // ---------- Пополнение баланса ----------
   // Настоящие российские способы оплаты — и все отключены: это демо-казино
   // на демо-фишки. Бесплатный бонус — единственный работающий способ.
+  // Логотипы лежат в shared/pay, чтобы не тянуть внешние картинки.
+  const CARD_LOGO = `<svg viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="1" y="6" width="30" height="20" rx="4" fill="#1f6feb"></rect>
+      <rect x="1" y="10.5" width="30" height="4" fill="#0b2545" opacity=".55"></rect>
+      <rect x="5" y="18" width="9" height="2.2" rx="1.1" fill="#e6f0ff" opacity=".85"></rect>
+      <circle cx="24.5" cy="19" r="3.2" fill="#f4b942" opacity=".9"></circle>
+      <circle cx="21" cy="19" r="3.2" fill="#e8453c" opacity=".85"></circle>
+    </svg>`;
+
   const PAYMENT_METHODS = [
-    { id: 'sbp', name: 'СБП', note: 'Система быстрых платежей', icon: '⚡' },
-    { id: 'sber', name: 'СберБанк', note: 'Онлайн-банк', icon: '🟢' },
-    { id: 'tbank', name: 'Т-Банк', note: 'Мобильный банк', icon: '🟡' },
-    { id: 'alfa', name: 'Альфа-Банк', note: 'Мобильный банк', icon: '🔴' },
-    { id: 'yoomoney', name: 'ЮMoney', note: 'Кошелёк', icon: '💜' },
-    { id: 'card', name: 'Банковская карта', note: 'Мир, Visa, Mastercard', icon: '💳' },
-    { id: 'mobile', name: 'Мобильный платёж', note: 'Со счёта телефона', icon: '📱' },
+    { id: 'sbp', name: 'СБП', note: 'Система быстрых платежей', logo: 'shared/pay/sbp.png', light: true },
+    { id: 'sber', name: 'СберБанк', note: 'Онлайн-банк', logo: 'shared/pay/sber.png' },
+    { id: 'tbank', name: 'Т-Банк', note: 'Мобильный банк', logo: 'shared/pay/tbank.png' },
+    { id: 'alfa', name: 'Альфа-Банк', note: 'Мобильный банк', logo: 'shared/pay/alfa.png' },
+    { id: 'yoomoney', name: 'ЮMoney', note: 'Кошелёк', logo: 'shared/pay/yumoney.png', contain: true },
+    { id: 'card', name: 'Банковская карта', note: 'Мир, Visa, Mastercard', svg: CARD_LOGO },
   ];
+
+  function payLogoHTML(method) {
+    if (method.svg) return `<span class="pay-icon svg" aria-hidden="true">${method.svg}</span>`;
+    const cls = ['pay-icon'];
+    if (method.light) cls.push('light');
+    if (method.contain) cls.push('contain');
+    return `<span class="${cls.join(' ')}" aria-hidden="true">`
+      + `<img src="${method.logo}" alt="" width="32" height="32" loading="lazy"></span>`;
+  }
 
   function paymentTileHTML(method) {
     return `<button class="pay-method" type="button" data-pay="${method.id}">
-      <span class="pay-icon" aria-hidden="true">${method.icon}</span>
+      ${payLogoHTML(method)}
       <span class="pay-text"><b>${method.name}</b><small>${method.note}</small></span>
     </button>`;
   }
@@ -392,7 +409,7 @@
 
         answer.hidden = false;
         answer.innerHTML = `<b>Способ оплаты «${method.name}» пока недоступен.</b> `
-          + 'Это демо-казино, оплата отключена. Заберите бесплатный бонус ниже.';
+          + 'Заберите бесплатный бонус ниже.';
         beep({ freq: 180, dur: 0.16, type: 'square', gain: 0.02 });
 
         // Подсказываем, что ниже есть рабочий вариант.
