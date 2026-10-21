@@ -1,0 +1,509 @@
+/* ============================================================
+   Баккара — фетр, поле ставок и дорожка результатов
+   ============================================================ */
+
+.bac-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(14px, 2.6vw, 28px) clamp(10px, 2.2vw, 24px) 40px;
+  --card-w: clamp(58px, 7.4vw, 96px);
+}
+
+/* ---------------- Фетр ---------------- */
+
+.bac-area {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.15fr) minmax(260px, 1fr);
+  align-items: stretch;
+  gap: clamp(16px, 3vw, 38px);
+}
+
+.bac-felt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(10px, 1.6vw, 18px);
+  min-height: clamp(330px, 34vw, 460px);
+  padding: clamp(16px, 2.4vw, 26px) clamp(14px, 2.2vw, 24px) clamp(18px, 2.6vw, 26px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(233, 196, 106, .2);
+  background:
+    radial-gradient(600px 260px at 50% 0%, rgba(22, 121, 77, .45), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 55%, rgba(255, 255, 255, .05), transparent 70%),
+    linear-gradient(160deg, #12563b, #0b3a28 58%, #08291d);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .04),
+    inset 0 22px 44px rgba(0, 0, 0, .3),
+    0 24px 60px rgba(0, 0, 0, .45);
+}
+
+/* Внутренний кант фетра. */
+.bac-felt::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: calc(var(--radius) - 9px);
+  border: 1px solid rgba(233, 196, 106, .16);
+  pointer-events: none;
+}
+
+.shoe-badge {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(0, 0, 0, .3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* ---------------- Руки ---------------- */
+
+.hand-zone {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.hand-zone.player { flex-direction: column-reverse; }
+
+.zone-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.zone-name {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  color: rgba(247, 231, 182, .8);
+}
+
+.hand-zone.player .zone-name { color: rgba(191, 219, 254, .85); }
+
+.total-badge {
+  min-width: 34px;
+  height: 26px;
+  padding: 0 9px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(233, 196, 106, .35);
+  background: rgba(0, 0, 0, .3);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-soft);
+  transition: border-color .2s, background .2s, color .2s;
+}
+.total-badge:empty { visibility: hidden; }
+.total-badge.win {
+  border-color: rgba(74, 222, 128, .7);
+  background: rgba(74, 222, 128, .18);
+  color: #bbf7d0;
+}
+
+.hand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: calc(var(--card-w) * 1.4);
+}
+
+.hand .card { animation-fill-mode: both; }
+
+/* Пока карт нет, на столе лежат пустые места под две карты каждой руки. */
+.card-slot {
+  width: var(--card-w);
+  height: calc(var(--card-w) * 1.4);
+  border-radius: 9px;
+  border: 1px dashed rgba(233, 196, 106, .22);
+  background: rgba(0, 0, 0, .14);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, .22);
+}
+
+/* ---------------- Поле ставок ---------------- */
+
+.bet-spots {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.bet-spot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 62px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(0, 0, 0, .22);
+  color: var(--text);
+  transition: transform .12s, box-shadow .18s, border-color .18s, background .18s;
+}
+.bet-spot:hover:not(:disabled) { transform: translateY(-2px); border-color: rgba(233, 196, 106, .7); }
+.bet-spot:active:not(:disabled) { transform: scale(.98); }
+.bet-spot:disabled { cursor: default; }
+
+.spot-name {
+  font-size: clamp(11px, 1.2vw, 13px);
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+.spot-odds { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.bet-spot.player { background: linear-gradient(165deg, rgba(37, 99, 235, .5), rgba(23, 55, 133, .55)); }
+.bet-spot.player .spot-name { color: #dbeafe; }
+.bet-spot.tie { background: linear-gradient(165deg, rgba(21, 128, 61, .5), rgba(9, 63, 32, .55)); }
+.bet-spot.tie .spot-name { color: #dcfce7; }
+.bet-spot.banker { background: linear-gradient(165deg, rgba(185, 28, 28, .5), rgba(96, 18, 18, .55)); }
+.bet-spot.banker .spot-name { color: #fee2e2; }
+
+/* Ставка отмечена фишкой */
+.bet-spot.has-bet { box-shadow: inset 0 0 0 2px rgba(233, 196, 106, .55); }
+.bet-spot.is-win {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 22px rgba(233, 196, 106, .55);
+  z-index: 2;
+}
+.bet-spot.is-lose { opacity: .5; }
+
+.spot-chip {
+  min-width: 30px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, .55);
+  background: radial-gradient(circle at 35% 30%, #f7e7b6, #b98f33 78%);
+  color: #241a06;
+  font-size: 10px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .45);
+  pointer-events: none;
+}
+
+/* ---------------- Панель справа ---------------- */
+
+.bac-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-width: 0;
+  padding: clamp(16px, 2.4vw, 26px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(160deg, rgba(14, 30, 24, .96), rgba(6, 17, 13, .96));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+}
+
+.message {
+  min-height: 24px;
+  text-wrap: balance;
+  font-size: clamp(14px, 1.6vw, 18px);
+  letter-spacing: .02em;
+  color: var(--gold-soft);
+  text-align: center;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .6);
+  transition: color .25s;
+}
+.message.win { color: var(--win); }
+.message.lose { color: var(--lose); }
+.message.push { color: var(--push); }
+.message.gold { color: var(--gold); }
+
+.bet-total {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 14px;
+  border-radius: 11px;
+  border: 1px dashed rgba(233, 196, 106, .3);
+  background: rgba(0, 0, 0, .25);
+  font-size: 12px;
+  color: var(--muted);
+}
+.bet-total strong {
+  font-size: 19px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.bet-total strong.full { color: var(--lose); }
+.bet-limit { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+.bet-hint {
+  margin: -6px 0 0;
+  max-width: 420px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(251, 191, 36, .32);
+  background: rgba(251, 191, 36, .08);
+  color: #f7dfa5;
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.bac-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.bac-actions .primary-btn { width: min(100%, 320px); }
+.minor-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.minor-actions .ghost-btn { padding: 9px 14px; font-size: 12px; }
+
+.hint { margin: 0; font-size: 11px; color: var(--muted); text-align: center; }
+.hint kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .06);
+  font-size: 10px;
+  font-family: inherit;
+}
+
+/* ---------------- Дорожка ---------------- */
+
+.bead-section {
+  margin-top: clamp(16px, 2.6vw, 26px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(160deg, rgba(14, 30, 24, .96), rgba(6, 17, 13, .96));
+  padding: clamp(12px, 2vw, 20px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+}
+
+.bead-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.bead-head h2,
+.rounds-head h2 {
+  margin: 0;
+  font-size: clamp(13px, 1.4vw, 15px);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+}
+.bead-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.bead-legend .bead-dot { margin-left: 6px; }
+.bead-legend .bead-dot:first-child { margin-left: 0; }
+.bead-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.bead-dot.player { background: #3b82f6; }
+.bead-dot.tie { background: #22c55e; }
+.bead-dot.banker { background: #ef4444; }
+.bead-head .ghost-btn { margin-left: auto; padding: 7px 13px; font-size: 11px; }
+
+.bead {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 5px;
+}
+.bead-empty { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
+
+.bead-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+  animation: beadIn .22s ease-out;
+}
+.bead-cell.player { background: linear-gradient(165deg, #3b82f6, #1e3a8a); }
+.bead-cell.tie { background: linear-gradient(165deg, #22c55e, #14532d); }
+.bead-cell.banker { background: linear-gradient(165deg, #ef4444, #7f1d1d); }
+.bead-cell:first-child { box-shadow: 0 0 0 2px var(--gold); }
+
+@keyframes beadIn {
+  from { opacity: 0; transform: scale(.7); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------------- История раздач ---------------- */
+
+.rounds-section {
+  margin-top: clamp(16px, 2.6vw, 26px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(160deg, rgba(14, 30, 24, .96), rgba(6, 17, 13, .96));
+  padding: clamp(12px, 2vw, 20px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+}
+.rounds-head { margin-bottom: 12px; }
+.rounds-list { display: flex; flex-direction: column; gap: 8px; }
+.rounds-history-full {
+  max-height: min(58vh, 520px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.round-empty {
+  margin: 0;
+  padding: 18px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(233, 196, 106, .28);
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.round-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-left: 3px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .035);
+}
+.round-row.plus { border-left-color: var(--win); }
+.round-row.minus { border-left-color: var(--lose); }
+.round-row.zero { border-left-color: var(--push); }
+
+.round-score {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: Georgia, serif;
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.round-score b { color: #bfdbfe; }
+.round-score i { color: #fecaca; font-style: normal; }
+.round-score .sep { color: var(--muted); font-size: 13px; }
+
+.round-main { min-width: 0; }
+
+.round-cards {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.round-cards-hand { white-space: nowrap; }
+.round-cards b { color: #bfdbfe; font-weight: 700; }
+.round-cards i { color: #fecaca; font-style: normal; font-weight: 700; }
+.round-cards-sep { padding: 0 4px; opacity: .6; }
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 16px;
+  margin: 10px 0 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.rules-grid span:nth-child(odd) {
+  min-width: 42px;
+  font-weight: 800;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.rules-grid span:nth-child(even) { color: #cfdcd5; }
+
+.round-head { display: flex; align-items: baseline; gap: 8px; }
+.round-title {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #cfdcd5;
+  overflow-wrap: anywhere;
+}
+.round-net {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.round-net.plus { color: var(--win); }
+.round-net.minus { color: var(--lose); }
+.round-net.zero { color: var(--push); }
+
+.round-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.round-foot time { margin-left: auto; }
+
+/* ---------------- Адаптив ---------------- */
+
+@media (max-width: 900px) {
+  .bac-area { grid-template-columns: 1fr; }
+  .bac-felt { min-height: 0; }
+}
+
+@media (max-width: 560px) {
+  .bac-main { padding-inline: 8px; --card-w: 66px; }
+  .bac-felt { padding: 14px 10px 16px; gap: 10px; }
+  .shoe-badge { display: none; }
+  .bet-spot { min-height: 54px; border-radius: 12px; }
+  .spot-name { font-size: 10.5px; letter-spacing: .06em; }
+  .spot-odds { font-size: 9px; }
+  .bead { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .hand { gap: 6px; }
+  .hint { display: none; }
+  .bead-head .ghost-btn { padding: 6px 10px; }
+  .round-score { font-size: 15px; }
+}
+
+@media (max-width: 420px) {
+  .bac-main { --card-w: 58px; }
+  .minor-actions .ghost-btn { padding: 8px 10px; font-size: 11px; }
+  .bead { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.dealing { animation-duration: .01s; }
+  .bead-cell { animation: none; }
+}

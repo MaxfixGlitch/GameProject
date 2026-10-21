@@ -54,6 +54,11 @@
       rolls: 0, wins: 0, losses: 0, pushes: 0, doubles: 0,
       wagered: 0, bestWin: 0, net: 0,
     },
+    baccarat: {
+      rounds: 0, wins: 0, losses: 0, pushes: 0,
+      playerWins: 0, bankerWins: 0, ties: 0,
+      wagered: 0, bestWin: 0, net: 0,
+    },
   };
 
   const GAMES = {
@@ -67,6 +72,7 @@
       tagline: 'Классика с шестью колодами, сплитами и блэкджеком 3:2',
       counterKey: 'rounds',
       counterLabel: 'раундов',
+      counterForms: ['раунд', 'раунда', 'раундов'],
     },
     roulette: {
       id: 'roulette',
@@ -78,6 +84,7 @@
       tagline: '37 секторов, ставки на числа, цвет, чётность и дюжины',
       counterKey: 'spins',
       counterLabel: 'спинов',
+      counterForms: ['спин', 'спина', 'спинов'],
     },
     dice: {
       id: 'dice',
@@ -89,6 +96,19 @@
       tagline: 'Две кости: суммы, чётность, больше-меньше и дубли',
       counterKey: 'rolls',
       counterLabel: 'бросков',
+      counterForms: ['бросок', 'броска', 'бросков'],
+    },
+    baccarat: {
+      id: 'baccarat',
+      title: 'Баккара',
+      short: 'Баккара',
+      icon: '🂡',
+      href: 'games/baccarat/index.html',
+      color: '#60a5fa',
+      tagline: 'Игрок, банкир или ничья — у кого сумма ближе к девяти',
+      counterKey: 'rounds',
+      counterLabel: 'раздач',
+      counterForms: ['раздача', 'раздачи', 'раздач'],
     },
   };
 
@@ -148,9 +168,20 @@
     return DICE_OUTSIDE[type] || '';
   }
 
+  // ---------- Баккара: чтение ставок ----------
+  const BACCARAT_LABELS = {
+    player: 'ИГРОК',
+    banker: 'БАНКИР',
+    tie: 'НИЧЬЯ',
+  };
+
+  function baccaratBetLabel(key) {
+    return BACCARAT_LABELS[String(key || '')] || '';
+  }
+
   // Ставки разных игр не пересекаются, поэтому подпись выбирается сама.
   function betLabel(key) {
-    return diceBetLabel(key) || rouletteBetLabel(key);
+    return baccaratBetLabel(key) || diceBetLabel(key) || rouletteBetLabel(key);
   }
 
   const moneyFmt = new Intl.NumberFormat('ru-RU');
@@ -569,6 +600,7 @@
     // ---------- Подписи ставок ----------
     rouletteBetLabel,
     diceBetLabel,
+    baccaratBetLabel,
     betLabel,
     betTagsHTML,
 

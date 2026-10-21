@@ -795,6 +795,13 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
   gap: clamp(12px, 2vw, 20px);
 }
 
+/* Три игры в ряд: если в последнем ряду осталась одна карточка
+   (например, когда игр четыре), ставим её по центру. */
+@media (min-width: 960px) {
+  .games-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .games-grid > .game-card:last-child:nth-child(3n + 1) { grid-column: 2; }
+}
+
 .game-card {
   position: relative;
   display: flex;

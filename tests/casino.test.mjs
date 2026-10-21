@@ -53,11 +53,13 @@ check(win.Casino.stats('roulette').spins === 0, 'статистика рулет
 check(win.Casino.allHistory().length === 0, 'история пуста');
 
 const cards = [...win.document.querySelectorAll('.game-card')];
-check(cards.length === 4, `на хабе 4 карточки (2 игры + 2 «скоро»)`, );
-check(cards.filter((c) => c.classList.contains('live')).length === 3, 'три играбельные игры');
+check(cards.length === 4, `на хабе 4 карточки, получено ${cards.length}`);
+check(cards.filter((c) => c.classList.contains('live')).length === 4, 'четыре играбельные игры');
+check(cards.every((card) => card.classList.contains('live')), 'заглушек «скоро» не осталось');
 check(win.document.querySelector('[href="games/blackjack/index.html"]'), 'ссылка на блэкджек');
 check(win.document.querySelector('[href="games/roulette/index.html"]'), 'ссылка на рулетку');
 check(win.document.querySelector('[href="games/dice/index.html"]'), 'ссылка на кости');
+check(win.document.querySelector('[href="games/baccarat/index.html"]'), 'ссылка на баккару');
 check(win.document.querySelector('#bankroll').textContent.replace(/\s/g, '').includes('1000'), 'баланс на хабе');
 check(win.document.querySelector('#historyBtn'), 'кнопка истории на хабе');
 
@@ -74,6 +76,10 @@ check(win.Casino.diceBetLabel('double') === 'ЛЮБОЙ ДУБЛЬ', 'ставк
 check(win.Casino.diceBetLabel('over') === 'БОЛЬШЕ 7', 'ставка «больше 7»');
 check(win.Casino.betLabel('sum:9') === 'сумма 9', 'общая подпись понимает кости');
 check(win.Casino.betLabel('straight:17') === '17', 'общая подпись понимает рулетку');
+check(win.Casino.baccaratBetLabel('player') === 'ИГРОК', 'ставка на игрока');
+check(win.Casino.baccaratBetLabel('banker') === 'БАНКИР', 'ставка на банкира');
+check(win.Casino.baccaratBetLabel('tie') === 'НИЧЬЯ', 'ставка на ничью');
+check(win.Casino.betLabel('banker') === 'БАНКИР', 'общая подпись понимает баккару');
 check(win.Casino.rouletteBetLabel('column:2') === 'колонка 2', 'колонка');
 
 // ---------- Кошелёк ----------
@@ -181,7 +187,7 @@ hub.Casino.save();
 hub.document.querySelector('#historyBtn').click();
 check(!hub.document.querySelector('#overlay').hidden, 'история открывается');
 check(hub.document.querySelectorAll('.history-round').length === 3, 'видны обе игры и все записи');
-check(hub.document.querySelectorAll('[data-filter]').length === 4, 'фильтры: все + три игры');
+check(hub.document.querySelectorAll('[data-filter]').length === 5, 'фильтры: все + четыре игры');
 hub.document.querySelector('[data-filter="roulette"]').click();
 check(hub.document.querySelectorAll('.history-round').length === 2, 'фильтр оставил записи рулетки');
 check(hub.document.querySelector('.history-round-summary').textContent.includes('17'),
@@ -416,20 +422,31 @@ console.log('• Горячие клавиши при русской раскл�
 console.log('• Карточки игр');
 // Статистика засевается до загрузки страницы: карточки рисуются при старте.
 const board = open(hubHtml, [rawCasino, rawHub], {
-  'casino.stats.v1': JSON.stringify({ roulette: { spins: 7, net: -350 } }),
+  'casino.stats.v1': JSON.stringify({
+    roulette: { spins: 7, net: -350 },
+    baccarat: { rounds: 2, net: -10 },
+  }),
 });
 const rouletteCard = [...board.document.querySelectorAll('.game-card')]
   .find((card) => card.getAttribute('href') === 'games/roulette/index.html');
 check(rouletteCard.textContent.includes('7'), 'на карточке рулетки число спинов');
 check(rouletteCard.textContent.includes('−350'), 'на карточке рулетки итог со знаком минус');
+check(rouletteCard.textContent.includes('спинов'), 'счётчик склоняется: 7 спинов');
 
 const diceCard = [...board.document.querySelectorAll('.game-card')]
   .find((card) => card.getAttribute('href') === 'games/dice/index.html');
 check(!!diceCard, 'на хабе есть карточка костей');
-check(diceCard.textContent.includes('бросков'), 'на карточке костей подпись счётчика');
+check(diceCard.textContent.includes('0 бросков'), 'на карточке костей подпись счётчика');
 check(diceCard.classList.contains('live'), 'карточка костей играбельная, а не «скоро»');
 check(![...board.document.querySelectorAll('.game-card.soon')]
   .some((card) => card.textContent.includes('Кости')), 'кости убраны из «скоро»');
+
+const baccaratCard = [...board.document.querySelectorAll('.game-card')]
+  .find((card) => card.getAttribute('href') === 'games/baccarat/index.html');
+check(!!baccaratCard, 'на хабе есть карточка баккары');
+check(baccaratCard.textContent.includes('2 раздачи'), `на карточке баккары счётчик склоняется: ${baccaratCard.textContent.replace(/\s+/g, ' ').trim()}`);
+check(baccaratCard.classList.contains('live'), 'карточка баккары играбельная, а не «скоро»');
+check(board.document.querySelectorAll('.game-card.soon').length === 0, '«скоро» на хабе больше нет');
 
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);

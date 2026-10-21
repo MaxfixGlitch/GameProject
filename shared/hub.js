@@ -122,13 +122,24 @@
     renderBonusBlock();
   }
 
+  // Русская форма слова для счётчика: 1 раздача, 2 раздачи, 5 раздач.
+  function plural(n, forms) {
+    const abs = Math.abs(n) % 100;
+    const last = abs % 10;
+    if (abs > 10 && abs < 20) return forms[2];
+    if (last === 1) return forms[0];
+    if (last >= 2 && last <= 4) return forms[1];
+    return forms[2];
+  }
+
   function gameStatsHTML(gameId) {
     const game = Casino.GAMES[gameId];
     const stats = Casino.stats(gameId);
     const count = stats[game.counterKey] || 0;
     const net = stats.net || 0;
+    const label = game.counterForms ? plural(count, game.counterForms) : game.counterLabel;
     return `
-      <span><b>${numFmt.format(count)}</b> ${game.counterLabel}</span>
+      <span><b>${numFmt.format(count)}</b> ${label}</span>
       <span>итог <b class="${net > 0 ? 'plus' : net < 0 ? 'minus' : ''}">${signed(net)}</b></span>
     `;
   }
@@ -144,18 +155,9 @@
       </a>
     `).join('');
 
-    const soon = [
-      { icon: '🂡', title: 'Баккара', tagline: 'Игра на игрока, банкира или ничью' },
-    ].map((game) => `
-      <div class="game-card soon">
-        <span class="game-card-icon" aria-hidden="true">${game.icon}</span>
-        <h2 class="game-card-title">${game.title}</h2>
-        <p class="game-card-tagline">${game.tagline}</p>
-        <span class="game-card-play">Скоро</span>
-      </div>
-    `).join('');
-
-    el.gamesGrid.innerHTML = cards + soon;
+    // Заглушек «скоро» больше нет: все игры на хабе играбельные.
+    // Если понадобится анонс, добавьте сюда карточки с классом .soon.
+    el.gamesGrid.innerHTML = cards;
   }
 
   // ---------- Окна ----------
@@ -199,9 +201,10 @@
     return sameDay ? time : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
   }
 
-  // В общей истории у рулетки показываем сами ставки: выигравшие —
-  // в зелёной рамке, чтобы сразу было видно, что сработало.
-  function rouletteDetails(entry) {
+  // В общей истории у игр со ставками (рулетка, кости, баккара) показываем
+  // сами ставки: выигравшие — в зелёной рамке, чтобы сразу было видно,
+  // что сработало.
+  function betDetails(entry) {
     const tags = Casino.betTagsHTML(entry.bets, entry.wins);
     if (!tags) return '';
     const bet = Number(entry.bet) || 0;
@@ -216,7 +219,7 @@
   function historyListHTML(filter) {
     const list = Casino.allHistory(filter);
     if (!list.length) {
-      return `<p class="history-empty">Пока пусто. Сыграйте раздачу в блэкджеке или сделайте ставку в рулетке — всё появится здесь.</p>`;
+      return `<p class="history-empty">Пока пусто. Сыграйте раздачу в блэкджеке или баккаре, сделайте ставку в рулетке или бросьте кости — всё появится здесь.</p>`;
     }
     return `<div class="history-list">${list.map((entry) => {
       const game = Casino.GAMES[entry.game] || { short: entry.game, icon: '🎲' };
@@ -229,7 +232,7 @@
             <span class="history-round-bet">ставка ${fmt(entry.bet)}</span>
           </header>
           <p class="history-round-summary">${entry.summary || ''}</p>
-          ${entry.game === 'roulette' ? rouletteDetails(entry) : ''}
+          ${entry.bets ? betDetails(entry) : ''}
           <header class="history-round-head" style="margin-top:4px">
             <span class="history-round-bet">${timeLabel(entry.ts)}</span>
           </header>
