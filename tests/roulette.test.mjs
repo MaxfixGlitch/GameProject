@@ -62,6 +62,9 @@ check(uniqueNumbers.size === 37, 'все числа от 0 до 36 уникал�
 check([...uniqueNumbers].every((n) => n >= 0 && n <= 36), 'числа в диапазоне 0–36');
 check(api.WHEEL_ORDER[0] === 0, 'зеро стоит первым');
 check(api.WHEEL_ORDER[1] === 32, 'после зеро идёт 32 — порядок европейского колеса');
+check(doc.querySelector('#wheelRotor #wheelHub') === null,
+  'ступица с надписями не вращается вместе с колесом');
+check(doc.querySelector('#wheel #wheelHub') !== null, 'ступица на месте');
 
 const redCount = [...uniqueNumbers].filter((n) => api.colorOf(n) === 'red').length;
 const blackCount = [...uniqueNumbers].filter((n) => api.colorOf(n) === 'black').length;
@@ -207,6 +210,90 @@ zeroGame.api.forceNumber(0);
 await zeroGame.api.spin();
 await sleep(5);
 check(zeroGame.window.Casino.getBalance() === 900 + 3600, 'зеро платит 35:1');
+
+// ---------- Приземление шарика ----------
+console.log('• Шарик останавливается над выпавшим числом');
+{
+  // Отдельная вкладка: спин на 600 мс, чтобы анимация прошла много кадров.
+  const game = boot();
+  game.api.setTiming({ spin: 600, settle: 1 });
+  game.window.Casino.setBalance(50000);
+
+  const angleOf = (x, y) => ((Math.atan2(x - 200, -(y - 200)) * 180) / Math.PI + 360) % 360;
+  const ball = () => game.doc.querySelector('#ball');
+  const ballAngle = () => angleOf(Number(ball().getAttribute('cx')), Number(ball().getAttribute('cy')));
+  const ballRadius = () => Math.hypot(
+    Number(ball().getAttribute('cx')) - 200,
+    Number(ball().getAttribute('cy')) - 200,
+  );
+  const angleDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+
+  // Регрессия из отзыва: на колесе было 29, а объявлялось 21.
+  // Число оборотов шарика должно быть целым, иначе он не попадает в карман.
+  for (const number of [21, 29, 0, 36, 17]) {
+    game.api.forceNumber(number);
+    game.api.placeBet(`straight:${number}`, 25);
+    await game.api.spin();
+
+    const drawn = game.api.state.numbers[0];
+    const index = game.api.WHEEL_ORDER.indexOf(drawn);
+    const pocket = (((game.api.state.wheelAngle + index * game.api.SEG) % 360) + 360) % 360;
+    const diff = angleDiff(ballAngle(), pocket);
+
+    check(drawn === number, `объявлено ${drawn}, ожидалось ${number}`);
+    check(diff < 0.5, `шарик над сектором ${number}: расхождение ${diff.toFixed(2)}°`);
+    check(Math.abs(ballRadius() - 141) < 0.6, `шарик лежит в кармане: радиус ${ballRadius().toFixed(1)}`);
+  }
+
+  // Шарик не должен «притягиваться»: последние кадры он уже в кармане и
+  // заметно не перемещается, а до падения идёт по внешней дорожке.
+  game.api.forceNumber(7);
+  game.api.placeBet('straight:7', 25);
+  const seen = [];
+  const watch = setInterval(() => {
+    seen.push({ a: ballAngle(), r: ballRadius() });
+  }, 20);
+  await game.api.spin();
+  clearInterval(watch);
+
+  const onTrack = seen.filter((p) => p.r > 160);
+  const inPocket = seen.filter((p) => p.r < 146);
+  check(onTrack.length > 0, 'шарик какое-то время катится по внешней дорожке');
+  check(inPocket.length > 0, 'шарик опускается в карман');
+
+  const trackAngles = onTrack.map((p) => p.a);
+  const travelled = trackAngles.reduce((sum, a, i) => (
+    i === 0 ? 0 : sum + Math.abs(((a - trackAngles[i - 1] + 540) % 360) - 180)
+  ), 0);
+  check(travelled > 720, `по дорожке шарик проходит больше двух оборотов, прошёл ${travelled.toFixed(0)}°`);
+}
+
+// ---------- Случайная сила броска ----------
+console.log('• Сила и длительность спина меняются');
+{
+  const game = boot();
+  game.api.setTiming({ spin: 100, settle: 1 });
+  game.window.Casino.setBalance(100000);
+
+  const spins = [];
+  for (let i = 0; i < 10; i++) {
+    const number = (i * 7 + 3) % 37;
+    game.api.forceNumber(number);
+    game.api.placeBet(`straight:${number}`, 25);
+    await game.api.spin();
+    spins.push({ ...game.api.state.lastSpin });
+  }
+
+  const durations = new Set(spins.map((s) => Math.round(s.duration)));
+  const turns = new Set(spins.map((s) => Math.round(s.wheelTurns * 10)));
+  check(durations.size >= 6, `длительность вращения разная: ${durations.size} значений из 10`);
+  check(turns.size >= 4, `сила раскрутки разная: ${turns.size} значений из 10`);
+  check(Math.min(...spins.map((s) => s.wheelTurns)) < 6
+    && Math.max(...spins.map((s) => s.wheelTurns)) > 8,
+  'бывают и слабые, и сильные спины');
+  check(spins.every((s) => Number.isInteger(s.ballTurns)),
+    'число оборотов шарика целое — иначе он не попадёт в карман');
+}
 
 // ---------- Сброс игры ----------
 console.log('• Сброс рулетки');

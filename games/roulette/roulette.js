@@ -161,8 +161,6 @@
     const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
     return t * t * (3 - 2 * t);
   };
-  const easeOutCubic = (t) => 1 - (1 - t) ** 3;
-  const easeOutQuint = (t) => 1 - (1 - t) ** 5;
   const mod = (v, m) => ((v % m) + m) % m;
 
   function randomInt(max) {
@@ -303,6 +301,9 @@
         ${wedges}
         ${frets}
         ${labels}
+      </g>
+      <!-- Ступица не вращается: надписи в центре всегда стоят ровно. -->
+      <g id="wheelHub">
         <circle cx="${CX}" cy="${CY}" r="${R_IN}" fill="url(#hubGold)"></circle>
         <circle cx="${CX}" cy="${CY}" r="${R_FRET}" fill="url(#hubMetal)"></circle>
         <circle cx="${CX}" cy="${CY}" r="${R_FRET - 6}" fill="#0b2418" stroke="rgba(233,196,106,.5)" stroke-width="1.5"></circle>
@@ -540,6 +541,40 @@
     return WHEEL_ORDER[randomInt(WHEEL_ORDER.length)];
   }
 
+  // Профиль скорости колеса: короткий разгон, затем трение вплоть до остановки.
+  // Возвращает долю пройденного пути 0..1 для доли времени 0..1.
+  // Кривая строится один раз и нормируется, поэтому колесо останавливается
+  // ровно в нужный момент, а не «дотягивается» до него.
+  function buildWheelCurve(samples = 240) {
+    const table = new Float64Array(samples + 1);
+    let acc = 0;
+    for (let i = 1; i <= samples; i++) {
+      const u = i / samples;
+      const ramp = 1 - Math.exp(-u * 22); // раскрутка за первые ~10% времени
+      const friction = (1 - u) ** 1.15;   // трение растёт к концу вращения
+      acc += ramp * friction;
+      table[i] = acc;
+    }
+    const total = table[samples] || 1;
+    for (let i = 0; i <= samples; i++) table[i] /= total;
+
+    return (u) => {
+      if (u <= 0) return 0;
+      if (u >= 1) return 1;
+      const pos = u * samples;
+      const i = Math.floor(pos);
+      const frac = pos - i;
+      return table[i] * (1 - frac) + table[i + 1] * frac;
+    };
+  }
+
+  // Шарик по дорожке тормозит быстрее колеса, но к моменту падения ещё катится.
+  const ballCurve = (u) => 1 - (1 - clamp(u, 0, 1)) ** 2.4;
+
+  // Подскоки в кармане и затухающее покачивание, когда шарик устраивается.
+  const bounceRadius = (after) => Math.abs(Math.sin(after / 62)) * 5.5 * Math.exp(-after / 130);
+  const settleWobble = (after) => Math.sin(after / 55) * 1.5 * Math.exp(-after / 260);
+
   async function spin() {
     if (state.spinning || state.settled) return;
     const total = totalBet();
@@ -561,31 +596,57 @@
     const index = WHEEL_ORDER.indexOf(number);
     const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const wheelFrom = state.wheelAngle;
-    const wheelTo = wheelFrom + (5 + Math.random() * 2) * 360;
-    const pocketAbs = wheelTo + index * SEG;
+    // Сила броска: от неё зависят и число оборотов, и длительность вращения,
+    // поэтому слабый и сильный спин выглядят по-разному.
+    const power = Math.random();
+    const wheelTurns = 4.5 + power * 7;                          // 4.5–11.5 оборота
+    const duration = reduced ? 1 : Math.max(80, spinMs * (0.78 + power * 0.34));
+    const landRatio = 0.78 + Math.random() * 0.1;                 // когда шарик падает
+    const landTime = duration * landRatio;
+    const ballTurns = 7 + Math.round(power * 6);                  // только целое число!
 
+    const wheelFrom = state.wheelAngle;
+    const wheelTo = wheelFrom + wheelTurns * 360;
+    const wheelCurve = buildWheelCurve();
+    const wheelAt = (t) => wheelFrom + (wheelTo - wheelFrom) * wheelCurve(clamp(t / duration, 0, 1));
+    const wheelAtLand = wheelAt(landTime);
+
+    // Карман, в котором шарик должен оказаться в момент приземления.
+    const landAngle = wheelAtLand + index * SEG;
     const ballFrom = state.ballAngle;
-    const ballTurns = 7 + Math.random() * 2;
-    const delta = mod(ballFrom - pocketAbs, 360) + ballTurns * 360;
-    const ballTo = ballFrom - delta;
+    // Целое число оборотов против часовой стрелки плюс точная поправка на карман.
+    const ballTravel = mod(ballFrom - landAngle, 360) + ballTurns * 360;
+
+    state.lastSpin = { duration, wheelTurns, ballTurns, landRatio, number };
 
     let lastTickAngle = ballFrom;
 
     const animate = () => new Promise((resolve) => {
       const start = performance.now();
-      const duration = reduced ? 1 : Math.max(1, spinMs);
 
       const frame = (now) => {
-        const t = clamp((now - start) / duration, 0, 1);
+        const elapsed = Math.min(Math.max(0, now - start), duration);
+        const t = elapsed / duration;
 
-        state.wheelAngle = wheelFrom + (wheelTo - wheelFrom) * easeOutCubic(t);
-        state.ballAngle = ballFrom - delta * easeOutQuint(t);
-        const drop = smoothstep(0.64, 0.95, t);
-        state.ballRadius = R_ORBIT + (R_POCKET - R_ORBIT) * drop;
+        state.wheelAngle = wheelAt(elapsed);
 
-        // Щелчки шарика по границам секторов, только на замедлении.
-        if (t > 0.45) {
+        if (elapsed < landTime) {
+          const v = elapsed / landTime;
+          // Лёгкое дрожание на внешней дорожке, к моменту падения сходит на нет.
+          const wobble = Math.sin(v * 26) * 0.9 * (1 - v) ** 3;
+          state.ballAngle = ballFrom - ballTravel * ballCurve(v) + wobble;
+          // Падение в карман: радиус уменьшается с ускорением, как под уклоном.
+          const drop = smoothstep(0.76, 1, v);
+          state.ballRadius = R_ORBIT + (R_POCKET - R_ORBIT) * drop * drop;
+        } else {
+          const after = elapsed - landTime;
+          // После падения шарик едет вместе с колесом и подпрыгивает в кармане.
+          state.ballAngle = landAngle + (state.wheelAngle - wheelAtLand) + settleWobble(after);
+          state.ballRadius = R_POCKET + bounceRadius(after);
+        }
+
+        // Щелчки по границам секторов — только на замедлении.
+        if (t > 0.35) {
           const crossed = Math.floor(Math.abs(state.ballAngle - lastTickAngle) / SEG);
           if (crossed > 0) {
             lastTickAngle = state.ballAngle;
@@ -594,7 +655,7 @@
         }
 
         drawWheel();
-        if (t < 1) requestAnimationFrame(frame);
+        if (elapsed < duration) requestAnimationFrame(frame);
         else resolve();
       };
       requestAnimationFrame(frame);
@@ -602,8 +663,9 @@
 
     await animate();
 
+    // Точная фиксация: шарик ровно в центре выпавшего кармана.
     state.wheelAngle = wheelTo;
-    state.ballAngle = ballTo;
+    state.ballAngle = wheelTo + index * SEG;
     state.ballRadius = R_POCKET;
     drawWheel();
 

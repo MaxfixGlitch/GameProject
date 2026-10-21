@@ -54,8 +54,8 @@ check(win.Casino.allHistory().length === 0, 'история пуста');
 const cards = [...win.document.querySelectorAll('.game-card')];
 check(cards.length === 4, `на хабе 4 карточки (2 игры + 2 «скоро»)`, );
 check(cards.filter((c) => c.classList.contains('live')).length === 2, 'две играбельные игры');
-check(win.document.querySelector('[href="games/blackjack/"]'), 'ссылка на блэкджек');
-check(win.document.querySelector('[href="games/roulette/"]'), 'ссылка на рулетку');
+check(win.document.querySelector('[href="games/blackjack/index.html"]'), 'ссылка на блэкджек');
+check(win.document.querySelector('[href="games/roulette/index.html"]'), 'ссылка на рулетку');
 check(win.document.querySelector('#bankroll').textContent.replace(/\s/g, '').includes('1000'), 'баланс на хабе');
 check(win.document.querySelector('#historyBtn'), 'кнопка истории на хабе');
 
@@ -168,7 +168,7 @@ const board = open(hubHtml, [rawCasino, rawHub], {
   'casino.stats.v1': JSON.stringify({ roulette: { spins: 7, net: -350 } }),
 });
 const rouletteCard = [...board.document.querySelectorAll('.game-card')]
-  .find((card) => card.getAttribute('href') === 'games/roulette/');
+  .find((card) => card.getAttribute('href') === 'games/roulette/index.html');
 check(rouletteCard.textContent.includes('7'), 'на карточке рулетки число спинов');
 check(rouletteCard.textContent.includes('−350'), 'на карточке рулетки итог со знаком минус');
 
