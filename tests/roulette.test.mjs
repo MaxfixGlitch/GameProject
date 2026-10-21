@@ -242,7 +242,8 @@ console.log('• Шарик останавливается над выпавши
 
     check(drawn === number, `объявлено ${drawn}, ожидалось ${number}`);
     check(diff < 0.5, `шарик над сектором ${number}: расхождение ${diff.toFixed(2)}°`);
-    check(Math.abs(ballRadius() - 141) < 0.6, `шарик лежит в кармане: радиус ${ballRadius().toFixed(1)}`);
+    check(Math.abs(ballRadius() - game.api.R_POCKET) < 0.6,
+      `шарик лежит в кармане: радиус ${ballRadius().toFixed(1)}, ожидали ${game.api.R_POCKET}`);
   }
 
   // Шарик не должен «притягиваться»: последние кадры он уже в кармане и
@@ -257,7 +258,7 @@ console.log('• Шарик останавливается над выпавши
   clearInterval(watch);
 
   const onTrack = seen.filter((p) => p.r > 160);
-  const inPocket = seen.filter((p) => p.r < 146);
+  const inPocket = seen.filter((p) => p.r < game.api.R_POCKET + 5);
   check(onTrack.length > 0, 'шарик какое-то время катится по внешней дорожке');
   check(inPocket.length > 0, 'шарик опускается в карман');
 

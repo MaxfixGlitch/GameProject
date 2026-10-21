@@ -192,9 +192,9 @@
   const R_OUT = 150;       // внешний край карманов
   const R_IN = 92;         // дно карманов
   const R_FRET = 84;       // конус к центру
-  const R_LABEL = 127;
+  const R_LABEL = 134;
   const R_ORBIT = 176;
-  const R_POCKET = 141;
+  const R_POCKET = 119;
 
   const px = (angle, radius) => CX + radius * Math.sin((angle * Math.PI) / 180);
   const py = (angle, radius) => CY - radius * Math.cos((angle * Math.PI) / 180);
@@ -904,6 +904,8 @@
     WHEEL_ORDER,
     RED,
     SEG,
+    R_POCKET,
+    R_ORBIT,
     colorOf,
     colorLabel,
     betWins,
