@@ -1,8 +1,8 @@
 {
-  "name": "casino-21",
+  "name": "fakrap-casino",
   "version": "2.0.0",
   "private": true,
-  "description": "Домашнее казино: блэкджек, рулетка, кости и баккара с общим балансом",
+  "description": "Fakrap — домашнее казино: блэкджек, рулетка, кости и баккара с общим балансом",
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 8080",

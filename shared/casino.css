@@ -113,11 +113,27 @@ button { font-family: inherit; cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
 .brand-mark {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Логотип Fakrap: зелёная плашка с золотой надписью. */
+.brand-logo {
+  display: block;
+  height: 42px;
+  width: auto;
+  /* Скругляем по контуру плашки: так белые уголки исходника не видны. */
+  border-radius: 7.5px;
+}
+
+/* На узких экранах вместо широкого логотипа — золотая монета с «F». */
+.brand-coin {
+  display: none;
+  place-items: center;
   width: 46px;
   height: 46px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
   font-family: Georgia, "Times New Roman", serif;
   font-weight: 700;
   font-size: 23px;
@@ -125,10 +141,21 @@ button { font-family: inherit; cursor: pointer; }
   background: linear-gradient(160deg, var(--gold-soft), var(--gold) 45%, var(--gold-deep));
   border-radius: 50%;
   box-shadow: 0 4px 14px rgba(233, 196, 106, .28), inset 0 0 0 2px rgba(255, 255, 255, .28);
-  text-decoration: none;
 }
 
 .brand-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* Подпись рядом с логотипом на главной — как вывеска над входом. */
+.brand-tag {
+  padding-left: 14px;
+  border-left: 1px solid rgba(233, 196, 106, .22);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: rgba(233, 196, 106, .5);
+  white-space: nowrap;
+}
 .brand-text span {
   font-family: Georgia, serif;
   font-size: clamp(15px, 1.5vw, 19px);
@@ -925,12 +952,14 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
 
 @media (max-width: 900px) {
   .brand-text span { letter-spacing: .16em; font-size: 15px; }
+  .brand-tag { display: none; }
 }
 
 @media (max-width: 720px) {
   .brand-text small { display: none; }
   .brand { gap: 8px; }
-  .brand-mark { width: 40px; height: 40px; font-size: 20px; }
+  .brand-logo { display: none; }
+  .brand-coin { display: grid; width: 40px; height: 40px; font-size: 20px; }
   .bankroll-box { padding: 4px 12px; }
   .tools { gap: 5px; }
   .icon-btn { width: 34px; height: 34px; }
@@ -951,7 +980,7 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
   .topbar { gap: 8px; padding: 8px; }
   .bankroll-box { padding: 3px 9px; }
   .bankroll { font-size: 18px; }
-  .brand-mark { width: 34px; height: 34px; font-size: 17px; }
+  .brand-coin { width: 34px; height: 34px; font-size: 17px; }
   .modal { padding: 22px 16px 18px; }
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions .primary-btn { width: 100%; }

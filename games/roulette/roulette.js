@@ -341,8 +341,8 @@
         <circle cx="${CX}" cy="${CY}" r="${R_FRET}" fill="url(#hubMetal)"></circle>
         <circle cx="${CX}" cy="${CY}" r="${R_FRET - 6}" fill="#0b2418" stroke="rgba(233,196,106,.5)" stroke-width="1.5"></circle>
         <text x="${CX}" y="${CY - 26}" text-anchor="middle"
-          font-family="Georgia, serif" font-size="9" letter-spacing="3"
-          fill="rgba(233,196,106,.55)">CASINO</text>
+          font-family="Georgia, serif" font-size="8" letter-spacing="2.4"
+          fill="rgba(233,196,106,.55)">FAKRAP</text>
         <text id="hubNumber" x="${CX}" y="${CY}" dy="0.35em" text-anchor="middle"
           font-family="Georgia, serif" font-size="26" font-weight="700"
           fill="${hubColor(state.hubNumber)}">${hubNumberText()}</text>
