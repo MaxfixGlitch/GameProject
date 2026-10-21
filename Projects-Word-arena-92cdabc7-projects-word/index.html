@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Блэкджек 21 — казино</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Классический блэкджек (21) с фишками, сплитом, удвоением и статистикой.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b3d28'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='34' font-weight='700' fill='%23e9c46a' text-anchor='middle'%3E21%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">21</div>
+      <div class="brand-text">
+        <span>BLACKJACK</span>
+        <small>Казино «Двадцать одно»</small>
+      </div>
+    </div>
+
+    <div class="bankroll-box">
+      <span class="bankroll-label">Баланс</span>
+      <span class="bankroll" id="bankroll">1 000 ₽</span>
+      <div class="delta-layer" id="deltaLayer"></div>
+    </div>
+
+    <div class="tools">
+      <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук">🔊</button>
+      <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила игры">?</button>
+      <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика">📊</button>
+      <button class="icon-btn" id="resetBtn" title="Начать заново" aria-label="Начать заново">↺</button>
+    </div>
+  </header>
+
+  <main class="board">
+    <div class="table">
+      <div class="felt" id="felt">
+
+        <div class="shoe-badge" title="Осталось карт в шузе">
+          <span class="shoe-icon">🂠</span>
+          <span id="shoeCount">312</span>
+        </div>
+
+        <section class="zone dealer-zone">
+          <div class="zone-head">
+            <span class="zone-name">Дилер</span>
+            <span class="total-badge" id="dealerTotal"></span>
+          </div>
+          <div class="hand" id="dealerHand"></div>
+        </section>
+
+        <div class="center">
+          <div class="message" id="message">Поставьте фишки и нажмите «Раздать»</div>
+          <div class="bet-spot empty" id="betSpot">
+            <span class="bet-label">Ставка</span>
+            <div class="bet-chips" id="betChips"></div>
+            <div class="bet-amount" id="betAmount">0 ₽</div>
+          </div>
+        </div>
+
+        <section class="zone player-zone">
+          <div class="hands" id="hands"></div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="console">
+    <div class="panel bet-panel" id="betPanel">
+      <div class="chips-row" id="chipsRow">
+        <button class="chip c25" data-chip="25" aria-label="Фишка 25"><span>25</span></button>
+        <button class="chip c50" data-chip="50" aria-label="Фишка 50"><span>50</span></button>
+        <button class="chip c100" data-chip="100" aria-label="Фишка 100"><span>100</span></button>
+        <button class="chip c250" data-chip="250" aria-label="Фишка 250"><span>250</span></button>
+        <button class="chip c500" data-chip="500" aria-label="Фишка 500"><span>500</span></button>
+      </div>
+      <div class="bet-actions">
+        <button class="ghost-btn" id="clearBet">Сброс ставки</button>
+        <button class="primary-btn" id="dealBtn">Раздать</button>
+      </div>
+    </div>
+
+    <div class="panel action-panel" id="actionPanel" hidden>
+      <button class="action-btn hit" id="hitBtn"><span>Ещё</span><kbd>H</kbd></button>
+      <button class="action-btn stand" id="standBtn"><span>Хватит</span><kbd>S</kbd></button>
+      <button class="action-btn double" id="doubleBtn"><span>Удвоить</span><kbd>D</kbd></button>
+      <button class="action-btn split" id="splitBtn"><span>Сплит</span><kbd>P</kbd></button>
+    </div>
+
+    <div class="panel rebuy-panel" id="rebuyPanel" hidden>
+      <p>Фишки закончились. Возьмите демо-пополнение и продолжайте.</p>
+      <button class="primary-btn" id="rebuyBtn">Пополнить +1 000 ₽</button>
+    </div>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "blackjack-21",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Казино «21» — браузерный блэкджек с фишками, сплитом и удвоением",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/game.test.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}
