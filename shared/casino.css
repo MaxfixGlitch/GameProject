@@ -679,7 +679,8 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .deposit-bonus-head { display: flex; align-items: center; gap: 10px; }
-.deposit-bonus-icon { font-size: 22px; }
+.deposit-bonus-icon { display: grid; place-items: center; height: 30px; }
+.deposit-bonus-icon img { display: block; height: 30px; width: auto; }
 .deposit-bonus-text { display: flex; flex-direction: column; gap: 2px; }
 .deposit-bonus-text b { font-size: 13px; color: var(--gold-soft); }
 .deposit-bonus-text small { font-size: 11px; color: var(--muted); }
@@ -720,6 +721,9 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
 .title-chip.big { font-size: 13px; padding: 7px 16px; }
 
 .shield-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 5px 11px;
   border-radius: 999px;
   border: 1px solid rgba(96, 165, 250, .45);
@@ -731,6 +735,9 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
 .shield-chip.empty { opacity: .5; }
 
 .goal-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 5px 11px;
   border-radius: 999px;
   border: 1px dashed rgba(233, 196, 106, .38);
@@ -741,6 +748,8 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
   transition: .16s;
 }
 .goal-next:hover { color: var(--gold-soft); border-color: var(--gold); }
+
+.chip-icon { display: block; height: 16px; width: auto; }
 
 .profile-strip {
   display: flex;
@@ -906,7 +915,25 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
 }
 .game-card.soon { opacity: .55; pointer-events: none; }
 
-.game-card-icon { font-size: 34px; line-height: 1; }
+/* Иконка игры в карточке: одинаковая площадка, чтобы широкие кости
+   и узкая карта баккары выглядели соразмерно. */
+.game-card-icon { display: block; width: 52px; height: 46px; }
+.game-card-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .45));
+}
+
+/* Маленькая иконка игры в строке истории или статистики. */
+.game-icon {
+  height: 1.25em;
+  width: auto;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
 .game-card-title {
   margin: 0;
   font-family: Georgia, serif;

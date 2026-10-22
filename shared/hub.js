@@ -97,13 +97,15 @@
     el.titleChip.textContent = profile.title;
     el.titleChip.title = `Звание: ${profile.title}. Открыть цели`;
     el.shieldChip.hidden = profile.shields <= 0;
-    el.shieldChip.textContent = `🛡 ${profile.shields}`;
+    el.shieldChip.innerHTML = '<img class="chip-icon" src="shared/brand/icons/shield.png" alt="">'
+      + ` ${profile.shields}`;
     el.shieldChip.title = `Страховок: ${profile.shields}. При проигрыше возвращают половину потерь.`;
 
     const next = profile.goals.find((goal) => !goal.claimed);
     el.goalNext.hidden = !next;
     if (next) {
-      el.goalNext.textContent = `🎯 ${numFmt.format(next.progress)} / ${numFmt.format(next.target)} ₽`;
+      el.goalNext.innerHTML = '<img class="chip-icon" src="shared/brand/icons/target.png" alt="">'
+        + ` ${numFmt.format(next.progress)} / ${numFmt.format(next.target)} ₽`;
       el.goalNext.title = `Следующая цель: ${numFmt.format(next.target)} ₽ чистого выигрыша. `
         + `Награда: ${numFmt.format(next.reward)} ₽, звание «${next.title}» и страховка.`;
     }
@@ -147,7 +149,7 @@
   function renderGames() {
     const cards = Object.values(Casino.GAMES).map((game) => `
       <a class="game-card live" href="${game.href}" style="--accent:${game.color}">
-        <span class="game-card-icon" aria-hidden="true">${game.icon}</span>
+        <span class="game-card-icon" aria-hidden="true"><img src="shared/brand/icons/${game.icon}.png" alt=""></span>
         <h2 class="game-card-title">${game.title}</h2>
         <p class="game-card-tagline">${game.tagline}</p>
         <div class="game-card-stats">${gameStatsHTML(game.id)}</div>
@@ -222,12 +224,12 @@
       return `<p class="history-empty">Пока пусто. Сыграйте раздачу в блэкджеке или баккаре, сделайте ставку в рулетке или бросьте кости — всё появится здесь.</p>`;
     }
     return `<div class="history-list">${list.map((entry) => {
-      const game = Casino.GAMES[entry.game] || { short: entry.game, icon: '🎲' };
+      const game = Casino.GAMES[entry.game] || { short: entry.game, icon: 'dice' };
       const sign = entry.net > 0 ? 'plus' : entry.net < 0 ? 'minus' : 'zero';
       return `
         <article class="history-round ${sign}">
           <header class="history-round-head">
-            <span class="history-round-num">${game.icon} ${game.short}</span>
+            <span class="history-round-num"><img class="game-icon" src="shared/brand/icons/${game.icon}.png" alt=""> ${game.short}</span>
             <span class="history-round-net ${sign}">${signed(entry.net)}</span>
             <span class="history-round-bet">ставка ${fmt(entry.bet)}</span>
           </header>
@@ -279,7 +281,7 @@
       const s = Casino.stats(game.id);
       return `
         ${index ? '<div class="stat-sep" aria-hidden="true"></div>' : ''}
-        <span class="stat-game">${game.icon} ${game.short}</span><span>${numFmt.format(s[game.counterKey] || 0)} ${game.counterForms ? plural(s[game.counterKey] || 0, game.counterForms) : game.counterLabel}</span>
+        <span class="stat-game"><img class="game-icon" src="shared/brand/icons/${game.icon}.png" alt=""> ${game.short}</span><span>${numFmt.format(s[game.counterKey] || 0)} ${game.counterForms ? plural(s[game.counterKey] || 0, game.counterForms) : game.counterLabel}</span>
         <span>Ставок сделано</span><span>${fmt(s.wagered || 0)}</span>
         <span>Побед / поражений</span><span>${numFmt.format(s.wins || 0)} / ${numFmt.format(s.losses || 0)}</span>
         <span>Лучший раунд</span><span>${fmt(s.bestWin || 0)}</span>
@@ -358,7 +360,7 @@
     return `
       <div class="deposit-bonus${ready ? ' ready' : ''}" id="depositBonus">
         <div class="deposit-bonus-head">
-          <span class="deposit-bonus-icon" aria-hidden="true">🎁</span>
+          <span class="deposit-bonus-icon" aria-hidden="true"><img src="shared/brand/icons/bonus.png" alt=""></span>
           <div class="deposit-bonus-text">
             <b>Бесплатный бонус</b>
             <small>${numFmt.format(info.amount)} ₽ раз в 30 минут — без оплаты</small>
@@ -490,7 +492,7 @@
           aria-valuenow="${goal.progress}"><i style="width:${pct}%"></i></div>
         <div class="goal-meta">
           <span>${status}</span>
-          <span>${goal.title} · 🛡 ${goal.shields} · лимит +${numFmt.format(Casino.LIMIT_PER_GOAL)} ₽</span>
+          <span>${goal.title} · <img class="game-icon" src="shared/brand/icons/shield.png" alt="страховок">${goal.shields} · лимит +${numFmt.format(Casino.LIMIT_PER_GOAL)} ₽</span>
         </div>
       </article>
     `;
@@ -513,7 +515,7 @@
     const celebrate = notices.length
       ? `<div class="goal-celebrate">
           <b>Цель достигнута!</b>
-          ${notices.map((n) => `<span>${numFmt.format(n.target)} ₽ → +${numFmt.format(n.reward)} ₽ · звание «${n.title}» · 🛡 ${n.shields}</span>`).join('')}
+          ${notices.map((n) => `<span>${numFmt.format(n.target)} ₽ → +${numFmt.format(n.reward)} ₽ · звание «${n.title}» · страховок ${n.shields}</span>`).join('')}
         </div>`
       : '';
 
@@ -522,7 +524,7 @@
       ${celebrate}
       <div class="profile-strip">
         <span class="title-chip big">${profile.title}</span>
-        <span class="shield-chip ${profile.shields ? '' : 'empty'}">🛡 ${profile.shields}</span>
+        <span class="shield-chip ${profile.shields ? '' : 'empty'}"><img class="chip-icon" src="shared/brand/icons/shield.png" alt=""> ${profile.shields}</span>
         <span class="profile-stat">Чистый выигрыш: <b class="${profile.net > 0 ? 'plus' : profile.net < 0 ? 'minus' : ''}">${signed(profile.net)}</b></span>
         <span class="profile-stat">Лимит ставки: <b>${fmt(profile.maxBet)}</b></span>
         <span class="profile-stat">Бонус: <b>${topUp.ready ? 'доступен' : `через ${mmss(topUp.remaining)}`}</b></span>

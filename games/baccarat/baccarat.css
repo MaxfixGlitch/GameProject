@@ -48,6 +48,8 @@
   pointer-events: none;
 }
 
+.shoe-icon { display: block; height: 15px; width: auto; }
+
 .shoe-badge {
   position: absolute;
   top: 14px;

@@ -305,7 +305,7 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
   z-index: 2;
   font-variant-numeric: tabular-nums;
 }
-.shoe-icon { font-size: 15px; line-height: 1; }
+.shoe-icon { display: block; height: 15px; width: auto; }
 
 .zone { position: relative; z-index: 1; }
 
