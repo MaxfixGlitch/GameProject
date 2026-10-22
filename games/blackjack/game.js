@@ -13,11 +13,14 @@
   ];
   const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
   const DECKS = 6;
-  const START_BANKROLL = 1000;
-  const MIN_BET = 25;
-  const MAX_BET = 2500;
   const SHOE_REBUILD_AT = 30;
-  const STORAGE_KEY = 'bj21.save.v1';
+
+  // Кошелёк, история и статистика живут в общем ядре казино.
+  const Casino = window.Casino;
+  const GAME_ID = 'blackjack';
+  const MIN_BET = Casino.MIN_BET;
+  // Лимит стола растёт с достигнутыми целями.
+  const maxBet = () => Casino.maxBet();
 
   // Стопка фишек на столе: видно не больше BET_STACK_MAX штук,
   // нижняя стоит над суммой ставки, верх не выходит за круг.
@@ -28,7 +31,7 @@
   const CHIP_SWAY = [-1.5, 1.5, 0, -2, 1, 2, -1, 0.5];
 
   // История раздач: храним последние HISTORY_MAX раундов (свежие сверху).
-  const HISTORY_MAX = 60;
+  const HISTORY_MAX = Casino.HISTORY_MAX;
   const HISTORY_RESULTS = ['win', 'blackjack', 'lose', 'bust', 'push'];
   const RESULT_LABEL = {
     win: 'Победа',
@@ -39,19 +42,15 @@
   };
 
   // ---------- Состояние ----------
-  const defaultStats = () => ({
-    rounds: 0,
-    wins: 0,
-    losses: 0,
-    pushes: 0,
-    blackjacks: 0,
-    wagered: 0,
-    bestWin: 0,
-    net: 0,
-  });
-
   const state = {
-    bankroll: START_BANKROLL,
+    // Эти три поля живут в общем ядре казино: баланс общий на все игры,
+    // история и статистика — отдельные для блэкджека.
+    get bankroll() { return Casino.getBalance(); },
+    set bankroll(value) { Casino.setBalance(value); },
+    get stats() { return Casino.stats(GAME_ID); },
+    set stats(value) { Casino.setStats(GAME_ID, value); },
+    get history() { return Casino.history(GAME_ID); },
+    set history(value) { Casino.setHistory(GAME_ID, value); },
     bet: 0,
     betChips: [],
     phase: 'betting', // betting | dealing | player | dealer
@@ -63,10 +62,9 @@
     sound: true,
     message: '',
     messageClass: '',
-    stats: defaultStats(),
-    history: [],
     shoe: [],
     handSeq: 0,
+    splitPulseFor: null, // какую руку уже подсветили подсказкой о сплите
   };
 
   // Поколение игры: сброс увеличивает счётчик, чтобы незавершённые
@@ -114,6 +112,10 @@
   const numFmt = new Intl.NumberFormat('ru-RU');
   const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
   const fmtDelta = (n) => `${n > 0 ? '+' : '−'}${numFmt.format(Math.abs(Math.round(n)))} ₽`;
+  const mmss = (ms) => {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  };
 
   // ---------- Случайность ----------
   function randomInt(max) {
@@ -195,15 +197,9 @@
   }
 
   function save() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        bankroll: state.bankroll,
-        stats: state.stats,
-        history: state.history.slice(0, HISTORY_MAX),
-        sound: state.sound,
-        pending: pendingStake(),
-      }));
-    } catch (_) { /* приватный режим — просто играем без сохранения */ }
+    Casino.setPending(GAME_ID, pendingStake());
+    Casino.setSound(state.sound);
+    Casino.save();
   }
 
   // История из localStorage может быть старой или битой — приводим к безопасному виду.
@@ -235,14 +231,11 @@
   }
 
   function load() {
-    try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-      if (!raw || typeof raw.bankroll !== 'number') return;
-      state.bankroll = Math.max(0, Math.round(raw.bankroll + (Number(raw.pending) || 0)));
-      state.stats = Object.assign(defaultStats(), raw.stats || {});
-      state.history = sanitizeHistory(raw.history);
-      state.sound = raw.sound !== false;
-    } catch (_) { /* игнорируем битые данные */ }
+    // Незавершённый раунд (закрытая вкладка) возвращает ставку на баланс.
+    Casino.settlePending(GAME_ID);
+    state.sound = Casino.getSound();
+    state.history = sanitizeHistory(state.history);
+    Casino.save();
   }
 
   // ---------- Звук ----------
@@ -456,12 +449,14 @@
   // ---------- История раздач ----------
   const handTotal = (cards) => (Array.isArray(cards) ? handValue(cards) : 0);
 
-  function recordHistoryEntry(net, totalBet) {
+  function recordHistoryEntry(net, totalBet, insurance = 0) {
     const dealerCards = Array.isArray(state.dealer) ? state.dealer : [];
     const entry = {
       n: state.stats.rounds,
+      ts: Date.now(),
       bet: Math.round(totalBet),
       net: Math.round(net),
+      insurance: Math.round(insurance),
       dealerTotal: handTotal(dealerCards),
       dealerCards: dealerCards.length,
       dealerNatural: isNatural(dealerCards),
@@ -484,6 +479,12 @@
         };
       }),
     };
+    // Краткое описание для общей истории на хабе.
+    const handTotals = entry.hands.map((h) => h.total).join(', ');
+    entry.summary = entry.dealerNatural
+      ? `Блэкджек у дилера · ваши: ${handTotals}`
+      : `Дилер ${entry.dealerTotal} · ваши: ${handTotals}`;
+
     state.history.unshift(entry);
     if (state.history.length > HISTORY_MAX) state.history.length = HISTORY_MAX;
   }
@@ -619,11 +620,44 @@
   }
 
   function canSplit(hand) {
-    if (!hand || state.phase !== 'player' || state.busy || hand.done) return false;
-    if (state.hands.length >= 4) return false;
-    if (hand.cards.length !== 2) return false;
-    if (state.bankroll < hand.bet) return false;
-    return rankValue(hand.cards[0].rank) === rankValue(hand.cards[1].rank);
+    return splitHint(hand) === '';
+  }
+
+  // Почему сплит недоступен — одной фразой. Пустая строка значит «можно».
+  function splitHint(hand) {
+    if (state.phase === 'betting') return 'Сплит доступен в игре: нужны две карты одного достоинства';
+    if (state.phase !== 'player' || state.busy) return 'Сейчас не ваш ход';
+    if (!hand || hand.done) return 'Эта рука уже сыграна';
+    if (state.hands.length >= 4) return 'Больше 4 рук после сплита не бывает';
+    if (hand.cards.length !== 2) return 'Сплит возможен только с двумя картами на руке';
+    if (rankValue(hand.cards[0].rank) !== rankValue(hand.cards[1].rank)) {
+      return 'Нужны две карты одного достоинства — например, 8 и 8';
+    }
+    if (state.bankroll < hand.bet) {
+      return `Нужно ещё ${fmt(hand.bet - state.bankroll)}, чтобы повторить ставку`;
+    }
+    return '';
+  }
+
+  const reduceMotion = () => window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function pulseSplitBtn() {
+    if (reduceMotion()) return;
+    el.splitBtn.classList.remove('split-ready');
+    // Перезапуск анимации: без этого повторный вызов ничего не покажет.
+    void el.splitBtn.offsetWidth;
+    el.splitBtn.classList.add('split-ready');
+    clearTimeout(pulseSplitBtn.timer);
+    pulseSplitBtn.timer = setTimeout(() => el.splitBtn.classList.remove('split-ready'), 3600);
+  }
+
+  function renderRebuy() {
+    const info = Casino.getTopUp();
+    el.rebuyBtn.disabled = !info.ready;
+    el.rebuyBtn.textContent = info.ready
+      ? `Пополнить + ${numFmt.format(info.amount)} ₽`
+      : `Бонус через ${mmss(info.remaining)}`;
   }
 
   function renderPanels() {
@@ -631,12 +665,13 @@
     const broke = state.phase === 'betting' && state.bankroll < MIN_BET && state.bet === 0;
 
     el.rebuyPanel.hidden = !broke;
+    if (!el.rebuyPanel.hidden) renderRebuy();
     el.betPanel.hidden = inRound || broke;
     el.actionPanel.hidden = !inRound;
 
     el.chips.forEach((chip) => {
       const value = Number(chip.dataset.chip);
-      chip.disabled = state.phase !== 'betting' || state.bankroll < value || state.bet + value > MAX_BET;
+      chip.disabled = state.phase !== 'betting' || state.bankroll < value || state.bet + value > maxBet();
     });
 
     el.dealBtn.disabled = state.phase !== 'betting' || state.busy || state.bet < MIN_BET;
@@ -648,7 +683,24 @@
     el.hitBtn.disabled = !playerTurn || !hand || hand.done;
     el.standBtn.disabled = !playerTurn || !hand || hand.done;
     el.doubleBtn.disabled = !canDouble(hand);
-    el.splitBtn.disabled = !canSplit(hand);
+    const hint = splitHint(hand);
+    el.splitBtn.disabled = hint !== '';
+    el.splitBtn.title = hint || `Разделить ${hand ? hand.cards[0].rank : ''} и ${hand ? hand.cards[1].rank : ''} `
+      + 'на две руки, поставив ещё столько же';
+    el.splitBtn.setAttribute('aria-description', el.splitBtn.title);
+
+    // Первый раз за руку, когда сплит стал доступен, — подсвечиваем кнопку,
+    // чтобы её не пропустили. Дальше не мигаем: это раздражает.
+    if (hint === '') {
+      if (hand && state.splitPulseFor !== hand.id) {
+        state.splitPulseFor = hand.id;
+        pulseSplitBtn();
+      }
+    } else if (el.splitBtn.classList.contains('split-ready')) {
+      // Сплит снова недоступен — снимаем подсветку, чтобы она не висела зря.
+      clearTimeout(pulseSplitBtn.timer);
+      el.splitBtn.classList.remove('split-ready');
+    }
   }
 
   function updateUI() {
@@ -660,9 +712,7 @@
     renderPanels();
     el.message.textContent = state.message;
     el.message.className = `message ${state.messageClass}`.trim();
-    el.soundBtn.classList.toggle('off', !state.sound);
-    el.soundBtn.textContent = state.sound ? '🔊' : '🔇';
-    el.soundBtn.setAttribute('aria-pressed', String(state.sound));
+    Casino.setSoundIcon(el.soundBtn, state.sound);
     // Если история открыта во время анимации раунда — обновляем её на лету.
     if (!el.overlay.hidden) renderHistory();
   }
@@ -679,8 +729,8 @@
   function addChip(value) {
     if (state.phase !== 'betting' || state.busy) return;
     if (state.bankroll < value) return;
-    if (state.bet + value > MAX_BET) {
-      setMessage(`Максимальная ставка — ${fmt(MAX_BET)}`, 'lose');
+    if (state.bet + value > maxBet()) {
+      setMessage(`Максимальная ставка — ${fmt(maxBet())}`, 'lose');
       return;
     }
     if (state.hands.length) clearTable();
@@ -1015,13 +1065,20 @@
       totalPayout += hand.payout;
     });
 
-    const net = totalPayout - totalBet;
+    const baseNet = totalPayout - totalBet;
 
-    state.bankroll += totalPayout;
+    // Страховка из целей: при проигрыше возвращает половину потерь.
+    let insurance = 0;
+    if (baseNet < 0 && Casino.shields() > 0 && Casino.useShield()) {
+      insurance = Math.ceil(-baseNet / 2);
+    }
+    const net = baseNet + insurance;
+
+    state.bankroll += totalPayout + insurance;
     state.stats.rounds++;
     state.stats.net += net;
     if (net > 0) state.stats.bestWin = Math.max(state.stats.bestWin, net);
-    recordHistoryEntry(net, totalBet);
+    recordHistoryEntry(net, totalBet, insurance);
 
     state.phase = 'betting';
     state.busy = false;
@@ -1032,26 +1089,44 @@
     const gotBlackjack = state.hands.some((h) => h.result === 'blackjack');
     const allBust = state.hands.every((h) => h.result === 'bust');
 
+    let message;
+    let messageClass = '';
     if (gotBlackjack) {
-      setMessage(`Блэкджек! Выигрыш ${fmt(net)}`, 'gold');
+      message = `Блэкджек! Выигрыш ${fmt(net)}`;
+      messageClass = 'gold';
       sfx('blackjack');
     } else if (net > 0) {
-      setMessage(state.hands.length > 1
+      message = state.hands.length > 1
         ? `Итог раунда: выигрыш ${fmt(net)}`
-        : `Вы выиграли ${fmt(net)}`, 'win');
+        : `Вы выиграли ${fmt(net)}`;
+      messageClass = 'win';
       sfx('win');
     } else if (net < 0) {
-      if (allBust) setMessage('Перебор — ставка проиграна', 'lose');
-      else if (dealerBJ) setMessage('Блэкджек у дилера — вы проиграли', 'lose');
-      else if (dealerBust) setMessage('Дилер перебрал, но… увы, ставка проиграна', 'lose');
-      else setMessage(`Вы проиграли ${fmt(-net)}`, 'lose');
+      if (allBust) message = 'Перебор — ставка проиграна';
+      else if (dealerBJ) message = 'Блэкджек у дилера — вы проиграли';
+      else if (dealerBust) message = 'Дилер перебрал, но… увы, ставка проиграна';
+      else message = `Вы проиграли ${fmt(-net)}`;
+      if (insurance > 0) message += ` · страховка вернула ${fmt(insurance)}`;
+      messageClass = 'lose';
       sfx('lose');
     } else {
-      setMessage('Ничья — ставка возвращена', 'push');
+      message = 'Ничья — ставка возвращена';
+      messageClass = 'push';
       sfx('push');
     }
 
-    showDelta(net);
+    // Достигнутые цели: награда уже на балансе, сообщаем игроку.
+    const reached = Casino.checkGoals();
+    const goalReward = reached.reduce((sum, goal) => sum + goal.reward, 0);
+    if (reached.length) {
+      const best = reached[reached.length - 1];
+      message += ` · цель ${fmt(best.target)}: +${fmt(goalReward)}, звание «${best.title}»`;
+      messageClass = 'gold';
+    }
+
+    setMessage(message, messageClass);
+
+    showDelta(net + goalReward);
     updateUI();
     save();
   }
@@ -1059,8 +1134,13 @@
   // ---------- Пополнение ----------
   function rebuy() {
     if (state.phase !== 'betting') return;
-    state.bankroll += START_BANKROLL;
-    setMessage('Демо-пополнение получено. Приятной игры!', 'gold');
+    const result = Casino.claimTopUp();
+    if (!result.ok) {
+      renderRebuy();
+      setMessage(`Бесплатный бонус будет доступен через ${mmss(result.remaining)}`, 'lose');
+      return;
+    }
+    setMessage(`Бонус получен: +${fmt(result.amount)}. Приятной игры!`, 'gold');
     sfx('chip');
     updateUI();
     save();
@@ -1123,6 +1203,11 @@
         <li><span class="accent">Удвоить</span> — удвоить ставку и получить ровно одну карту.</li>
         <li><span class="accent">Сплит</span> — разделить пару одинаковых карт на две руки
         (до 4 рук). После сплита тузов даётся по одной карте.</li>
+        <li>Сплит требует ещё одну ставку того же размера: пара 8 и 8 за 100 ₽ —
+        это 200 ₽ на столе. Поэтому кнопка неактивна, если на балансе не хватает
+        на вторую ставку.</li>
+        <li>Почему кнопка «Сплит» недоступна, написано во всплывающей подсказке:
+        наведите на неё курсор.</li>
       </ul>
 
       <h3>Выплаты</h3>
@@ -1137,7 +1222,9 @@
         <li>6 колод в шузе, перемешивание автоматическое.</li>
         <li>Дилер останавливается на 17 очках (включая мягкие 17).</li>
         <li>Блэкджек после сплита оплачивается 1 : 1.</li>
-        <li>Минимальная ставка — 25 ₽, максимальная — 2 500 ₽.</li>
+        <li>Минимальная ставка — 25 ₽, максимальная — ${fmt(maxBet())}.</li>
+        <li>Лимит растёт на 1 000 ₽ за каждую достигнутую цель.</li>
+        <li>Бесплатный бонус +1 000 ₽ — раз в 30 минут, в том числе из панели пополнения.</li>
         <li>Игра на демо-фишки. Реальные деньги не используются.</li>
       </ul>
 
@@ -1196,29 +1283,30 @@
 
   function openReset() {
     openModal(`
-      <h2>Начать заново?</h2>
-      <p>Баланс вернётся к <span class="accent">1 000 ₽</span>, а статистика обнулится.
-      Текущая игра будет прервана.</p>
+      <h2>Сбросить блэкджек?</h2>
+      <p>Обнулятся <span class="accent">статистика и история раздач блэкджека</span>.
+      Текущая раздача будет прервана.</p>
+      <p>Общий баланс и другие игры не изменятся.</p>
       <div class="modal-actions">
         <button class="ghost-btn" data-close>Отмена</button>
-        <button class="primary-btn" data-action="reset">Начать заново</button>
+        <button class="primary-btn" data-action="reset">Сбросить</button>
       </div>
     `);
   }
 
   function resetGame() {
     session++;
-    state.bankroll = START_BANKROLL;
+    // Ставка прерванного раунда возвращается: сброс не должен съедать деньги.
+    Casino.settlePending(GAME_ID);
     state.bet = 0;
     state.betChips = [];
-    state.stats = defaultStats();
-    state.history = [];
+    Casino.resetGame(GAME_ID);
     state.phase = 'betting';
     state.busy = false;
     state.active = 0;
     clearTable();
     buildShoe();
-    setMessage('Новая игра. Поставьте фишки и нажмите «Раздать»');
+    setMessage('Блэкджек сброшен. Поставьте фишки и нажмите «Раздать»');
     updateUI();
     save();
   }
@@ -1235,6 +1323,9 @@
   el.doubleBtn.addEventListener('click', doubleDown);
   el.splitBtn.addEventListener('click', splitHand);
   el.rebuyBtn.addEventListener('click', rebuy);
+  setInterval(() => {
+    if (!el.rebuyPanel.hidden) renderRebuy();
+  }, 1000);
   el.rulesBtn.addEventListener('click', openRules);
   el.statsBtn.addEventListener('click', openStats);
   el.historyBtn.addEventListener('click', openHistory);
@@ -1253,13 +1344,14 @@
   });
 
   document.addEventListener('keydown', (event) => {
+    // Casino.keyOf смотрит на физическую клавишу, поэтому русская
+    // раскладка не ломает Enter, H, S, D и P.
+    const key = Casino.keyOf(event);
     if (!el.overlay.hidden) {
-      if (event.key === 'Escape') closeModal();
+      if (key === 'escape') closeModal();
       return;
     }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-
-    const key = event.key.toLowerCase();
 
     if (state.phase === 'betting' && (key === 'enter' || key === ' ')) {
       event.preventDefault();

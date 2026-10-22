@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fakrap — казино</title>
+<meta name="theme-color" content="#07120e">
+<meta name="application-name" content="Fakrap">
+<meta name="description" content="Домашнее казино Fakrap: блэкджек, европейская рулетка, кости и баккара с общим балансом, историей и статистикой.">
+<link rel="icon" type="image/png" href="shared/brand/fakrap-icon.png">
+<link rel="apple-touch-icon" href="shared/brand/fakrap-icon.png">
+<link rel="stylesheet" href="shared/casino.css">
+</head>
+<body class="casino-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="index.html" aria-label="Fakrap — казино">
+      <img class="brand-logo" src="shared/brand/fakrap.png" alt="Fakrap">
+      <span class="brand-coin" aria-hidden="true">F</span>
+    </a>
+    <div class="brand-text">
+      <span>CASINO</span>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000 ₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук" data-sound-on="shared/brand/icons/sound-on.png" data-sound-off="shared/brand/icons/sound-off.png">
+      <img class="icon-img" src="shared/brand/icons/sound-on.png" alt="">
+    </button>
+    <button class="icon-btn" id="historyBtn" title="История" aria-label="История ставок">
+      <img class="icon-img" src="shared/brand/icons/history.png" alt="">
+    </button>
+    <button class="icon-btn" id="goalsBtn" title="Цели и звания" aria-label="Цели и звания">
+      <img class="icon-img" src="shared/brand/icons/goals.png" alt="">
+    </button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика">
+      <img class="icon-img" src="shared/brand/icons/stats.png" alt="">
+    </button>
+    <button class="icon-btn" id="resetBtn" title="Сбросить казино" aria-label="Сбросить казино">
+      <img class="icon-img" src="shared/brand/icons/reset.png" alt="">
+    </button>
+  </div>
+</header>
+
+<main class="page">
+
+  <section class="hub-hero">
+    <div>
+      <div class="hub-hero-label">В кошельке</div>
+      <div class="hub-hero-balance" id="heroBalance">1 000 ₽</div>
+      <div class="hub-hero-total" id="heroTotal"></div>
+      <div class="hub-hero-badges">
+        <button class="title-chip" id="titleChip" type="button" title="Цели и звания">Новичок</button>
+        <span class="shield-chip" id="shieldChip" hidden>0</span>
+        <button class="goal-next" id="goalNext" type="button" hidden></button>
+      </div>
+    </div>
+    <div class="hub-hero-actions">
+      <button class="primary-btn" id="topUpBtn" title="Способы оплаты и бесплатный бонус">Пополнить баланс</button>
+      <button class="ghost-btn" id="heroHistoryBtn">История</button>
+    </div>
+  </section>
+
+  <div class="page-head">
+    <h1 class="page-title">Выберите игру</h1>
+    <p class="page-sub">Баланс общий на всё казино, история ставок тоже. Статистика ведётся отдельно по каждой игре.</p>
+  </div>
+
+  <section class="games-grid" id="gamesGrid" aria-label="Игры"></section>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="shared/casino.js"></script>
+<script src="shared/hub.js"></script>
+</body>
+</html>

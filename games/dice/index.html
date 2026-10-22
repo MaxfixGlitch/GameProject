@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Кости — Fakrap</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Кости: две кости, ставки на сумму, чётность, больше-меньше и дубли. Демо-фишки, без реальных денег.">
+<link rel="icon" type="image/png" href="../../shared/brand/fakrap-icon.png">
+<link rel="apple-touch-icon" href="../../shared/brand/fakrap-icon.png">
+<link rel="stylesheet" href="../../shared/casino.css">
+<link rel="stylesheet" href="dice.css">
+</head>
+<body class="casino-page dice-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="../../index.html" title="Все игры" aria-label="Fakrap — все игры">
+      <img class="brand-logo" src="../../shared/brand/fakrap.png" alt="Fakrap">
+      <span class="brand-coin" aria-hidden="true">F</span>
+    </a>
+    <div class="brand-text">
+      <span>DICE</span>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000 ₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <a class="icon-btn" href="../../index.html" title="Все игры" aria-label="Все игры">
+      <img class="icon-img" src="../../shared/brand/icons/home.png" alt="">
+    </a>
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук" data-sound-on="../../shared/brand/icons/sound-on.png" data-sound-off="../../shared/brand/icons/sound-off.png">
+      <img class="icon-img" src="../../shared/brand/icons/sound-on.png" alt="">
+    </button>
+    <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила игры">
+      <img class="icon-img" src="../../shared/brand/icons/rules.png" alt="">
+    </button>
+    <button class="icon-btn" id="historyTopBtn" title="История бросков" aria-label="История бросков">
+      <img class="icon-img" src="../../shared/brand/icons/history.png" alt="">
+    </button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика костей">
+      <img class="icon-img" src="../../shared/brand/icons/stats.png" alt="">
+    </button>
+  </div>
+</header>
+
+<main class="dice-main">
+
+  <section class="dice-area">
+    <div class="dice-felt">
+      <div class="dice-stage" id="diceStage" role="img" aria-label="Две кости">
+        <div class="die-slot"><div class="die" id="dieA"></div></div>
+        <div class="die-slot"><div class="die" id="dieB"></div></div>
+      </div>
+      <div class="sum-badge" id="sumBadge" hidden>—</div>
+    </div>
+
+    <div class="dice-panel">
+      <div class="message" id="message" aria-live="polite">Выберите фишку и поставьте на стол</div>
+
+      <div class="bet-total">
+        <span>Всего на столе</span>
+        <strong id="betTotal">0 ₽</strong>
+        <span class="bet-limit" id="betLimit">из 2 500 ₽</span>
+      </div>
+      <p class="bet-hint" id="betHint" hidden></p>
+
+      <div class="chips-row" id="chipsRow">
+        <button class="chip c25" data-chip="25" aria-label="Фишка 25"><span>25</span></button>
+        <button class="chip c50" data-chip="50" aria-label="Фишка 50"><span>50</span></button>
+        <button class="chip c100" data-chip="100" aria-label="Фишка 100"><span>100</span></button>
+        <button class="chip c250" data-chip="250" aria-label="Фишка 250"><span>250</span></button>
+        <button class="chip c500" data-chip="500" aria-label="Фишка 500"><span>500</span></button>
+      </div>
+
+      <div class="dice-actions">
+        <button class="primary-btn" id="rollBtn" disabled>Бросить кости</button>
+        <div class="minor-actions">
+          <button class="ghost-btn" id="undoBtn" disabled>Отменить</button>
+          <button class="ghost-btn" id="clearBtn" disabled>Очистить</button>
+          <button class="ghost-btn" id="repeatBtn" hidden>Повторить</button>
+        </div>
+      </div>
+
+      <p class="hint">Фишка ставится кликом по столу. <kbd>Space</kbd> — бросить,
+        <kbd>C</kbd> — очистить, <kbd>H</kbd> — история бросков.
+        Клавиши работают на любой раскладке.</p>
+    </div>
+  </section>
+
+  <section class="dice-table-section">
+    <div class="rolls-strip" id="rollsStrip" aria-label="Последние броски"></div>
+    <div class="table-scroll">
+      <div class="dice-table" id="betTable" role="group" aria-label="Стол для ставок"></div>
+    </div>
+    <p class="table-legend">
+      <span><i class="legend-dot gold"></i>семёрка</span>
+      <span><i class="legend-dot double"></i>дубль</span>
+      <span class="legend-pay">Возврат: сумма 2 и 12 — ×31 · 3 и 11 — ×16 · 4 и 10 — ×11 ·
+        5 и 9 — ×8 · 6 и 8 — ×7 · 7 — ×6 · дубль — ×6 · точный дубль — ×31 ·
+        чёт/нечет и больше/меньше — ×2</span>
+    </p>
+  </section>
+
+  <section class="rolls-section" aria-labelledby="rollsTitle">
+    <div class="rolls-head">
+      <h2 id="rollsTitle">История бросков</h2>
+      <button class="ghost-btn" id="historyBtn" type="button">Вся история</button>
+    </div>
+    <div class="rolls-list" id="rollsList"></div>
+  </section>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="../../shared/casino.js"></script>
+<script src="dice.js"></script>
+</body>
+</html>

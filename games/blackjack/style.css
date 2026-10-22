@@ -3,6 +3,8 @@
    ============================================================ */
 
 :root {
+  /* Тёмная тема для системных элементов: ползунков, полей, подсказок. */
+  color-scheme: dark;
   --gold: #e9c46a;
   --gold-soft: #f7e7b6;
   --gold-deep: #b98f33;
@@ -23,6 +25,40 @@
 }
 
 * { box-sizing: border-box; }
+
+/* ---------------- Ползунки ---------------- */
+/* То же золото на тёмном фетре, что и на остальных страницах казино.
+   Стандартные свойства ставим только для Firefox: в Chrome они
+   отключают псевдоэлементы ::-webkit-scrollbar. */
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background: linear-gradient(180deg, rgba(247, 231, 182, .7), rgba(185, 143, 51, .85));
+  background-clip: padding-box;
+  min-height: 34px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold-deep));
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:active { background: var(--gold); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(233, 196, 106, .5) rgba(255, 255, 255, .06);
+  }
+}
 
 html, body { height: 100%; }
 
@@ -72,12 +108,30 @@ button:disabled { cursor: not-allowed; }
 
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 
+a.brand-mark, a.icon-btn { text-decoration: none; }
+a.icon-btn { display: grid; place-items: center; color: var(--gold-soft); font-size: 16px; }
+a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
+
 .brand-mark {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Логотип Fakrap: зелёная плашка с золотой надписью. */
+.brand-logo {
+  display: block;
+  height: 42px;
+  width: auto;
+}
+
+/* На узких экранах вместо широкого логотипа — золотая монета с «F». */
+.brand-coin {
+  display: none;
+  place-items: center;
   width: 46px;
   height: 46px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
   font-family: Georgia, "Times New Roman", serif;
   font-weight: 700;
   font-size: 23px;
@@ -147,21 +201,30 @@ button:disabled { cursor: not-allowed; }
 
 .tools { display: flex; gap: 8px; }
 
+/* Кнопки шапки — готовые золотые иконки: рамка и фон уже нарисованы,
+   поэтому сама кнопка прозрачная и без обводки. */
 .icon-btn {
   width: 38px;
   height: 38px;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  font-size: 15px;
-  border-radius: 11px;
-  border: 1px solid rgba(233, 196, 106, .22);
-  background: rgba(255, 255, 255, .04);
-  transition: .18s;
-  line-height: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--gold-soft);
+  font-size: 16px;
+  line-height: 0;
+  text-decoration: none;
+  transition: transform .16s, filter .16s, opacity .16s;
 }
-.icon-btn:hover { background: rgba(233, 196, 106, .14); border-color: rgba(233, 196, 106, .5); }
+.icon-btn img { display: block; width: 100%; height: 100%; }
+.icon-btn:hover { transform: translateY(-1px); filter: brightness(1.12) drop-shadow(0 3px 7px rgba(233, 196, 106, .3)); }
 .icon-btn:active { transform: scale(.94); }
-.icon-btn.off { opacity: .45; }
+/* Выключенный звук виден по самой иконке с красным крестом —
+   сильно гасить её не нужно, иначе кнопка пропадает из шапки. */
+.icon-btn.off { opacity: .8; }
 
 /* ---------------- Стол ---------------- */
 
@@ -242,7 +305,7 @@ button:disabled { cursor: not-allowed; }
   z-index: 2;
   font-variant-numeric: tabular-nums;
 }
-.shoe-icon { font-size: 15px; line-height: 1; }
+.shoe-icon { display: block; height: 15px; width: auto; }
 
 .zone { position: relative; z-index: 1; }
 
@@ -513,105 +576,8 @@ button:disabled { cursor: not-allowed; }
 .hand-result.lose, .hand-result.bust { color: var(--lose); opacity: 1; transform: none; }
 .hand-result.push { color: var(--push); opacity: 1; transform: none; }
 
-/* ---------------- Карты ---------------- */
+/* Карты описаны в shared/cards.css. */
 
-.card {
-  position: relative;
-  width: var(--card-w);
-  height: calc(var(--card-w) * 1.4);
-  flex: 0 0 auto;
-  perspective: 900px;
-  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, .45));
-  will-change: transform;
-}
-
-.card-inner {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transition: transform .48s cubic-bezier(.25, .8, .3, 1);
-}
-.card.face-down .card-inner { transform: rotateY(180deg); }
-
-.card-face {
-  position: absolute;
-  inset: 0;
-  border-radius: calc(var(--card-w) * .09);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  overflow: hidden;
-}
-
-.card-front {
-  background: linear-gradient(158deg, #ffffff 0%, #fbf8ef 55%, #efe9da 100%);
-  color: #14202b;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .14), inset 0 -6px 14px rgba(0, 0, 0, .05);
-}
-.card-front.red { color: #c02626; }
-
-.card-front .corner {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: .95;
-  font-weight: 800;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: calc(var(--card-w) * .21);
-}
-.card-front .corner b { font-weight: 800; }
-.card-front .corner i { font-style: normal; font-size: .82em; margin-top: 1px; }
-.card-front .corner.tl { top: calc(var(--card-w) * .07); left: calc(var(--card-w) * .08); }
-.card-front .corner.br { bottom: calc(var(--card-w) * .07); right: calc(var(--card-w) * .08); transform: rotate(180deg); }
-
-.card-front .pip {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-}
-.card-front .pip b {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: calc(var(--card-w) * .44);
-  line-height: 1;
-  letter-spacing: -.03em;
-}
-.card-front .pip b.ace-suit {
-  font-size: calc(var(--card-w) * .62);
-  line-height: 1;
-  opacity: .95;
-}
-.card-front .pip i {
-  font-style: normal;
-  font-size: calc(var(--card-w) * .2);
-  line-height: 1;
-  opacity: .8;
-}
-
-.card-back {
-  transform: rotateY(180deg);
-  background:
-    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, .22), transparent 55%),
-    repeating-linear-gradient(45deg, #7f1d1d 0 5px, #9a2626 5px 10px);
-  box-shadow: inset 0 0 0 2px var(--gold-soft), inset 0 0 0 4px #5d1414;
-}
-.card-back::after {
-  content: "";
-  position: absolute;
-  inset: 16%;
-  border: 1px solid rgba(247, 231, 182, .55);
-  border-radius: calc(var(--card-w) * .05);
-  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .08);
-}
-
-@keyframes dealIn {
-  0% { opacity: 0; transform: translate(130px, -210px) rotate(18deg) scale(.92); }
-  100% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
-}
-.card.dealing { animation: dealIn .36s cubic-bezier(.22, .8, .3, 1) both; }
 
 /* ---------------- Нижняя консоль ---------------- */
 
@@ -738,6 +704,40 @@ button:disabled { cursor: not-allowed; }
 .action-btn.split { border-color: rgba(192, 132, 252, .38); }
 .action-btn.split:hover:not(:disabled) { background: rgba(192, 132, 252, .14); border-color: rgba(192, 132, 252, .7); }
 
+/* Сплит стал доступен впервые за руку — мягко подсвечиваем кнопку. */
+.action-btn.split.split-ready {
+  border-color: rgba(192, 132, 252, .95);
+  background: rgba(192, 132, 252, .2);
+  animation: splitReady 1.1s ease-in-out 3;
+}
+.action-btn.split.split-ready kbd { color: #e9d5ff; background: rgba(192, 132, 252, .3); }
+.action-btn.split.split-ready::after {
+  content: 'можно разделить';
+  position: absolute;
+  transform: translateY(-34px);
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(192, 132, 252, .92);
+  color: #1b0b2a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: splitTag .3s ease-out;
+}
+.action-btn.split { position: relative; }
+
+@keyframes splitReady {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
+  45% { box-shadow: 0 0 0 6px rgba(192, 132, 252, .28); }
+}
+
+@keyframes splitTag {
+  from { opacity: 0; transform: translateY(-26px) scale(.9); }
+  to { opacity: 1; transform: translateY(-34px) scale(1); }
+}
+
 .rebuy-panel { flex-direction: column; gap: 10px; text-align: center; }
 .rebuy-panel p { margin: 0; color: var(--muted); font-size: 14px; }
 
@@ -760,10 +760,13 @@ button:disabled { cursor: not-allowed; }
 
 .modal {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(480px, 100%);
   max-height: 86dvh;
-  overflow-y: auto;
-  padding: 26px 26px 22px;
+  overflow: hidden;
+  /* Справа меньше отступа: там живёт ползунок прокрутки. */
+  padding: 26px 16px 22px 26px;
   border-radius: 22px;
   background: linear-gradient(170deg, #10201a, #0a1411 70%);
   border: 1px solid rgba(233, 196, 106, .32);
@@ -771,6 +774,15 @@ button:disabled { cursor: not-allowed; }
   animation: modalIn .22s cubic-bezier(.2, .8, .3, 1);
 }
 @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* Прокручивается содержимое окна, а не само окно: так ползунок
+   начинается ниже кнопки закрытия и не вылезает за скруглённый угол. */
+.modal-body {
+  min-height: 0;
+  margin-top: 18px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
 
 .modal-close {
   position: absolute;
@@ -925,7 +937,8 @@ button:disabled { cursor: not-allowed; }
 
 @media (max-width: 720px) {
   .brand-text small { display: none; }
-  .brand-mark { width: 40px; height: 40px; font-size: 20px; }
+  .brand-logo { display: none; }
+  .brand-coin { display: grid; width: 40px; height: 40px; font-size: 20px; }
   .bankroll-box { padding: 4px 12px; }
   .tools { gap: 5px; }
   .icon-btn { width: 34px; height: 34px; }
@@ -956,7 +969,8 @@ button:disabled { cursor: not-allowed; }
   .shoe-badge { display: none; }
   .bet-actions { width: 100%; }
   .bet-actions .primary-btn { flex: 1; }
-  .modal { padding: 22px 16px 18px; }
+  .modal { padding: 22px 10px 18px 16px; }
+  .modal-body { margin-top: 22px; }
   .history-round { padding: 9px 10px 10px; }
   .history-round-head { flex-wrap: wrap; gap: 4px 8px; }
   .history-round-bet { margin-left: auto; }

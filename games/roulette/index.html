@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Рулетка — Fakrap</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Европейская рулетка: 37 секторов, ставки на числа, цвет, чётность, дюжины и колонки.">
+<link rel="icon" type="image/png" href="../../shared/brand/fakrap-icon.png">
+<link rel="apple-touch-icon" href="../../shared/brand/fakrap-icon.png">
+<link rel="stylesheet" href="../../shared/casino.css">
+<link rel="stylesheet" href="roulette.css">
+</head>
+<body class="casino-page roulette-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="../../index.html" title="Все игры" aria-label="Fakrap — все игры">
+      <img class="brand-logo" src="../../shared/brand/fakrap.png" alt="Fakrap">
+      <span class="brand-coin" aria-hidden="true">F</span>
+    </a>
+    <div class="brand-text">
+      <span>ROULETTE</span>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000 ₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <a class="icon-btn" href="../../index.html" title="Все игры" aria-label="Все игры">
+      <img class="icon-img" src="../../shared/brand/icons/home.png" alt="">
+    </a>
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук" data-sound-on="../../shared/brand/icons/sound-on.png" data-sound-off="../../shared/brand/icons/sound-off.png">
+      <img class="icon-img" src="../../shared/brand/icons/sound-on.png" alt="">
+    </button>
+    <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила игры">
+      <img class="icon-img" src="../../shared/brand/icons/rules.png" alt="">
+    </button>
+    <button class="icon-btn" id="historyTopBtn" title="История спинов" aria-label="История спинов">
+      <img class="icon-img" src="../../shared/brand/icons/history.png" alt="">
+    </button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика рулетки">
+      <img class="icon-img" src="../../shared/brand/icons/stats.png" alt="">
+    </button>
+  </div>
+</header>
+
+<main class="roulette-main">
+
+  <section class="wheel-area">
+    <div class="wheel-wrap">
+      <svg id="wheel" viewBox="0 0 400 400" role="img" aria-label="Колесо европейской рулетки"></svg>
+      <div class="result-badge" id="resultBadge" hidden>—</div>
+    </div>
+
+    <div class="wheel-panel">
+      <div class="message" id="message" aria-live="polite">Выберите фишку и поставьте на стол</div>
+
+      <div class="bet-total">
+        <span>Всего на столе</span>
+        <strong id="betTotal">0 ₽</strong>
+        <span class="bet-limit" id="betLimit">из 2 500 ₽</span>
+      </div>
+      <p class="bet-hint" id="betHint" hidden></p>
+
+      <div class="chips-row" id="chipsRow">
+        <button class="chip c25" data-chip="25" aria-label="Фишка 25"><span>25</span></button>
+        <button class="chip c50" data-chip="50" aria-label="Фишка 50"><span>50</span></button>
+        <button class="chip c100" data-chip="100" aria-label="Фишка 100"><span>100</span></button>
+        <button class="chip c250" data-chip="250" aria-label="Фишка 250"><span>250</span></button>
+        <button class="chip c500" data-chip="500" aria-label="Фишка 500"><span>500</span></button>
+      </div>
+
+      <div class="roulette-actions">
+        <button class="primary-btn" id="spinBtn" disabled>Крутить</button>
+        <div class="minor-actions">
+          <button class="ghost-btn" id="undoBtn" disabled>Отменить</button>
+          <button class="ghost-btn" id="clearBtn" disabled>Очистить</button>
+          <button class="ghost-btn" id="repeatBtn" hidden>Повторить</button>
+        </div>
+      </div>
+
+      <p class="hint">Фишка ставится кликом по столу. <kbd>Space</kbd> — крутить,
+        <kbd>C</kbd> — очистить, <kbd>H</kbd> — история спинов.
+        Клавиши работают на любой раскладке.</p>
+    </div>
+  </section>
+
+  <section class="table-section">
+    <div class="numbers-strip" id="numbersStrip" aria-label="Последние выпавшие числа"></div>
+    <div class="table-scroll">
+      <div class="bet-table" id="betTable" role="group" aria-label="Стол для ставок"></div>
+    </div>
+    <p class="table-legend">
+      <span><i class="legend-dot red"></i>красное</span>
+      <span><i class="legend-dot black"></i>чёрное</span>
+      <span><i class="legend-dot green"></i>зеро</span>
+      <span class="legend-pay">Выплаты: число 35:1 · дюжина и колонка 2:1 · цвет, чётность, половина 1:1</span>
+    </p>
+  </section>
+
+  <section class="spins-section" aria-labelledby="spinsTitle">
+    <div class="spins-head">
+      <h2 id="spinsTitle">История спинов</h2>
+      <button class="ghost-btn" id="historyBtn" type="button">Вся история</button>
+    </div>
+    <div class="spins-list" id="spinsList"></div>
+  </section>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="../../shared/casino.js"></script>
+<script src="roulette.js"></script>
+</body>
+</html>
