@@ -1,0 +1,423 @@
+/* ============================================================
+   Колесо фортуны: 16 секторов с множителями
+   ============================================================ */
+
+.wheel-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: clamp(14px, 2.4vw, 26px);
+  align-items: start;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: clamp(14px, 2.4vw, 26px) clamp(12px, 2.4vw, 26px) 34px;
+}
+
+.wheel-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* ---------------- Колесо ---------------- */
+
+.wheel-stage {
+  --size: clamp(280px, 38vw, 430px);
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  display: grid;
+  place-items: center;
+}
+
+/* Указатель сверху: золотой клин, смотрит вниз на сектор. */
+.wheel-pointer {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 26px solid var(--gold);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .6));
+}
+.wheel-pointer::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: -24px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #c99f3d);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .5);
+}
+
+.wheel-rim {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  padding: 12px;
+  background:
+    radial-gradient(circle at 40% 30%, #ffe9ae, #c99f3d 55%, #8a6416 100%);
+  box-shadow:
+    0 26px 60px rgba(0, 0, 0, .55),
+    0 0 0 2px rgba(255, 244, 205, .35) inset,
+    0 0 0 10px rgba(233, 196, 106, .07);
+}
+
+.wheel-disc {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 3px rgba(7, 18, 14, .85) inset,
+    0 10px 26px rgba(0, 0, 0, .5) inset;
+  will-change: transform;
+  /* conic-gradient задаётся из JS по списку секторов */
+}
+
+.wheel-labels { position: absolute; inset: 0; }
+
+.wheel-label {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--a));
+}
+
+.wheel-label span {
+  position: absolute;
+  left: 50%;
+  top: 6.5%;
+  /* Подписи всегда стоят ровно: колесо крутится, а текст остаётся
+     читаемым — JS подмешивает текущий угол в --fix. */
+  transform: translateX(-50%) rotate(calc(-1 * var(--a) - var(--fix, 0deg)));
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 6px;
+  font-family: Georgia, serif;
+  font-size: clamp(11px, 1.35vw, 15px);
+  font-weight: 700;
+  color: #fff6dd;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .75);
+  transition: transform .25s, color .25s;
+  white-space: nowrap;
+}
+.wheel-label.zero span { color: rgba(233, 244, 238, .55); }
+.wheel-label.hit span {
+  transform: translateX(-50%) rotate(calc(-1 * var(--a) - var(--fix, 0deg))) scale(1.22);
+  color: #fff;
+  text-shadow: 0 0 12px rgba(255, 230, 150, .9), 0 1px 3px rgba(0, 0, 0, .8);
+}
+
+.wheel-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 22%;
+  height: 22%;
+  min-width: 54px;
+  min-height: 54px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 3px solid rgba(255, 244, 205, .55);
+  background: radial-gradient(circle at 34% 30%, #16382a, #06120c 70%);
+  font-family: Georgia, serif;
+  font-size: clamp(19px, 2.4vw, 26px);
+  font-weight: 700;
+  color: var(--gold-soft);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .6), 0 0 22px rgba(233, 196, 106, .18);
+}
+
+/* ---------------- Результат ---------------- */
+
+.wheel-result {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 34px;
+}
+.wheel-result-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(233, 196, 106, .6);
+}
+.wheel-result-value {
+  font-family: Georgia, serif;
+  font-size: 26px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+  transition: color .2s;
+}
+.wheel-result-value.win { color: #b8f5cd; }
+.wheel-result-value.lose { color: #ffb4b4; }
+
+/* ---------------- Кнопки ---------------- */
+
+.wheel-controls {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 430px;
+}
+
+.wheel-spin {
+  flex: 1;
+  min-height: 52px;
+  font-size: 16px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.wheel-controls .ghost-btn {
+  min-height: 52px;
+  padding-inline: 16px;
+  white-space: nowrap;
+}
+
+.message {
+  width: 100%;
+  max-width: 430px;
+  min-height: 20px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(0, 0, 0, .24);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: center;
+}
+.message.win { border-color: rgba(74, 222, 128, .45); background: rgba(74, 222, 128, .1); color: #c9f7d9; }
+.message.lose { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #ffd2d2; }
+.message.info { border-color: rgba(233, 196, 106, .35); color: var(--gold-soft); }
+
+/* ---------------- Панель ---------------- */
+
+.wheel-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(14px, 1.8vw, 20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background:
+    radial-gradient(420px 180px at 100% 0%, rgba(167, 139, 250, .1), transparent 70%),
+    linear-gradient(160deg, rgba(16, 32, 26, .96), rgba(7, 18, 14, .96));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+}
+
+.bet-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 196, 106, .22);
+  background: rgba(0, 0, 0, .26);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.bet-total strong {
+  margin-left: auto;
+  font-family: Georgia, serif;
+  font-size: 21px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.bet-total .bet-limit { font-size: 10.5px; }
+
+.wheel-panel .chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.wheel-panel .chip { width: 42px; height: 42px; border-width: 3px; font-size: 10.5px; }
+.wheel-panel .chip.c1000,
+.wheel-panel .chip.c2500 { font-size: 9.5px; }
+.wheel-panel .chip.on {
+  outline: 2px solid rgba(233, 196, 106, .85);
+  outline-offset: 2px;
+  transform: translateY(-1px);
+}
+
+.c1000 { background: radial-gradient(circle at 35% 28%, #fde68a, #a16207 72%); }
+.c2500 { background: radial-gradient(circle at 35% 28%, #f9a8d4, #9d174d 72%); }
+
+.bet-hint {
+  margin: 0;
+  padding: 7px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, .35);
+  background: rgba(248, 113, 113, .08);
+  font-size: 11px;
+  color: #ffd2d2;
+}
+.bet-hint[hidden] { display: none; }
+
+.panel-title {
+  margin: 6px 0 -2px;
+  font-family: Georgia, serif;
+  font-size: 15px;
+  letter-spacing: .04em;
+  color: var(--gold-soft);
+}
+
+.sector-list {
+  display: grid;
+  gap: 1px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .07);
+}
+
+.sector-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 11px;
+  background: rgba(6, 16, 12, .92);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.sector-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .18) inset;
+}
+.sector-row b {
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.sector-row .sector-count { font-size: 10.5px; opacity: .75; }
+
+.panel-note {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(154, 176, 164, .9);
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.hint kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .06);
+  font-family: inherit;
+  font-size: 10.5px;
+  color: var(--gold-soft);
+}
+
+/* ---------------- История ---------------- */
+
+.wheel-history {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rolls-head { display: flex; align-items: baseline; gap: 12px; }
+.rolls-head h2 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 18px;
+  letter-spacing: .03em;
+  color: var(--gold-soft);
+}
+.rolls-head .ghost-btn { margin-left: auto; }
+
+.rolls-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.spin-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(9, 22, 16, .9);
+}
+.spin-card.win { border-color: rgba(74, 222, 128, .45); }
+.spin-card.lose { border-color: rgba(248, 113, 113, .28); }
+
+.spin-mult {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font-family: Georgia, serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #06120c;
+  background: radial-gradient(circle at 34% 30%, #ffeeb8, #c99f3d 75%);
+}
+.spin-mult.zero { background: rgba(255, 255, 255, .08); color: var(--muted); }
+
+.spin-text { min-width: 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+.spin-text b { display: block; font-size: 12.5px; color: var(--text); }
+.spin-text .plus { color: var(--win); }
+.spin-text .minus { color: var(--lose); }
+.spin-text time { display: block; font-size: 10px; opacity: .65; }
+
+.roll-empty {
+  margin: 0;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, .12);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rolls-history-full {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin-bottom: 14px;
+}
+
+/* ---------------- Адаптив ---------------- */
+
+@media (max-width: 900px) {
+  .wheel-main { grid-template-columns: minmax(0, 1fr); max-width: 520px; }
+  .wheel-panel { order: 2; }
+  .wheel-history { order: 3; }
+  .wheel-stage { --size: min(78vw, 400px); }
+}
+
+@media (max-width: 560px) {
+  .wheel-main { padding: 10px 10px 26px; gap: 12px; }
+  .wheel-controls { flex-direction: column; }
+  .wheel-controls .ghost-btn { min-height: 42px; }
+  .wheel-spin { min-height: 48px; font-size: 15px; }
+  .wheel-panel { padding: 14px; border-radius: 16px; }
+  .wheel-panel .chip { width: 42px; height: 42px; font-size: 10px; }
+}
