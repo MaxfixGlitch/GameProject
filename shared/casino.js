@@ -614,6 +614,23 @@
       return sound;
     },
 
+    /**
+     * Иконка звука в шапке: у кнопки две картинки в data-атрибутах,
+     * поэтому путь работает и с хаба, и из папок игр.
+     * @param {Element|null} button кнопка звука
+     * @param {boolean} on включён ли звук
+     */
+    setSoundIcon(button, on) {
+      if (!button) return;
+      const icon = button.querySelector('img');
+      const src = on ? button.dataset.soundOn : button.dataset.soundOff;
+      if (icon && src) icon.src = src;
+      button.classList.toggle('off', !on);
+      button.setAttribute('aria-pressed', String(on));
+      button.setAttribute('aria-label', on ? 'Звук включён' : 'Звук выключен');
+      button.title = on ? 'Звук включён' : 'Звук выключен';
+    },
+
     save: persist,
     load,
 

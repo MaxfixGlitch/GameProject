@@ -507,9 +507,7 @@
 
   function renderSound() {
     const on = Casino.getSound();
-    el.soundBtn.textContent = on ? '🔊' : '🔇';
-    el.soundBtn.classList.toggle('off', !on);
-    el.soundBtn.setAttribute('aria-pressed', String(on));
+    Casino.setSoundIcon(el.soundBtn, on);
   }
 
   function updateUI(bump) {

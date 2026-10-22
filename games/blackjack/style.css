@@ -201,21 +201,30 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
 
 .tools { display: flex; gap: 8px; }
 
+/* Кнопки шапки — готовые золотые иконки: рамка и фон уже нарисованы,
+   поэтому сама кнопка прозрачная и без обводки. */
 .icon-btn {
   width: 38px;
   height: 38px;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  font-size: 15px;
-  border-radius: 11px;
-  border: 1px solid rgba(233, 196, 106, .22);
-  background: rgba(255, 255, 255, .04);
-  transition: .18s;
-  line-height: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--gold-soft);
+  font-size: 16px;
+  line-height: 0;
+  text-decoration: none;
+  transition: transform .16s, filter .16s, opacity .16s;
 }
-.icon-btn:hover { background: rgba(233, 196, 106, .14); border-color: rgba(233, 196, 106, .5); }
+.icon-btn img { display: block; width: 100%; height: 100%; }
+.icon-btn:hover { transform: translateY(-1px); filter: brightness(1.12) drop-shadow(0 3px 7px rgba(233, 196, 106, .3)); }
 .icon-btn:active { transform: scale(.94); }
-.icon-btn.off { opacity: .45; }
+/* Выключенный звук виден по самой иконке с красным крестом —
+   сильно гасить её не нужно, иначе кнопка пропадает из шапки. */
+.icon-btn.off { opacity: .8; }
 
 /* ---------------- Стол ---------------- */
 

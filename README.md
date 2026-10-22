@@ -80,7 +80,7 @@ shared/
   hub.js                логика хаба
   casino.css            общая оболочка: шапка, кнопки, окна, фишки, карточки
   cards.css             общие стили игральных карт (блэкджек и баккара)
-  brand/                логотип Fakrap и иконка сайта
+  brand/                логотип Fakrap, иконка сайта и золотые иконки кнопок
 games/
   blackjack/            блэкджек: index.html, style.css, game.js
   roulette/             рулетка: index.html, roulette.css, roulette.js

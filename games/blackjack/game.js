@@ -712,9 +712,7 @@
     renderPanels();
     el.message.textContent = state.message;
     el.message.className = `message ${state.messageClass}`.trim();
-    el.soundBtn.classList.toggle('off', !state.sound);
-    el.soundBtn.textContent = state.sound ? '🔊' : '🔇';
-    el.soundBtn.setAttribute('aria-pressed', String(state.sound));
+    Casino.setSoundIcon(el.soundBtn, state.sound);
     // Если история открыта во время анимации раунда — обновляем её на лету.
     if (!el.overlay.hidden) renderHistory();
   }
