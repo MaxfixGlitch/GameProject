@@ -34,6 +34,12 @@
 
   const Casino = window.Casino;
   const GAME_ID = 'baccarat';
+
+  // Закрытая игра не запускается: прямо по адресу тоже стоит замок.
+  if (!Casino.isUnlocked(GAME_ID)) {
+    Casino.showLocked(GAME_ID);
+    return;
+  }
   const MIN_BET = Casino.MIN_BET;
   const maxBet = () => Casino.maxBet();
 

@@ -22,7 +22,7 @@ const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1',
 
 function boot(seed) {
   const dom = new JSDOM(html, {
-    url: 'https://example.org/games/slots/',
+    url: 'https://example.org/games/slots/?preview=1',
     pretendToBeVisual: true,
     runScripts: 'outside-only',
   });

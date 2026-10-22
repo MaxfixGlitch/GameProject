@@ -1,0 +1,330 @@
+/* ============================================================
+   Плинко: 8 рядов колышков, 9 слотов
+   ============================================================ */
+
+.plinko-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: clamp(14px, 2.4vw, 26px);
+  align-items: start;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: clamp(14px, 2.4vw, 26px) clamp(12px, 2.4vw, 26px) 34px;
+}
+
+.plinko-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.plinko-board {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 22px;
+  border: 2px solid rgba(233, 196, 106, .4);
+  background:
+    radial-gradient(520px 240px at 50% 0%, rgba(233, 196, 106, .12), transparent 72%),
+    linear-gradient(168deg, #122f22, #06120c 70%);
+  box-shadow:
+    0 26px 60px rgba(0, 0, 0, .55),
+    0 0 0 1px rgba(0, 0, 0, .5) inset;
+  overflow: hidden;
+}
+
+#plinkoCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 560 / 600;
+}
+
+/* Вспышка выигрыша над доской. */
+.plinko-flash {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  padding: 6px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(74, 222, 128, .55);
+  background: rgba(6, 26, 15, .92);
+  font-family: Georgia, serif;
+  font-size: 21px;
+  font-weight: 700;
+  color: #b8f5cd;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .55), 0 0 26px rgba(74, 222, 128, .3);
+  animation: plinkoFlash .5s cubic-bezier(.2, .9, .3, 1.2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.plinko-flash[hidden] { display: none; }
+
+@keyframes plinkoFlash {
+  from { opacity: 0; transform: translateX(-50%) scale(.85); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+.plinko-controls {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.plinko-drop {
+  flex: 1;
+  min-height: 52px;
+  font-size: 16px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.plinko-controls .ghost-btn {
+  min-height: 52px;
+  padding-inline: 16px;
+  white-space: nowrap;
+}
+
+.message {
+  width: 100%;
+  max-width: 520px;
+  min-height: 20px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(0, 0, 0, .24);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: center;
+}
+.message.win { border-color: rgba(74, 222, 128, .45); background: rgba(74, 222, 128, .1); color: #c9f7d9; }
+.message.lose { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .08); color: #ffd2d2; }
+.message.info { border-color: rgba(233, 196, 106, .35); color: var(--gold-soft); }
+
+/* ---------------- Панель ---------------- */
+
+.plinko-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(14px, 1.8vw, 20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background:
+    radial-gradient(420px 180px at 100% 0%, rgba(56, 189, 248, .1), transparent 70%),
+    linear-gradient(160deg, rgba(16, 32, 26, .96), rgba(7, 18, 14, .96));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+}
+
+.bet-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 196, 106, .22);
+  background: rgba(0, 0, 0, .26);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.bet-total strong {
+  margin-left: auto;
+  font-family: Georgia, serif;
+  font-size: 21px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.bet-total .bet-limit { font-size: 10.5px; }
+
+.plinko-panel .chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.plinko-panel .chip { width: 42px; height: 42px; border-width: 3px; font-size: 10.5px; }
+.plinko-panel .chip span { white-space: nowrap; }
+.plinko-panel .chip.c1000,
+.plinko-panel .chip.c2500 { font-size: 9.5px; }
+.plinko-panel .chip.c1000 span,
+.plinko-panel .chip.c2500 span { width: 80%; }
+.plinko-panel .chip.on {
+  outline: 2px solid rgba(233, 196, 106, .85);
+  outline-offset: 2px;
+  transform: translateY(-1px);
+}
+
+.c1000 { background: radial-gradient(circle at 35% 28%, #fde68a, #a16207 72%); }
+.c2500 { background: radial-gradient(circle at 35% 28%, #f9a8d4, #9d174d 72%); }
+
+.bet-hint {
+  margin: 0;
+  padding: 7px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, .35);
+  background: rgba(248, 113, 113, .08);
+  font-size: 11px;
+  color: #ffd2d2;
+}
+.bet-hint[hidden] { display: none; }
+
+.panel-title {
+  margin: 6px 0 -2px;
+  font-family: Georgia, serif;
+  font-size: 15px;
+  letter-spacing: .04em;
+  color: var(--gold-soft);
+}
+
+.slot-table {
+  display: grid;
+  gap: 1px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .07);
+}
+
+.slot-row {
+  display: grid;
+  grid-template-columns: 12px auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 6px 11px;
+  background: rgba(6, 16, 12, .92);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.slot-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .18) inset;
+}
+.slot-row b {
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.slot-row .slot-chance { font-size: 10.5px; opacity: .75; }
+.slot-row .slot-pays { text-align: right; font-size: 10.5px; opacity: .8; }
+
+.panel-note {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(154, 176, 164, .9);
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.hint kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .06);
+  font-family: inherit;
+  font-size: 10.5px;
+  color: var(--gold-soft);
+}
+
+/* ---------------- История ---------------- */
+
+.plinko-history {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rolls-head { display: flex; align-items: baseline; gap: 12px; }
+.rolls-head h2 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 18px;
+  letter-spacing: .03em;
+  color: var(--gold-soft);
+}
+.rolls-head .ghost-btn { margin-left: auto; }
+
+.rolls-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.spin-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(9, 22, 16, .9);
+}
+.spin-card.win { border-color: rgba(74, 222, 128, .45); }
+.spin-card.lose { border-color: rgba(248, 113, 113, .28); }
+
+.spin-mult {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #06120c;
+  background: radial-gradient(circle at 34% 30%, #ffeeb8, #c99f3d 75%);
+}
+.spin-mult.low { background: rgba(255, 255, 255, .08); color: var(--muted); }
+
+.spin-text { min-width: 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+.spin-text b { display: block; font-size: 12.5px; color: var(--text); }
+.spin-text .plus { color: var(--win); }
+.spin-text .minus { color: var(--lose); }
+.spin-text time { display: block; font-size: 10px; opacity: .65; }
+
+.roll-empty {
+  margin: 0;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, .12);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rolls-history-full {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin-bottom: 14px;
+}
+
+/* ---------------- Адаптив ---------------- */
+
+@media (max-width: 900px) {
+  .plinko-main { grid-template-columns: minmax(0, 1fr); max-width: 560px; }
+  .plinko-panel { order: 2; }
+  .plinko-history { order: 3; }
+}
+
+@media (max-width: 560px) {
+  .plinko-main { padding: 10px 10px 26px; gap: 12px; }
+  .plinko-controls { flex-direction: column; }
+  .plinko-controls .ghost-btn { min-height: 42px; }
+  .plinko-drop { min-height: 48px; font-size: 15px; }
+  .plinko-panel { padding: 14px; border-radius: 16px; }
+  .plinko-panel .chip { width: 42px; height: 42px; font-size: 10px; }
+  .plinko-panel .chip.c1000,
+  .plinko-panel .chip.c2500 { font-size: 9px; }
+}

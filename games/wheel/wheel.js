@@ -1,7 +1,7 @@
 /* ============================================================
-   Колесо фортуны: 16 равных секторов
-   Ставка × множитель сектора. Возврат 93,75% — считается точно:
-   сумма множителей 15 на 16 секторов.
+   Колесо фортуны: 18 равных секторов
+   Ставка × множитель сектора. Возврат 94,44% — считается точно:
+   сумма множителей 17 на 18 секторов.
    ============================================================ */
 (() => {
   'use strict';
@@ -10,9 +10,16 @@
   const $ = (sel) => document.querySelector(sel);
   const GAME_ID = 'wheel';
 
+  // Закрытая игра не запускается: прямо по адресу тоже стоит замок.
+  if (!Casino.isUnlocked(GAME_ID)) {
+    Casino.showLocked(GAME_ID);
+    return;
+  }
+
   // Порядок секторов: нули чередуются с выигрышными, чтобы колесо
-  // выглядело живым. Сумма множителей ровно 15 → возврат 15/16.
-  const SEGMENTS = [0, 1, 0, 0.5, 0, 2, 0, 6, 0, 1, 0, 0.5, 0, 3, 0, 1];
+  // выглядело живым. Сумма множителей ровно 17 → возврат 17/18.
+  // Секторов с ×2 два — по одному с каждой стороны от ×6 и ×3.
+  const SEGMENTS = [0, 1, 0, 0.5, 0, 2, 0, 6, 0, 1, 0, 2, 0, 0.5, 0, 3, 0, 1];
   const SEG_ANGLE = 360 / SEGMENTS.length;
 
   const COLORS = {
@@ -100,28 +107,6 @@
         <span${dark}>${mult === 0 ? '×0' : multLabel(mult)}</span>
       </div>`;
     }).join('');
-  }
-
-  // Пока колесо крутится, подписи секторов остаются ровными: читаем
-  // текущий угол из матрицы трансформации и подмешиваем его в --fix.
-  let labelRaf = 0;
-
-  function startLabelSync() {
-    if (typeof window.DOMMatrixReadOnly !== 'function') return;
-    const sync = () => {
-      labelRaf = 0;
-      if (!el.disc) return;
-      try {
-        const raw = window.getComputedStyle(el.disc).transform;
-        const matrix = new window.DOMMatrixReadOnly(raw && raw !== 'none' ? raw : undefined);
-        const deg = (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI;
-        el.disc.style.setProperty('--fix', `${-deg}deg`);
-      } catch (_) {
-        return; // без матрицы подписи просто поедут вместе с колесом
-      }
-      if (state.spinning) labelRaf = window.requestAnimationFrame(sync);
-    };
-    if (!labelRaf) labelRaf = window.requestAnimationFrame(sync);
   }
 
   function highlightSegment(index) {
@@ -342,7 +327,6 @@
     if (el.disc) {
       el.disc.style.transition = `transform ${timing.spin}ms cubic-bezier(.11, .66, .16, 1)`;
       el.disc.style.transform = `rotate(${state.rotation}deg)`;
-      startLabelSync();
     }
 
     await new Promise((resolve) => setTimeout(resolve, timing.spin + timing.settle));
@@ -399,11 +383,8 @@
     // не растёт до бесконечности от спина к спину.
     state.rotation = ((state.rotation % 360) + 360) % 360;
     if (el.disc) {
-      if (labelRaf) window.cancelAnimationFrame(labelRaf);
-      labelRaf = 0;
       el.disc.style.transition = 'none';
       el.disc.style.transform = `rotate(${state.rotation}deg)`;
-      el.disc.style.setProperty('--fix', `${-state.rotation}deg`);
     }
 
     renderBalance(net);
@@ -463,7 +444,7 @@
   function openRules() {
     openModal(`
       <h2>Правила колеса</h2>
-      <p>На колесе шестнадцать равных секторов с множителями: ×0, ×0,5, ×1, ×2, ×3 и ×6.
+      <p>На колесе восемнадцать равных секторов с множителями: ×0, ×0,5, ×1, ×2, ×3 и ×6.
         Вы делаете ставку, колесо делает оборот, и если под указателем оказывается
         сектор с множителем, ставка умножается на него.</p>
       <h3>Выплаты</h3>
@@ -471,8 +452,8 @@
         ${[0, 0.5, 1, 2, 3, 6].map((m) => `<li>${multLabel(m)} — ${SEGMENTS.filter((x) => x === m).length} ${plural(SEGMENTS.filter((x) => x === m).length, ['сектор', 'сектора', 'секторов'])}${m === 0 ? ' (ставка сгорает)' : `, выплата ${multLabel(m)} от ставки`}</li>`).join('')}
       </ul>
       <h3>Возврат</h3>
-      <p>Сумма множителей всех шестнадцати секторов — 15, значит возврат игроку
-        ровно <b>93,75%</b> от оборота. Секторы равные, колесо не подкручивается:
+      <p>Сумма множителей всех восемнадцати секторов — 17, значит возврат игроку
+        ровно <b>94,44%</b> от оборота. Секторы равные, колесо не подкручивается:
         каждая остановка равновероятна.</p>
       <h3>Страховка</h3>
       <p>Если есть страховка из целей, при неудачном вращении она сработает сама
