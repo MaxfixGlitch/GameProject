@@ -64,6 +64,10 @@
       spins: 0, wins: 0, losses: 0, pushes: 0, lines: 0,
       wagered: 0, bestWin: 0, net: 0,
     },
+    wheel: {
+      spins: 0, wins: 0, losses: 0, pushes: 0, topMult: 0,
+      wagered: 0, bestWin: 0, net: 0,
+    },
   };
 
   const GAMES = {
@@ -126,6 +130,18 @@
       counterKey: 'spins',
       counterLabel: 'спинов',
       counterForms: ['спин', 'спина', 'спинов'],
+    },
+    wheel: {
+      id: 'wheel',
+      title: 'Колесо фортуны',
+      short: 'Колесо',
+      icon: 'wheel',
+      href: 'games/wheel/index.html',
+      color: '#a78bfa',
+      tagline: 'Одно вращение: сектор ×2, ×3 или ×6 умножает ставку',
+      counterKey: 'spins',
+      counterLabel: 'вращений',
+      counterForms: ['вращение', 'вращения', 'вращений'],
     },
   };
 
