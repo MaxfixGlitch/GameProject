@@ -53,13 +53,17 @@ check(win.Casino.stats('roulette').spins === 0, 'статистика рулет
 check(win.Casino.allHistory().length === 0, 'история пуста');
 
 const cards = [...win.document.querySelectorAll('.game-card')];
-check(cards.length === 4, `на хабе 4 карточки, получено ${cards.length}`);
-check(cards.filter((c) => c.classList.contains('live')).length === 4, 'четыре играбельные игры');
+check(cards.length === 5, `на хабе 5 карточек, получено ${cards.length}`);
+check(cards.filter((c) => c.classList.contains('live')).length === 5, 'пять играбельных игр');
 check(cards.every((card) => card.classList.contains('live')), 'заглушек «скоро» не осталось');
 check(win.document.querySelector('[href="games/blackjack/index.html"]'), 'ссылка на блэкджек');
 check(win.document.querySelector('[href="games/roulette/index.html"]'), 'ссылка на рулетку');
 check(win.document.querySelector('[href="games/dice/index.html"]'), 'ссылка на кости');
 check(win.document.querySelector('[href="games/baccarat/index.html"]'), 'ссылка на баккару');
+const slotsCard = win.document.querySelector('.game-card[href="games/slots/index.html"]');
+check(!!slotsCard, 'на хабе есть карточка слотов');
+check(slotsCard.textContent.includes('Слоты'), 'карточка слотов подписана');
+check(slotsCard.querySelector('img').getAttribute('src') === 'shared/brand/icons/slots.png', 'у слотов своя иконка');
 check(win.document.querySelector('#bankroll').textContent.replace(/\s/g, '').includes('1000'), 'баланс на хабе');
 check(win.document.querySelector('#historyBtn'), 'кнопка истории на хабе');
 
@@ -199,7 +203,7 @@ hub.Casino.save();
 hub.document.querySelector('#historyBtn').click();
 check(!hub.document.querySelector('#overlay').hidden, 'история открывается');
 check(hub.document.querySelectorAll('.history-round').length === 3, 'видны обе игры и все записи');
-check(hub.document.querySelectorAll('[data-filter]').length === 5, 'фильтры: все + четыре игры');
+check(hub.document.querySelectorAll('[data-filter]').length === 6, 'фильтры: все + пять игр');
 hub.document.querySelector('[data-filter="roulette"]').click();
 check(hub.document.querySelectorAll('.history-round').length === 2, 'фильтр оставил записи рулетки');
 check(hub.document.querySelector('.history-round-summary').textContent.includes('17'),
@@ -452,9 +456,9 @@ console.log('• Общая статистика');
   const statsHub = open(hubHtml, [rawCasino, rawHub], {});
   statsHub.document.querySelector('#statsBtn').click();
   check(!statsHub.document.querySelector('#overlay').hidden, 'статистика открывается');
-  check(statsHub.document.querySelectorAll('.stat-game').length === 4, 'в статистике четыре игры');
-  check(statsHub.document.querySelectorAll('.stat-sep:not(.total)').length === 3,
-    'между играми три разделительные черты');
+  check(statsHub.document.querySelectorAll('.stat-game').length === 5, 'в статистике пять игр');
+  check(statsHub.document.querySelectorAll('.stat-sep:not(.total)').length === 4,
+    'между играми четыре разделительные черты');
   check(statsHub.document.querySelectorAll('.stat-sep.total').length === 1, 'перед итогами отдельная черта');
   const text = statsHub.document.querySelector('.stat-grid').textContent.replace(/\s+/g, ' ');
   check(text.includes('0 спинов') && text.includes('0 раундов') && text.includes('0 бросков')

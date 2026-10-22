@@ -60,6 +60,10 @@
       playerWins: 0, bankerWins: 0, ties: 0,
       wagered: 0, bestWin: 0, net: 0,
     },
+    slots: {
+      spins: 0, wins: 0, losses: 0, pushes: 0, lines: 0,
+      wagered: 0, bestWin: 0, net: 0,
+    },
   };
 
   const GAMES = {
@@ -110,6 +114,18 @@
       counterKey: 'rounds',
       counterLabel: 'раздач',
       counterForms: ['раздача', 'раздачи', 'раздач'],
+    },
+    slots: {
+      id: 'slots',
+      title: 'Слоты',
+      short: 'Слоты',
+      icon: 'slots',
+      href: 'games/slots/index.html',
+      color: '#e9c46a',
+      tagline: 'Три барабана, пять линий и золотая фишка вместо любого символа',
+      counterKey: 'spins',
+      counterLabel: 'спинов',
+      counterForms: ['спин', 'спина', 'спинов'],
     },
   };
 
