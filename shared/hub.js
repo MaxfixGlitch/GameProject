@@ -13,6 +13,7 @@
     heroTotal: $('#heroTotal'),
     deltaLayer: $('#deltaLayer'),
     gamesGrid: $('#gamesGrid'),
+    miniStats: $('#miniStats'),
     topUpBtn: $('#topUpBtn'),
     heroHistoryBtn: $('#heroHistoryBtn'),
     soundBtn: $('#soundBtn'),
@@ -146,6 +147,24 @@
     `;
   }
 
+  // Мини-игра живёт отдельной лентой: у неё нет ставок и чистой истории,
+  // зато есть рекорд и заработок в общем хранилище Casino.mini.
+  function renderMini() {
+    if (!el.miniStats) return;
+    const saved = Casino.mini.get('flappy', null) || {};
+    const best = Number(saved.best) || 0;
+    const total = Number(saved.total) || 0;
+    let attempts = Number.isFinite(Number(saved.attempts)) ? Number(saved.attempts) : 3;
+    // Перезарядка могла кончиться, пока хаб был закрыт: тогда снова три полёта.
+    if (saved.cooldownUntil && Number(saved.cooldownUntil) <= Date.now()) attempts = 3;
+    const recordLabel = best === 0 ? 'пока нет' : `${numFmt.format(best)} ${plural(best, ['труба', 'трубы', 'труб'])}`;
+    el.miniStats.innerHTML = `
+      <span>рекорд <b>${recordLabel}</b></span>
+      <span>заработано <b class="${total > 0 ? 'plus' : ''}">${fmt(total)}</b></span>
+      <span>полётов <b>${attempts} / 3</b></span>
+    `;
+  }
+
   function renderGames() {
     const cards = Object.values(Casino.GAMES).map((game) => `
       <a class="game-card live" href="${game.href}" style="--accent:${game.color}">
@@ -160,6 +179,7 @@
     // Заглушек «скоро» больше нет: все игры на хабе играбельные.
     // Если понадобится анонс, добавьте сюда карточки с классом .soon.
     el.gamesGrid.innerHTML = cards;
+    renderMini();
   }
 
   // ---------- Окна ----------

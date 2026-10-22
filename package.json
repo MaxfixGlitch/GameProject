@@ -2,11 +2,11 @@
   "name": "fakrap-casino",
   "version": "2.0.0",
   "private": true,
-  "description": "Fakrap — домашнее казино: блэкджек, рулетка, кости и баккара с общим балансом",
+  "description": "Fakrap — домашнее казино: блэкджек, рулетка, кости, баккара и мини-игра «Летящая фишка» с общим балансом",
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 8080",
-    "test": "node tests/casino.test.mjs && node tests/baccarat.test.mjs && node tests/blackjack.test.mjs && node tests/roulette.test.mjs && node tests/dice.test.mjs"
+    "test": "node tests/casino.test.mjs && node tests/baccarat.test.mjs && node tests/blackjack.test.mjs && node tests/roulette.test.mjs && node tests/dice.test.mjs && node tests/flappy.test.mjs"
   },
   "devDependencies": {
     "jsdom": "^30.1.3"

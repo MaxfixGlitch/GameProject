@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Летящая фишка — Fakrap</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Мини-игра «Летящая фишка»: проведите золотую фишку между стопками карт и заработайте деньги на бонус.">
+<link rel="icon" type="image/png" href="../../shared/brand/fakrap-icon.png">
+<link rel="apple-touch-icon" href="../../shared/brand/fakrap-icon.png">
+<link rel="stylesheet" href="../../shared/casino.css">
+<link rel="stylesheet" href="flappy.css">
+</head>
+<body class="casino-page flappy-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="../../index.html" title="Все игры" aria-label="Fakrap — все игры">
+      <img class="brand-logo" src="../../shared/brand/fakrap.png" alt="Fakrap">
+      <span class="brand-coin" aria-hidden="true">F</span>
+    </a>
+    <div class="brand-text">
+      <span>FLAPPY</span>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000 ₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <a class="icon-btn" href="../../index.html" title="Все игры" aria-label="Все игры">
+      <img class="icon-img" src="../../shared/brand/icons/home.png" alt="">
+    </a>
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук" data-sound-on="../../shared/brand/icons/sound-on.png" data-sound-off="../../shared/brand/icons/sound-off.png">
+      <img class="icon-img" src="../../shared/brand/icons/sound-on.png" alt="">
+    </button>
+    <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила мини-игры">
+      <img class="icon-img" src="../../shared/brand/icons/rules.png" alt="">
+    </button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика мини-игры">
+      <img class="icon-img" src="../../shared/brand/icons/stats.png" alt="">
+    </button>
+  </div>
+</header>
+
+<main class="flap-page">
+
+  <section class="flap-stage" id="flapStage" aria-label="Игровое поле">
+    <canvas id="flapCanvas" width="480" height="640"></canvas>
+
+    <div class="flap-overlay" id="flapOverlay">
+      <div class="flap-card" id="flapCard">
+        <p class="flap-card-kicker" id="flapKicker">Мини-игра</p>
+        <h1 class="flap-card-title" id="flapTitle">Летящая фишка</h1>
+        <p class="flap-card-text" id="flapText">Нажимайте на поле или жмите пробел — фишка взмахивает крыльями.
+        Пролетайте между стопками карт и получайте по 1 ₽ за каждую.</p>
+        <button class="primary-btn flap-card-btn" id="flapBtn" type="button">Играть</button>
+        <p class="flap-card-note" id="flapNote"></p>
+      </div>
+    </div>
+
+    <div class="flap-hud" id="flapHud" hidden>
+      <span class="flap-score" id="flapScore">0</span>
+    </div>
+  </section>
+
+  <aside class="flap-panel">
+    <div class="flap-panel-head">
+      <h2>Летящая фишка</h2>
+      <span class="flap-badge" id="flapBadge">3 попытки</span>
+    </div>
+
+    <p class="flap-lead">
+      Мини-игра на удачу и реакцию: пока ждёте бесплатный бонус, можно подработать.
+      Каждая пройденная пара стопок карт — <b>1 ₽</b> на баланс.
+    </p>
+
+    <div class="flap-stats">
+      <div class="flap-stat">
+        <span>Попыток подряд</span>
+        <b id="flapAttempts">3 / 3</b>
+      </div>
+      <div class="flap-stat">
+        <span>Заработано за полёт</span>
+        <b id="flapEarned">0 ₽</b>
+      </div>
+      <div class="flap-stat">
+        <span>Лучший полёт</span>
+        <b id="flapBest">0 труб</b>
+      </div>
+      <div class="flap-stat">
+        <span>Всего заработано</span>
+        <b id="flapTotal">0 ₽</b>
+      </div>
+    </div>
+
+    <div class="flap-cooldown" id="flapCooldown" hidden>
+      <span class="flap-cooldown-label">Перезарядка</span>
+      <b id="flapCooldownTime">3:00</b>
+      <span class="flap-cooldown-hint">Пока идёт таймер, можно играть в казино или забрать бонус</span>
+    </div>
+
+    <ul class="flap-rules">
+      <li>1 ₽ за каждую пройденную стопку карт.</li>
+      <li>3 полёта подряд, потом перезарядка 3 минуты.</li>
+      <li>Каждый десяток труб — быстрее и уже проход.</li>
+      <li>Клавиши <kbd>Space</kbd>, <kbd>↑</kbd> и <kbd>W</kbd> — взмах, <kbd>Esc</kbd> — пауза.</li>
+    </ul>
+
+    <button class="ghost-btn flap-again" id="flapAgainBtn" type="button" hidden>Ещё полёт</button>
+  </aside>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="../../shared/casino.js"></script>
+<script src="flappy.js"></script>
+</body>
+</html>
