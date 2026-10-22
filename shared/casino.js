@@ -13,6 +13,7 @@
     sound: 'casino.sound.v1',
     progress: 'casino.progress.v1',
     topup: 'casino.topup.v1',
+    mini: 'casino.mini.v1',
     legacy: 'bj21.save.v1',
   };
 
@@ -126,6 +127,9 @@
   let sound = true;
   let progress = normalizeProgress(null);
   let topUp = { readyAt: 0, seenAt: 0, count: 0 };
+  // Общее хранилище для мини-игр: попытки, перезарядки, рекорды.
+  // У каждой мини-игры свой ключ, ядро в его содержимое не лезет.
+  let mini = {};
 
   // ---------- Рулетка: чтение ставок ----------
   // Подписи и разметка живут в общем ядре, чтобы страница игры и история
@@ -436,6 +440,8 @@
     stats = rawStats && typeof rawStats === 'object' ? rawStats : {};
     const rawPending = readJSON(KEYS.pending);
     pending = rawPending && typeof rawPending === 'object' ? rawPending : {};
+    const rawMini = readJSON(KEYS.mini);
+    mini = rawMini && typeof rawMini === 'object' && !Array.isArray(rawMini) ? rawMini : {};
     sound = localStorage.getItem(KEYS.sound) !== '0';
     Object.keys(GAMES).forEach(ensureGame);
   }
@@ -446,6 +452,7 @@
     writeJSON(KEYS.stats, stats);
     writeJSON(KEYS.pending, pending);
     writeJSON(KEYS.progress, progress);
+    writeJSON(KEYS.mini, mini);
     try { localStorage.setItem(KEYS.sound, sound ? '1' : '0'); } catch (_) { /* ignore */ }
   }
 
@@ -462,6 +469,25 @@
     DEFAULT_TITLE,
     GAMES,
     STAT_TEMPLATES,
+
+    // ---------- Мини-игры ----------
+    // Простое хранилище «ключ → значение» с сохранением в localStorage.
+    // Мини-игры держат здесь попытки, перезарядку и рекорды, чтобы
+    // состояние переживало перезагрузку и сбрасывалось вместе с казино.
+    mini: {
+      get(key, fallback = null) {
+        return Object.prototype.hasOwnProperty.call(mini, key) ? mini[key] : fallback;
+      },
+      set(key, value) {
+        mini[key] = value;
+        persist();
+        return value;
+      },
+      remove(key) {
+        delete mini[key];
+        persist();
+      },
+    },
 
     getBalance() {
       return wallet;
@@ -680,6 +706,7 @@
       // Прогресс и звания обнуляются, а кулдаун бонуса — нет:
       // иначе сброс давал бы лишнюю бесплатную тысячу.
       progress = normalizeProgress(null);
+      mini = {};
       Object.keys(GAMES).forEach(ensureGame);
       persist();
     },

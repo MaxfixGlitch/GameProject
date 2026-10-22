@@ -27,7 +27,7 @@ const check = (cond, msg) => {
 };
 
 const KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1', 'casino.pending.v1',
-  'casino.sound.v1', 'casino.progress.v1', 'casino.topup.v1', 'bj21.save.v1'];
+  'casino.sound.v1', 'casino.progress.v1', 'casino.topup.v1', 'casino.mini.v1', 'bj21.save.v1'];
 
 function open(pageHtml, scripts, seed) {
   const dom = new JSDOM(pageHtml, { url: 'https://example.org/', pretendToBeVisual: true, runScripts: 'outside-only' });
@@ -62,6 +62,18 @@ check(win.document.querySelector('[href="games/dice/index.html"]'), 'ссылк�
 check(win.document.querySelector('[href="games/baccarat/index.html"]'), 'ссылка на баккару');
 check(win.document.querySelector('#bankroll').textContent.replace(/\s/g, '').includes('1000'), 'баланс на хабе');
 check(win.document.querySelector('#historyBtn'), 'кнопка истории на хабе');
+
+// Мини-игра на хабе: отдельная лента, а не карточка ставок.
+const miniStrip = win.document.querySelector('.mini-strip');
+check(!!miniStrip, 'на хабе есть лента мини-игры');
+check(miniStrip.querySelector('[href="games/flappy/index.html"]'), 'ссылка на «Летящую фишку»');
+check(!win.document.querySelector('.game-card[href="games/flappy/index.html"]'), 'мини-игра не попадает в сетку ставок');
+check(win.document.querySelector('#miniStats').textContent.includes('3 / 3'), 'в ленте видны три полёта');
+win.Casino.mini.set('flappy', { best: 12, total: 34, attempts: 1 });
+win.Casino.resetAll();
+const miniText = win.document.querySelector('#miniStats').textContent.replace(/\s+/g, ' ');
+check(!miniText.includes('12'), 'сброс казино обнулил рекорд мини-игры');
+check(miniText.includes('3 / 3'), 'сброс казино вернул три полёта');
 
 // ---------- Подписи ставок ----------
 console.log('• Подписи ставок');
