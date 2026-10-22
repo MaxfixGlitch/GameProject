@@ -96,9 +96,9 @@
   position: absolute;
   left: 50%;
   top: 6.5%;
-  /* Подписи всегда стоят ровно: колесо крутится, а текст остаётся
-     читаемым — JS подмешивает текущий угол в --fix. */
-  transform: translateX(-50%) rotate(calc(-1 * var(--a) - var(--fix, 0deg)));
+  /* Подпись жёстко закреплена на секторе: верх цифры смотрит к ободу,
+     низ — к центру колеса. Вращается вместе с диском. */
+  transform: translateX(-50%);
   display: inline-block;
   padding: 1px 4px;
   border-radius: 6px;
@@ -112,7 +112,7 @@
 }
 .wheel-label.zero span { color: rgba(233, 244, 238, .55); }
 .wheel-label.hit span {
-  transform: translateX(-50%) rotate(calc(-1 * var(--a) - var(--fix, 0deg))) scale(1.22);
+  transform: translateX(-50%) scale(1.22);
   color: #fff;
   text-shadow: 0 0 12px rgba(255, 230, 150, .9), 0 1px 3px rgba(0, 0, 0, .8);
 }

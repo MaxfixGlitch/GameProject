@@ -22,7 +22,7 @@ const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1',
 
 function boot(seed) {
   const dom = new JSDOM(html, {
-    url: 'https://example.org/games/wheel/',
+    url: 'https://example.org/games/wheel/?preview=1',
     pretendToBeVisual: true,
     runScripts: 'outside-only',
   });
@@ -46,17 +46,18 @@ api.setTiming({ spin: 5, settle: 5 });
 
 // ---------- Секторы и математика ----------
 console.log('• Секторы');
-check(api.SEGMENTS.length === 16, `16 секторов, получено ${api.SEGMENTS.length}`);
-check(Math.abs(api.SEG_ANGLE - 22.5) < 1e-9, `сектор 22,5°, получено ${api.SEG_ANGLE}`);
+check(api.SEGMENTS.length === 18, `18 секторов, получено ${api.SEGMENTS.length}`);
+check(Math.abs(api.SEG_ANGLE - 20) < 1e-9, `сектор 20°, получено ${api.SEG_ANGLE}`);
 const counts = {};
 api.SEGMENTS.forEach((m) => { counts[m] = (counts[m] || 0) + 1; });
-check(counts[0] === 8, `нулей восемь, получено ${counts[0]}`);
+check(counts[0] === 9, `нулей девять, получено ${counts[0]}`);
 check(counts[1] === 3, 'единиц три');
 check(counts[0.5] === 2, 'половин две');
-check(counts[2] === 1 && counts[3] === 1 && counts[6] === 1, 'по одному сектору ×2, ×3 и ×6');
+check(counts[2] === 2, `секторов ×2 два, получено ${counts[2]}`);
+check(counts[3] === 1 && counts[6] === 1, 'по одному сектору ×3 и ×6');
 const total = api.SEGMENTS.reduce((a, b) => a + b, 0);
-check(total === 15, `сумма множителей 15, получено ${total}`);
-check(Math.abs(total / 16 - 0.9375) < 1e-9, 'возврат 93,75%');
+check(total === 17, `сумма множителей 17, получено ${total}`);
+check(Math.abs(total / 18 - 17 / 18) < 1e-9, 'возврат 17/18 = 94,44%');
 
 console.log('• Выплаты по сектору');
 check(api.multiplierFor(7) === 6, 'седьмой сектор — ×6');
@@ -68,7 +69,7 @@ check(api.payoutFor(1000, 0) === 0, 'нулевой сектор не плати
 // ---------- Колесо на экране ----------
 console.log('• Колесо');
 const labels = [...doc.querySelectorAll('.wheel-label')];
-check(labels.length === 16, `16 подписей, получено ${labels.length}`);
+check(labels.length === 18, `18 подписей, получено ${labels.length}`);
 check(labels[7].textContent.includes('×6'), 'на седьмом секторе подпись ×6');
 check(labels[0].classList.contains('zero'), 'нулевой сектор помечен');
 check(doc.querySelector('#wheelDisc').style.background.includes('conic-gradient'), 'секторы нарисованы');
@@ -98,7 +99,7 @@ check(doc.querySelectorAll('#spinsList .spin-card').length === 1, 'вращен�
 
 // Угол поворота ставит сектор под указатель (0° сверху).
 const normalized = ((api.state.rotation % 360) + 360) % 360;
-const expected = (360 - (7 * 22.5 + 11.25)) % 360;
+const expected = (360 - (7 * 20 + 10)) % 360;
 check(Math.abs(normalized - expected) < 0.001,
   `колесо встало на ${normalized.toFixed(2)}°, ожидалось ${expected.toFixed(2)}°`);
 

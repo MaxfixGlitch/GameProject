@@ -68,6 +68,14 @@
       spins: 0, wins: 0, losses: 0, pushes: 0, topMult: 0,
       wagered: 0, bestWin: 0, net: 0,
     },
+    plinko: {
+      drops: 0, wins: 0, losses: 0, pushes: 0, topMult: 0,
+      wagered: 0, bestWin: 0, net: 0,
+    },
+    mines: {
+      rounds: 0, wins: 0, losses: 0, pushes: 0, topMult: 0,
+      wagered: 0, bestWin: 0, net: 0,
+    },
   };
 
   const GAMES = {
@@ -138,10 +146,34 @@
       icon: 'wheel',
       href: 'games/wheel/index.html',
       color: '#a78bfa',
-      tagline: 'Одно вращение: сектор ×2, ×3 или ×6 умножает ставку',
+      tagline: 'Одно вращение: множитель до ×6, восемнадцать секторов',
       counterKey: 'spins',
       counterLabel: 'вращений',
       counterForms: ['вращение', 'вращения', 'вращений'],
+    },
+    plinko: {
+      id: 'plinko',
+      title: 'Плинко',
+      short: 'Плинко',
+      icon: 'plinko',
+      href: 'games/plinko/index.html',
+      color: '#38bdf8',
+      tagline: 'Шарик падает по колышкам: чем дальше слот, тем больше множитель',
+      counterKey: 'drops',
+      counterLabel: 'дропов',
+      counterForms: ['дроп', 'дропа', 'дропов'],
+    },
+    mines: {
+      id: 'mines',
+      title: 'Сапёр',
+      short: 'Сапёр',
+      icon: 'mines',
+      href: 'games/mines/index.html',
+      color: '#f97316',
+      tagline: 'Открывайте клетки, обходите мины и забирайте растущий множитель',
+      counterKey: 'rounds',
+      counterLabel: 'заходов',
+      counterForms: ['заход', 'захода', 'заходов'],
     },
   };
 
@@ -252,6 +284,9 @@
       claimed,
       shields: Math.max(0, num(src.shields)),
       notices: Array.isArray(src.notices) ? src.notices.filter((n) => n && n.id) : [],
+      // Рекорд чистого выигрыша: только растёт, поэтому открытые игры
+      // не закроются после проигрыша. Бонус сюда не попадает.
+      bestNet: Math.max(0, num(src.bestNet)),
     };
   }
 
@@ -316,6 +351,146 @@
       persist();
     }
     return list;
+  }
+
+  // ---------- Открытие игр ----------
+  // Без блюра только блэкджек и рулетка: с них начинается казино.
+  // Остальные игры открываются по очереди: каждая следующая — за
+  // очередную тысячу рублей чистого выигрыша (бонус не считается).
+  const UNLOCK_ORDER = ['dice', 'baccarat', 'slots', 'wheel', 'plinko', 'mines'];
+  const UNLOCK_STEP = 1000;
+
+  const PREVIEW_KEY = 'casino.preview.v1';
+
+  // Форма слова «закрыт» под название игры: «сапёр закрыт»,
+  // «колесо закрыто», «кости закрыты».
+  const CLOSED_FORMS = {
+    blackjack: 'закрыт',
+    roulette: 'закрыта',
+    dice: 'закрыты',
+    baccarat: 'закрыта',
+    slots: 'закрыты',
+    wheel: 'закрыто',
+    plinko: 'закрыто',
+    mines: 'закрыт',
+  };
+
+  const closedWord = (gameId) => CLOSED_FORMS[gameId] || 'закрыта';
+
+  /** Чистый выигрыш по всем играм: сумма итогов, ниже нуля не падает. */
+  function netWon() {
+    return Object.keys(GAMES).reduce((sum, gameId) => sum + num(ensureGame(gameId).net), 0);
+  }
+
+  /**
+   * Достигнутая планка: максимум чистого выигрыша за всё время.
+   * Открытые игры остаются открытыми, даже если потом проиграться.
+   */
+  function bestNet() {
+    const current = Math.max(0, netWon());
+    if (current > num(progress.bestNet)) {
+      progress.bestNet = current;
+      persist();
+    }
+    return Math.max(current, num(progress.bestNet));
+  }
+
+  /** Сколько всего чистого выигрыша нужно, чтобы игра открылась. */
+  function unlockThreshold(gameId) {
+    const index = UNLOCK_ORDER.indexOf(gameId);
+    if (index < 0) return 0;
+    return UNLOCK_STEP * (index + 1);
+  }
+
+  /** Открыта ли игра. Блэкджек и рулетка открыты всегда. */
+  function isUnlocked(gameId) {
+    if (previewMode()) return true;
+    const threshold = unlockThreshold(gameId);
+    if (!threshold) return true;
+    return bestNet() >= threshold;
+  }
+
+  function unlockStatus(gameId) {
+    const threshold = unlockThreshold(gameId);
+    const have = bestNet();
+    const unlocked = isUnlocked(gameId);
+    return {
+      id: gameId,
+      unlocked,
+      threshold,
+      have,
+      left: unlocked ? 0 : Math.max(0, threshold - have),
+      total: UNLOCK_ORDER.length,
+      opened: unlockedCount(),
+    };
+  }
+
+  function unlockedCount() {
+    return Object.keys(GAMES).filter((gameId) => isUnlocked(gameId)).length;
+  }
+
+  /** Порядок открытия: от первой закрытой игры к последней. */
+  function unlockPlan() {
+    return UNLOCK_ORDER.map((gameId, index) => ({
+      id: gameId,
+      game: GAMES[gameId],
+      threshold: UNLOCK_STEP * (index + 1),
+      unlocked: isUnlocked(gameId),
+    }));
+  }
+
+  /** Режим разработчика: все игры открыты, прогресс не нужен. */
+  function previewMode() {
+    try {
+      if (sessionStorage.getItem(PREVIEW_KEY) === '1') return true;
+    } catch (_) { /* приватный режим — просто смотрим на ссылку */ }
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      if (params.get('preview') === '1') return true;
+    } catch (_) { /* без URLSearchParams считаем, что режима нет */ }
+    return false;
+  }
+
+  function setPreview(value) {
+    const on = Boolean(value);
+    try {
+      if (on) sessionStorage.setItem(PREVIEW_KEY, '1');
+      else sessionStorage.removeItem(PREVIEW_KEY);
+    } catch (_) { /* без sessionStorage режим живёт только в ссылке */ }
+    return on;
+  }
+
+  /**
+   * Заглушка закрытой игры. Страница игры не запускается, а показывает
+   * замок и ссылку на хаб: обходить блюр через прямой адрес нельзя.
+   */
+  function showLocked(gameId) {
+    const info = unlockStatus(gameId);
+    const game = GAMES[gameId] || { title: 'Игра' };
+    const left = moneyFmt.format(info.left);
+    const body = document.body;
+    if (!body) return false;
+    body.innerHTML = `
+      <main class="locked-screen">
+        <div class="locked-card">
+          <span class="locked-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="4" y="10" width="16" height="11" rx="3" fill="currentColor"/><circle cx="12" cy="15.5" r="1.6" fill="#0a1811"/></svg>
+          </span>
+          <h1>${game.title} ещё ${closedWord(gameId)}</h1>
+          <p>Игра откроется, когда чистый выигрыш по казино дойдёт
+            до ${moneyFmt.format(info.threshold)} ₽. Осталось ${left} ₽.</p>
+          <div class="locked-bar"><span style="width:${Math.min(100, (info.have / info.threshold) * 100).toFixed(1)}%"></span></div>
+          <p class="locked-note">Бонус и пополнение в счёт открытия не идут —
+            только то, что вы выиграли за столом.</p>
+          <a class="primary-btn" href="../../index.html">Вернуться к играм</a>
+        </div>
+      </main>
+    `;
+    return true;
+  }
+
+  function touchBestNet() {
+    return bestNet();
   }
 
   function useShield() {
@@ -641,6 +816,22 @@
     },
 
     useShield,
+
+    // ---------- Открытие игр ----------
+    UNLOCK_ORDER,
+    UNLOCK_STEP,
+    unlockPlan,
+    unlockStatus,
+    unlockThreshold,
+    isUnlocked,
+    unlockedCount,
+    closedWord,
+    bestNet,
+    netWon,
+    previewMode,
+    setPreview,
+    showLocked,
+    touchBestNet,
 
     maxBet: maxBetValue,
 

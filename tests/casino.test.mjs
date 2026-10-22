@@ -17,6 +17,10 @@ const rlHtml = fs.readFileSync(`${root}games/roulette/index.html`, 'utf8')
 const rawBlackjack = fs.readFileSync(`${root}games/blackjack/game.js`, 'utf8')
   .replace('  // ---------- Старт ----------', '  window.__BJ__ = { state };' + String.fromCharCode(10) + '  // ---------- Старт ----------');
 const rawRoulette = fs.readFileSync(`${root}games/roulette/roulette.js`, 'utf8');
+const wheelHtml = fs.readFileSync(`${root}games/wheel/index.html`, 'utf8')
+  .replace('<script src="../../shared/casino.js"></script>', '')
+  .replace('<script src="wheel.js"></script>', '');
+const rawWheel = fs.readFileSync(`${root}games/wheel/wheel.js`, 'utf8');
 
 let failures = 0;
 const check = (cond, msg) => {
@@ -53,8 +57,8 @@ check(win.Casino.stats('roulette').spins === 0, 'статистика рулет
 check(win.Casino.allHistory().length === 0, 'история пуста');
 
 const cards = [...win.document.querySelectorAll('.game-card')];
-check(cards.length === 6, `на хабе 6 карточек, получено ${cards.length}`);
-check(cards.filter((c) => c.classList.contains('live')).length === 6, 'шесть играбельных игр');
+check(cards.length === 8, `на хабе 8 карточек, получено ${cards.length}`);
+check(cards.filter((c) => c.classList.contains('live')).length === 8, 'восемь играбельных игр');
 check(cards.every((card) => card.classList.contains('live')), 'заглушек «скоро» не осталось');
 check(win.document.querySelector('[href="games/blackjack/index.html"]'), 'ссылка на блэкджек');
 check(win.document.querySelector('[href="games/roulette/index.html"]'), 'ссылка на рулетку');
@@ -68,6 +72,16 @@ const wheelCard = win.document.querySelector('.game-card[href="games/wheel/index
 check(!!wheelCard, 'на хабе есть карточка колеса');
 check(wheelCard.textContent.includes('Колесо'), 'карточка колеса подписана');
 check(wheelCard.querySelector('img').getAttribute('src') === 'shared/brand/icons/wheel.png', 'у колеса своя иконка');
+const plinkoCard = win.document.querySelector('.game-card[href="games/plinko/index.html"]');
+check(!!plinkoCard, 'на хабе есть карточка плинко');
+check(plinkoCard.textContent.includes('Плинко'), 'карточка плинко подписана');
+check(plinkoCard.querySelector('img').getAttribute('src') === 'shared/brand/icons/plinko.png', 'у плинко своя иконка');
+check(fs.existsSync(`${root}shared/brand/icons/plinko.png`), 'файл иконки плинко на месте');
+const minesCard = win.document.querySelector('.game-card[href="games/mines/index.html"]');
+check(!!minesCard, 'на хабе есть карточка сапёра');
+check(minesCard.textContent.includes('Сапёр'), 'карточка сапёра подписана');
+check(minesCard.querySelector('img').getAttribute('src') === 'shared/brand/icons/mines.png', 'у сапёра своя иконка');
+check(fs.existsSync(`${root}shared/brand/icons/mines.png`), 'файл иконки сапёра на месте');
 check(win.document.querySelector('#bankroll').textContent.replace(/\s/g, '').includes('1000'), 'баланс на хабе');
 check(win.document.querySelector('#historyBtn'), 'кнопка истории на хабе');
 
@@ -207,7 +221,7 @@ hub.Casino.save();
 hub.document.querySelector('#historyBtn').click();
 check(!hub.document.querySelector('#overlay').hidden, 'история открывается');
 check(hub.document.querySelectorAll('.history-round').length === 3, 'видны обе игры и все записи');
-check(hub.document.querySelectorAll('[data-filter]').length === 7, 'фильтры: все + шесть игр');
+check(hub.document.querySelectorAll('[data-filter]').length === 9, 'фильтры: все + восемь игр');
 hub.document.querySelector('[data-filter="roulette"]').click();
 check(hub.document.querySelectorAll('.history-round').length === 2, 'фильтр оставил записи рулетки');
 check(hub.document.querySelector('.history-round-summary').textContent.includes('17'),
@@ -460,13 +474,14 @@ console.log('• Общая статистика');
   const statsHub = open(hubHtml, [rawCasino, rawHub], {});
   statsHub.document.querySelector('#statsBtn').click();
   check(!statsHub.document.querySelector('#overlay').hidden, 'статистика открывается');
-  check(statsHub.document.querySelectorAll('.stat-game').length === 6, 'в статистике шесть игр');
-  check(statsHub.document.querySelectorAll('.stat-sep:not(.total)').length === 5,
-    'между играми пять разделительных черт');
+  check(statsHub.document.querySelectorAll('.stat-game').length === 8, 'в статистике восемь игр');
+  check(statsHub.document.querySelectorAll('.stat-sep:not(.total)').length === 7,
+    'между играми семь разделительных черт');
   check(statsHub.document.querySelectorAll('.stat-sep.total').length === 1, 'перед итогами отдельная черта');
   const text = statsHub.document.querySelector('.stat-grid').textContent.replace(/\s+/g, ' ');
   check(text.includes('0 спинов') && text.includes('0 раундов') && text.includes('0 бросков')
-    && text.includes('0 раздач'), 'счётчики игр склоняются верно');
+    && text.includes('0 раздач') && text.includes('0 дропов') && text.includes('0 заходов'),
+    'счётчики игр склоняются верно');
   statsHub.document.querySelector('#modalClose').click();
 }
 
@@ -498,6 +513,113 @@ check(!!baccaratCard, 'на хабе есть карточка баккары');
 check(baccaratCard.textContent.includes('2 раздачи'), `на карточке баккары счётчик склоняется: ${baccaratCard.textContent.replace(/\s+/g, ' ').trim()}`);
 check(baccaratCard.classList.contains('live'), 'карточка баккары играбельная, а не «скоро»');
 check(board.document.querySelectorAll('.game-card.soon').length === 0, '«скоро» на хабе больше нет');
+
+
+console.log('• Открытие игр');
+{
+  const fresh = open(hubHtml, [rawCasino, rawHub], {});
+  check(fresh.Casino.isUnlocked('blackjack'), 'блэкджек открыт всегда');
+  check(fresh.Casino.isUnlocked('roulette'), 'рулетка открыта всегда');
+  check(!fresh.Casino.isUnlocked('dice'), 'кости закрыты на старте');
+  check(!fresh.Casino.isUnlocked('mines'), 'сапёр закрыт на старте');
+  check(fresh.Casino.unlockThreshold('blackjack') === 0, 'у открытой игры порога нет');
+  check(fresh.Casino.unlockThreshold('dice') === 1000, 'кости — 1 000 ₽');
+  check(fresh.Casino.unlockThreshold('baccarat') === 2000, 'баккара — 2 000 ₽');
+  check(fresh.Casino.unlockThreshold('slots') === 3000, 'слоты — 3 000 ₽');
+  check(fresh.Casino.unlockThreshold('wheel') === 4000, 'колесо — 4 000 ₽');
+  check(fresh.Casino.unlockThreshold('plinko') === 5000, 'плинко — 5 000 ₽');
+  check(fresh.Casino.unlockThreshold('mines') === 6000, 'сапёр — 6 000 ₽');
+  check(fresh.Casino.unlockPlan().map((item) => item.id).join(',') === 'dice,baccarat,slots,wheel,plinko,mines',
+    'порядок открытия совпадает с порядком игр');
+  check(fresh.Casino.unlockedCount() === 2, 'на старте открыто две игры');
+
+  const lockedCards = [...fresh.document.querySelectorAll('.game-card.locked')];
+  check(lockedCards.length === 6, `закрыто шесть карточек, получено ${lockedCards.length}`);
+  check(fresh.document.querySelectorAll('.game-card.live').length === 8, 'карточки остаются на витрине');
+  check(fresh.document.querySelector('.game-card.locked .game-card-blur'), 'у закрытой карточки блюр');
+  check(fresh.document.querySelector('.game-card.locked .game-card-lock'), 'у закрытой карточки замок');
+  check(!fresh.document.querySelector('.game-card[href="games/dice/index.html"] .game-card-lock') === false,
+    'кости под замком');
+  check(!fresh.document.querySelector('.game-card[href="games/roulette/index.html"] .game-card-lock'),
+    'рулетка без замка');
+  const strip = fresh.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
+  check(strip.includes('2 из 8'), `в строке прогресса 2 из 8: ${strip}`);
+  check(strip.includes('1 000 ₽'), 'в строке прогресса порог 1 000 ₽');
+
+  // Клик по закрытой карточке не уводит на страницу, а объясняет правила.
+  fresh.document.querySelector('.game-card[href="games/dice/index.html"]').click();
+  check(!fresh.document.querySelector('#overlay').hidden, 'по клику открывается пояснение');
+  check(fresh.document.querySelector('.modal-body').textContent.includes('Кости ещё закрыты'),
+    'в пояснении название игры и форма слова');
+  check(fresh.document.querySelector('.modal-body').textContent.includes('Порядок открытия'), 'виден порядок открытия');
+  check(!!fresh.document.querySelector('[data-preview]'), 'в пояснении есть режим проверки');
+  fresh.document.querySelector('#modalClose').click();
+}
+
+{
+  // Чистый выигрыш 1 000 ₽ открывает кости, но не баккару.
+  const one = open(hubHtml, [rawCasino, rawHub], {
+    'casino.stats.v1': JSON.stringify({ roulette: { spins: 10, net: 1000 } }),
+  });
+  check(one.Casino.bestNet() === 1000, `планка 1 000 ₽, получено ${one.Casino.bestNet()}`);
+  check(one.Casino.isUnlocked('dice'), 'кости открылись на 1 000 ₽');
+  check(!one.Casino.isUnlocked('baccarat'), 'баккара ещё закрыта');
+  check(one.document.querySelectorAll('.game-card.locked').length === 5, 'закрытых карточек пять');
+  const strip = one.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
+  check(strip.includes('3 из 8') && strip.includes('2 000 ₽'), `следующая цель 2 000 ₽: ${strip}`);
+
+  // Проигрыш не закрывает уже открытую игру: планка только растёт.
+  one.Casino.stats('roulette').net = -500;
+  check(one.Casino.isUnlocked('dice'), 'после проигрыша кости остаются открытыми');
+  check(one.Casino.bestNet() === 1000, 'планка не падает');
+
+  // Бонус и пополнение в чистый выигрыш не входят.
+  one.Casino.addBalance(5000);
+  check(one.Casino.bestNet() === 1000, 'пополнение не открывает игры');
+}
+
+{
+  // Всё открыто, когда набрано 6 000 ₽.
+  const all = open(hubHtml, [rawCasino, rawHub], {
+    'casino.progress.v1': JSON.stringify({ bestNet: 6000 }),
+  });
+  check(all.Casino.unlockedCount() === 8, 'открыты все восемь игр');
+  check(all.document.querySelectorAll('.game-card.locked').length === 0, 'блюра больше нет');
+  const strip = all.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
+  check(strip.includes('Открыты все игры'), `строка прогресса про все игры: ${strip}`);
+}
+
+{
+  // Прямая ссылка на закрытую игру упирается в замок.
+  const lockedPage = new JSDOM(wheelHtml, {
+    url: 'https://example.org/games/wheel/',
+    pretendToBeVisual: true,
+    runScripts: 'outside-only',
+  });
+  lockedPage.window.eval(rawCasino);
+  lockedPage.window.eval(rawWheel);
+  check(!lockedPage.window.__WHEEL_TEST__, 'закрытая игра не запускается');
+  const screen = lockedPage.window.document.querySelector('.locked-card');
+  check(!!screen, 'вместо игры экран с замком');
+  check(screen.textContent.includes('Колесо фортуны ещё закрыто'), 'на экране название игры');
+  check(screen.textContent.replace(/\u00a0/g, ' ').includes('4 000 ₽'), 'на экране нужная сумма');
+  check(!!lockedPage.window.document.querySelector('a[href="../../index.html"]'), 'есть путь назад к играм');
+}
+
+{
+  // ?preview=1 в адресе снимает блюр: так игры можно проверять.
+  const previewPage = new JSDOM(wheelHtml, {
+    url: 'https://example.org/games/wheel/?preview=1',
+    pretendToBeVisual: true,
+    runScripts: 'outside-only',
+  });
+  previewPage.window.eval(rawCasino);
+  previewPage.window.eval(rawWheel);
+  check(previewPage.window.Casino.previewMode(), 'режим проверки включён ссылкой');
+  check(!!previewPage.window.__WHEEL_TEST__, 'в режиме проверки игра запускается');
+  check(!previewPage.window.document.querySelector('.locked-card'), 'замка нет');
+  check(previewPage.window.Casino.isUnlocked('mines'), 'в режиме проверки открыто всё');
+}
 
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);

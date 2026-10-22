@@ -970,6 +970,178 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
 }
 .game-card.soon .game-card-play { color: var(--muted); }
 
+/* ---------------- Открытие игр: блюр и замок ---------------- */
+
+.unlock-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 18px 0 -4px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 196, 106, .2);
+  background: rgba(0, 0, 0, .22);
+  font-size: 12px;
+  color: var(--muted);
+}
+.unlock-strip:empty { display: none; }
+.unlock-strip-text { flex: 1 1 240px; }
+.unlock-strip-text b { color: var(--gold-soft); }
+.unlock-strip-bar {
+  position: relative;
+  flex: 0 1 170px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+  overflow: hidden;
+}
+.unlock-strip-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a97f28, #f2cd6b);
+}
+.unlock-strip-sum { font-variant-numeric: tabular-nums; color: var(--gold-soft); }
+
+/* Закрытая игра: содержимое под блюром, сверху замок с прогрессом. */
+.game-card.locked { cursor: pointer; }
+.game-card-blur {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  filter: blur(6px) saturate(.65);
+  opacity: .5;
+  pointer-events: none;
+  user-select: none;
+  transition: filter .2s, opacity .2s;
+}
+.game-card.locked:hover .game-card-blur { filter: blur(4px) saturate(.8); opacity: .7; }
+.game-card.locked::after { opacity: .06; }
+
+.game-card-lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 18px;
+  text-align: center;
+  background:
+    radial-gradient(240px 190px at 50% 46%, rgba(6, 18, 12, .88), rgba(6, 18, 12, .52) 72%),
+    linear-gradient(180deg, rgba(6, 18, 12, .35), rgba(6, 18, 12, .18));
+  pointer-events: none;
+}
+.lock-badge {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(233, 196, 106, .45);
+  background: radial-gradient(circle at 34% 30%, rgba(22, 48, 36, .95), rgba(7, 18, 12, .95));
+  color: var(--gold-soft);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .5);
+}
+.lock-title {
+  font-family: Georgia, serif;
+  font-size: 18px;
+  letter-spacing: .03em;
+  color: var(--gold-soft);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .8);
+}
+.lock-progress { display: block; width: min(180px, 80%); }
+.lock-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .14);
+  overflow: hidden;
+}
+.lock-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a97f28, #f2cd6b);
+}
+.lock-text { font-size: 12px; color: var(--gold-soft); font-variant-numeric: tabular-nums; }
+.lock-sub { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: rgba(154, 176, 164, .85); }
+
+.unlock-modal-bar {
+  height: 8px;
+  margin: 12px 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+  overflow: hidden;
+}
+.unlock-modal-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a97f28, #f2cd6b);
+}
+.unlock-list { margin: 6px 0 14px; padding-left: 18px; font-size: 13px; color: var(--muted); }
+.unlock-list li { margin: 3px 0; }
+
+/* Экран закрытой игры: сюда попадают по прямой ссылке. */
+.casino-page[hidden] { display: none; }
+.locked-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.locked-card {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 440px;
+  padding: 32px 28px;
+  border-radius: 22px;
+  border: 1px solid rgba(233, 196, 106, .35);
+  background:
+    radial-gradient(420px 200px at 50% 0%, rgba(233, 196, 106, .12), transparent 70%),
+    linear-gradient(160deg, rgba(16, 32, 26, .98), rgba(7, 18, 14, .98));
+  box-shadow: 0 26px 60px rgba(0, 0, 0, .55);
+  text-align: center;
+}
+.locked-badge {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 1px solid rgba(233, 196, 106, .45);
+  background: radial-gradient(circle at 34% 30%, rgba(26, 54, 40, .95), rgba(7, 18, 12, .95));
+  color: var(--gold-soft);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45);
+}
+.locked-card h1 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  letter-spacing: .03em;
+  color: var(--gold-soft);
+}
+.locked-card p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.locked-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+  overflow: hidden;
+}
+.locked-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a97f28, #f2cd6b);
+}
+.locked-note { font-size: 11.5px; opacity: .85; }
+.locked-card .primary-btn { margin-top: 6px; text-decoration: none; }
+
 /* ---------------- Лента мини-игры на хабе ---------------- */
 
 .mini-strip {

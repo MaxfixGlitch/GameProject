@@ -21,7 +21,7 @@ const CASINO_KEYS = ['casino.wallet.v1', 'casino.history.v1', 'casino.stats.v1',
   'casino.sound.v1', 'casino.progress.v1', 'casino.topup.v1'];
 
 function boot(seed) {
-  const dom = new JSDOM(html, { url: 'https://example.org/games/baccarat/', pretendToBeVisual: true, runScripts: 'outside-only' });
+  const dom = new JSDOM(html, { url: 'https://example.org/games/baccarat/?preview=1', pretendToBeVisual: true, runScripts: 'outside-only' });
   const store = dom.window.localStorage;
   if (seed && seed.localStorage) {
     CASINO_KEYS.forEach((key) => {

@@ -13,6 +13,7 @@
     heroTotal: $('#heroTotal'),
     deltaLayer: $('#deltaLayer'),
     gamesGrid: $('#gamesGrid'),
+    unlockStrip: $('#unlockStrip'),
     miniStats: $('#miniStats'),
     topUpBtn: $('#topUpBtn'),
     heroHistoryBtn: $('#heroHistoryBtn'),
@@ -166,20 +167,97 @@
   }
 
   function renderGames() {
-    const cards = Object.values(Casino.GAMES).map((game) => `
-      <a class="game-card live" href="${game.href}" style="--accent:${game.color}">
-        <span class="game-card-icon" aria-hidden="true"><img src="shared/brand/icons/${game.icon}.png" alt=""></span>
-        <h2 class="game-card-title">${game.title}</h2>
-        <p class="game-card-tagline">${game.tagline}</p>
-        <div class="game-card-stats">${gameStatsHTML(game.id)}</div>
-        <span class="game-card-play">Играть →</span>
-      </a>
-    `).join('');
+    const cards = Object.values(Casino.GAMES).map((game) => {
+      const status = Casino.unlockStatus(game.id);
+      if (status.unlocked) {
+        return `
+          <a class="game-card live" href="${game.href}" style="--accent:${game.color}">
+            <span class="game-card-icon" aria-hidden="true"><img src="shared/brand/icons/${game.icon}.png" alt=""></span>
+            <h2 class="game-card-title">${game.title}</h2>
+            <p class="game-card-tagline">${game.tagline}</p>
+            <div class="game-card-stats">${gameStatsHTML(game.id)}</div>
+            <span class="game-card-play">Играть →</span>
+          </a>
+        `;
+      }
+      const percent = Math.min(100, (status.have / status.threshold) * 100);
+      return `
+        <a class="game-card live locked" href="${game.href}" style="--accent:${game.color}"
+           data-locked="${game.id}" aria-label="${game.title} — закрыта до ${numFmt.format(status.threshold)} ₽ чистого выигрыша">
+          <div class="game-card-blur" aria-hidden="true">
+            <span class="game-card-icon"><img src="shared/brand/icons/${game.icon}.png" alt=""></span>
+            <p class="game-card-tagline">${game.tagline}</p>
+            <div class="game-card-stats">${gameStatsHTML(game.id)}</div>
+          </div>
+          <div class="game-card-lock">
+            <span class="lock-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="4" y="10" width="16" height="11" rx="3" fill="currentColor"/><circle cx="12" cy="15.5" r="1.6" fill="#0a1811"/></svg>
+            </span>
+            <b class="lock-title">${game.title}</b>
+            <span class="lock-progress"><span class="lock-bar"><i style="width:${percent.toFixed(1)}%"></i></span></span>
+            <span class="lock-text">${numFmt.format(status.have)} / ${numFmt.format(status.threshold)} ₽</span>
+            <span class="lock-sub">чистый выигрыш</span>
+          </div>
+        </a>
+      `;
+    }).join('');
 
     // Заглушек «скоро» больше нет: все игры на хабе играбельные.
     // Если понадобится анонс, добавьте сюда карточки с классом .soon.
     el.gamesGrid.innerHTML = cards;
+    renderUnlockStrip();
     renderMini();
+  }
+
+  /** Строка прогресса открытия над сеткой игр. */
+  function renderUnlockStrip() {
+    if (!el.unlockStrip) return;
+    const plan = Casino.unlockPlan();
+    const opened = plan.filter((item) => item.unlocked).length + 2; // плюс блэкджек и рулетка
+    const next = plan.find((item) => !item.unlocked);
+    const total = plan.length + 2;
+    if (!next) {
+      el.unlockStrip.innerHTML = `<span class="unlock-strip-text">Открыты все игры: <b>${total} из ${total}</b>. Блюр снят.</span>`;
+      return;
+    }
+    const have = Casino.bestNet();
+    const percent = Math.min(100, (have / next.threshold) * 100);
+    el.unlockStrip.innerHTML = `
+      <span class="unlock-strip-text">Открыто <b>${opened} из ${total}</b> игр. Следующая — <b>${next.game.title}</b> на ${numFmt.format(next.threshold)} ₽ чистого выигрыша.</span>
+      <span class="unlock-strip-bar"><i style="width:${percent.toFixed(1)}%"></i></span>
+      <span class="unlock-strip-sum">${numFmt.format(have)} / ${numFmt.format(next.threshold)} ₽</span>
+    `;
+  }
+
+  function openLockedNotice(gameId) {
+    const status = Casino.unlockStatus(gameId);
+    const game = Casino.GAMES[gameId];
+    const plan = Casino.unlockPlan().filter((item) => !item.unlocked);
+    openModal(`
+      <h2>${game.title} ещё ${Casino.closedWord(gameId)}</h2>
+      <p>Игра откроется, когда чистый выигрыш по казино дойдёт до
+        <b>${numFmt.format(status.threshold)} ₽</b>. Сейчас накоплено
+        ${numFmt.format(status.have)} ₽ — осталось
+        <b>${numFmt.format(status.left)} ₽</b>.</p>
+      <div class="unlock-modal-bar"><span style="width:${Math.min(100, (status.have / status.threshold) * 100).toFixed(1)}%"></span></div>
+      <p class="goals-note">Чистый выигрыш — это сумма итогов всех игр. Бонус и пополнение
+        в него не входят. Он только растёт: проигранные потом деньги игры не закроют.</p>
+      <h3>Порядок открытия</h3>
+      <ul class="unlock-list">
+        ${plan.map((item) => `<li>${item.game.title} — ${numFmt.format(item.threshold)} ₽</li>`).join('')}
+      </ul>
+      <div class="modal-actions">
+        <button class="ghost-btn" data-preview>Открыть всё для проверки</button>
+        <button class="primary-btn" data-close>Понятно</button>
+      </div>
+    `);
+    const preview = el.modalBody.querySelector('[data-preview]');
+    if (preview) {
+      preview.addEventListener('click', () => {
+        Casino.setPreview(true);
+        window.location.reload();
+      });
+    }
   }
 
   // ---------- Окна ----------
@@ -598,6 +676,17 @@
   function renderSound() {
     const on = Casino.getSound();
     Casino.setSoundIcon(el.soundBtn, on);
+  }
+
+  if (el.gamesGrid) {
+    el.gamesGrid.addEventListener('click', (event) => {
+      const card = event.target.closest('.game-card');
+      if (!card) return;
+      const lockId = card.dataset.locked;
+      if (!lockId) return;
+      event.preventDefault();
+      openLockedNotice(lockId);
+    });
   }
 
   // ---------- Старт ----------

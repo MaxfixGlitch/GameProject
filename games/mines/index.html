@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сапёр — Fakrap</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Сапёр Fakrap: открывайте клетки поля 5×5, обходите мины и забирайте растущий множитель. Демо-фишки, без реальных денег.">
+<link rel="icon" type="image/png" href="../../shared/brand/fakrap-icon.png">
+<link rel="apple-touch-icon" href="../../shared/brand/fakrap-icon.png">
+<link rel="stylesheet" href="../../shared/casino.css">
+<link rel="stylesheet" href="mines.css">
+</head>
+<body class="casino-page mines-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="../../index.html" title="Все игры" aria-label="Fakrap — все игры">
+      <img class="brand-logo" src="../../shared/brand/fakrap.png" alt="Fakrap">
+      <span class="brand-coin" aria-hidden="true">F</span>
+    </a>
+    <div class="brand-text">
+      <span>MINES</span>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000 ₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <a class="icon-btn" href="../../index.html" title="Все игры" aria-label="Все игры">
+      <img class="icon-img" src="../../shared/brand/icons/home.png" alt="">
+    </a>
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук" data-sound-on="../../shared/brand/icons/sound-on.png" data-sound-off="../../shared/brand/icons/sound-off.png">
+      <img class="icon-img" src="../../shared/brand/icons/sound-on.png" alt="">
+    </button>
+    <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила сапёра">
+      <img class="icon-img" src="../../shared/brand/icons/rules.png" alt="">
+    </button>
+    <button class="icon-btn" id="historyTopBtn" title="История заходов" aria-label="История заходов">
+      <img class="icon-img" src="../../shared/brand/icons/history.png" alt="">
+    </button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика сапёра">
+      <img class="icon-img" src="../../shared/brand/icons/stats.png" alt="">
+    </button>
+  </div>
+</header>
+
+<main class="mines-main">
+
+  <section class="mines-area" aria-label="Поле сапёра">
+    <div class="mines-top">
+      <span class="mines-mult" id="currentMult">×1,00</span>
+      <span class="mines-mines" id="minesLeft">мин на поле: 3</span>
+    </div>
+
+    <div class="mines-board" id="minesBoard" role="grid" aria-label="Поле 5 на 5"></div>
+
+    <div class="mines-controls">
+      <button class="primary-btn mines-play" id="playBtn" type="button">Начать игру</button>
+      <button class="ghost-btn" id="maxBetBtn" type="button">Максимум</button>
+    </div>
+
+    <div class="message" id="message" aria-live="polite">Выберите ставку и начните заход</div>
+  </section>
+
+  <section class="mines-panel" aria-label="Ставка и мины">
+    <div class="bet-total">
+      <span>Ставка за заход</span>
+      <strong id="betTotal">25 ₽</strong>
+      <span class="bet-limit" id="betLimit">из 2 500 ₽</span>
+    </div>
+
+    <div class="chips-row" id="chipsRow">
+      <button class="chip c25" data-chip="25" aria-label="Ставка 25"><span>25</span></button>
+      <button class="chip c100" data-chip="100" aria-label="Ставка 100"><span>100</span></button>
+      <button class="chip c250" data-chip="250" aria-label="Ставка 250"><span>250</span></button>
+      <button class="chip c500" data-chip="500" aria-label="Ставка 500"><span>500</span></button>
+      <button class="chip c1000" data-chip="1000" aria-label="Ставка 1 000"><span>1 000</span></button>
+      <button class="chip c2500" data-chip="2500" aria-label="Ставка 2 500"><span>2 500</span></button>
+    </div>
+
+    <p class="bet-hint" id="betHint" hidden></p>
+
+    <h2 class="panel-title">Сколько мин на поле</h2>
+    <div class="mine-options" id="mineOptions">
+      <button class="mine-option" data-mines="2" type="button"><b>2</b><span>мины</span></button>
+      <button class="mine-option" data-mines="3" type="button"><b>3</b><span>мины</span></button>
+      <button class="mine-option" data-mines="5" type="button"><b>5</b><span>мин</span></button>
+    </div>
+
+    <div class="cashout-box">
+      <div class="cashout-row"><span>Следующая клетка</span><b id="nextMult">×1,02</b></div>
+      <div class="cashout-row"><span>Забрать сейчас</span><b id="cashoutValue">0 ₽</b></div>
+    </div>
+
+    <p class="panel-note">Поле 5×5. Каждая открытая клетка поднимает множитель,
+      мина забирает ставку. Возврат — 94,5% от оборота при любой стратегии.</p>
+
+    <p class="hint"><kbd>Space</kbd> — начать или забрать, <kbd>H</kbd> — история,
+      <kbd>R</kbd> — правила. Клавиши работают на любой раскладке.</p>
+  </section>
+
+  <section class="mines-history" aria-labelledby="minesHistoryTitle">
+    <div class="rolls-head">
+      <h2 id="minesHistoryTitle">История заходов</h2>
+      <button class="ghost-btn" id="historyBtn" type="button">Вся история</button>
+    </div>
+    <div class="rolls-list" id="roundsList"></div>
+  </section>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="../../shared/casino.js"></script>
+<script src="mines.js"></script>
+</body>
+</html>

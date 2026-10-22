@@ -10,6 +10,12 @@
   const $ = (sel) => document.querySelector(sel);
   const GAME_ID = 'slots';
 
+  // Закрытая игра не запускается: прямо по адресу тоже стоит замок.
+  if (!Casino.isUnlocked(GAME_ID)) {
+    Casino.showLocked(GAME_ID);
+    return;
+  }
+
   // ---------- Символы ----------
   // Рисуем SVG-путями: никаких эмодзи, чтобы вид не зависел от системы.
   const SYMBOLS = {
