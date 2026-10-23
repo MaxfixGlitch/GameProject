@@ -412,8 +412,12 @@ doc.querySelector('#modalClose').click();
   check(cells[0].textContent === 'Б', 'на плитке буква Б');
 
   game.doc.querySelector('#historyBtn').click();
-  check(game.doc.querySelectorAll('.rounds-history-full .round-row').length === 2,
-    'в окне истории обе раздачи');
+  const rows = game.doc.querySelectorAll('.rounds-history-full .round-row');
+  check(rows.length === 2, 'в окне истории обе раздачи');
+  check(!!rows[0].querySelector('.round-time')
+    && rows[0].querySelector('.round-time').textContent.trim().length > 0,
+    'в истории раздачи время в общем виде');
+  check(!!game.doc.querySelector('.topbar .shield-pill'), 'в шапке игры есть значок страховки');
   game.doc.querySelector('#modalClose').click();
 }
 

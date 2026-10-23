@@ -64,7 +64,7 @@
   };
 
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
   const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
   const multLabel = (m) => (Number.isInteger(m) ? `×${m}` : `×${String(m).replace('.', ',')}`);
 
@@ -256,14 +256,6 @@
   }
 
   // ---------- История ----------
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const now = new Date();
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === now.toDateString()
-      ? time
-      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   function spinCardHTML(entry) {
     const net = Number(entry.net) || 0;
@@ -274,9 +266,9 @@
         <span class="spin-mult ${mult === 0 ? 'zero' : ''}">${multLabel(mult)}</span>
         <div class="spin-text">
           <b class="${net > 0 ? 'plus' : net < 0 ? 'minus' : ''}">${net === 0 ? 'возврат ставки' : signed(net)}</b>
-          <span>ставка ${fmt(entry.bet || 0)}${entry.payout ? ` · выплата ${fmt(entry.payout)}` : ''}</span>
-          <time>${timeLabel(entry.ts)}</time>
+          <span>ставка ${fmt(entry.bet || 0)}${entry.payout ? ` · выплата ${fmt(entry.payout)}` : ''}${Casino.insuranceTagHTML(entry)}</span>
         </div>
+        <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
       </article>
     `;
   }
@@ -451,13 +443,10 @@
       <ul>
         ${[0, 0.5, 1, 2, 3, 6].map((m) => `<li>${multLabel(m)} — ${SEGMENTS.filter((x) => x === m).length} ${plural(SEGMENTS.filter((x) => x === m).length, ['сектор', 'сектора', 'секторов'])}${m === 0 ? ' (ставка сгорает)' : `, выплата ${multLabel(m)} от ставки`}</li>`).join('')}
       </ul>
-      <h3>Возврат</h3>
-      <p>Сумма множителей всех восемнадцати секторов — 17, значит возврат игроку
-        ровно <b>94,44%</b> от оборота. Секторы равные, колесо не подкручивается:
-        каждая остановка равновероятна.</p>
       <h3>Страховка</h3>
-      <p>Если есть страховка из целей, при неудачном вращении она сработает сама
-        и вернёт половину потерь. Одна страховка за вращение.</p>
+      <p>Страховки приходят за цели. Если вращение ушло в минус, страховка
+        срабатывает сама и возвращает половину потерь. На выигрыш она не
+        тратится, сгорает не больше одной за вращение.</p>
       <div class="modal-actions"><button class="primary-btn" data-close>Понятно</button></div>
     `);
   }

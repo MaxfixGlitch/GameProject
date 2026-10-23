@@ -366,6 +366,9 @@ check(lastNet === 0 ? netText.includes('0') : netText.includes(String(Math.abs(l
   `в карточке показан результат ${lastNet}, получено «${netText}»`);
 check(['plus', 'minus', 'zero'].some((c) => firstCard.querySelector(`.history-round-net.${c}`)),
   'результат подкрашен по знаку');
+const bjTime = firstCard.querySelector('.round-time');
+check(!!bjTime && bjTime.textContent.trim().length > 0, 'в истории раздачи время в общем виде');
+check(!!doc.querySelector('.topbar .shield-pill'), 'в шапке игры есть значок страховки');
 click('#modalClose');
 check(doc.querySelector('#overlay').hidden, 'история закрывается');
 

@@ -85,17 +85,27 @@ check(fs.existsSync(`${root}shared/brand/icons/mines.png`), 'файл иконк
 check(win.document.querySelector('#bankroll').textContent.replace(/\s/g, '').includes('1000'), 'баланс на хабе');
 check(win.document.querySelector('#historyBtn'), 'кнопка истории на хабе');
 
-// Мини-игра на хабе: отдельная лента, а не карточка ставок.
-const miniStrip = win.document.querySelector('.mini-strip');
-check(!!miniStrip, 'на хабе есть лента мини-игры');
-check(miniStrip.querySelector('[href="games/flappy/index.html"]'), 'ссылка на «Летящую фишку»');
+// Мини-игра: запасной фарм живёт в окне пополнения, а не лентой на хабе.
+check(!win.document.querySelector('.mini-strip'), 'ленты мини-игры на хабе больше нет');
 check(!win.document.querySelector('.game-card[href="games/flappy/index.html"]'), 'мини-игра не попадает в сетку ставок');
-check(win.document.querySelector('#miniStats').textContent.includes('3 / 3'), 'в ленте видны три полёта');
+win.document.querySelector('#topUpBtn').click();
+check(!win.document.querySelector('#overlay').hidden, 'окно пополнения открывается');
+const depositMini = win.document.querySelector('.deposit-mini');
+check(!!depositMini, 'в окне пополнения есть блок мини-игры');
+check(!!depositMini.querySelector('[href="games/flappy/index.html"]'), 'ссылка на «Летящую фишку»');
+check(depositMini.textContent.includes('3 / 3'), 'в блоке видны три полёта');
+const miniCopy = depositMini.textContent.replace(/\s+/g, ' ');
+check(miniCopy.includes('Если баланс на нуле'), 'у блока понятный заголовок');
+check(miniCopy.includes('1 ₽'), 'в блоке сказано, сколько даёт труба');
+check(miniCopy.includes('3 минуты'), 'в блоке сказано про перезарядку');
+win.document.querySelector('#modalClose').click();
 win.Casino.mini.set('flappy', { best: 12, total: 34, attempts: 1 });
 win.Casino.resetAll();
-const miniText = win.document.querySelector('#miniStats').textContent.replace(/\s+/g, ' ');
+win.document.querySelector('#topUpBtn').click();
+const miniText = win.document.querySelector('.deposit-mini').textContent.replace(/\s+/g, ' ');
 check(!miniText.includes('12'), 'сброс казино обнулил рекорд мини-игры');
 check(miniText.includes('3 / 3'), 'сброс казино вернул три полёта');
+win.document.querySelector('#modalClose').click();
 
 // ---------- Подписи ставок ----------
 console.log('• Подписи ставок');
@@ -202,7 +212,7 @@ check(legacy.Casino.stats('blackjack').rounds === 0, 'сброс очистил 
 // ---------- Хаб: история и фильтры ----------
 console.log('• Окно истории на хабе');
 const hub = open(hubHtml, [rawCasino, rawHub], {});
-hub.Casino.pushHistory('blackjack', { ts: 5000, bet: 100, net: -100, summary: 'Дилер 20 · ваши: 18' });
+hub.Casino.pushHistory('blackjack', { ts: 5000, bet: 100, net: -100, insurance: 50, summary: 'Дилер 20 · ваши: 18' });
 // Старая запись без подробностей должна читаться как раньше.
 hub.Casino.pushHistory('roulette', { ts: 6000, bet: 50, net: 300, summary: 'Выпало 17 (чёрное)' });
 // Новая запись: видно, что было выбрано и что выиграло.
@@ -238,6 +248,17 @@ check(hubWon.length === 2 && hubWon.includes('17') && hubWon.includes('НЕЧЁ�
 check(!hubWon.includes('КРАСНОЕ'), 'проигравшее красное на хабе без рамки');
 check(hub.document.querySelector('.history-round-payout').textContent.replace(/\s/g, '').includes('3650'),
   'на хабе показана выплата');
+// Все записи в истории начинаются с собственного времени.
+hub.document.querySelector('[data-filter="all"]').click();
+const hubTimes = [...hub.document.querySelectorAll('.history-round .round-time')];
+check(hubTimes.length === 3, `у каждой записи своё время, найдено ${hubTimes.length}`);
+check(hubTimes.every((node) => node.textContent.trim().length > 0), 'время на хабе заполнено');
+// Сработавшая страховка видна и в общей истории: значок щита и сумма возврата.
+const hubIns = hub.document.querySelector('.ins-tag');
+check(!!hubIns && hubIns.textContent.includes('50'), 'на хабе видна страховка в истории');
+check(hubIns.querySelector('img').getAttribute('src') === 'shared/brand/icons/shield.png',
+  'на хабе у значка страховки верный путь к иконке');
+hub.document.querySelector('[data-filter="roulette"]').click();
 // Старая запись без ставок не ломает карточку.
 check(hub.document.querySelectorAll('.history-round')[1].querySelectorAll('.bet-tag').length === 0,
   'запись без подробностей рисуется без ставок');
@@ -341,8 +362,8 @@ console.log('• Пополнение: способы оплаты и бонус
     'мобильного платежа нет');
   check(methods.every((m) => m.querySelector('.pay-icon img, .pay-icon svg')),
     'у каждого способа настоящий логотип, а не эмодзи');
-  check(doc.querySelector('.deposit-disclaimer').textContent.includes('реальные деньги не принимаются'),
-    'в окне сказано, что это демо');
+  check(doc.querySelector('.deposit-disclaimer').textContent.toLowerCase().includes('реальные деньги не принимаются'),
+    'в окне честно сказано, что деньги не принимаются');
 
   // Любой способ оплаты отвечает, что он недоступен.
   const answer = doc.querySelector('#payAnswer');
@@ -392,46 +413,50 @@ console.log('• Цели, звания и бонусы');
   check(profile.title === 'Новичок', 'стартовое звание — Новичок');
   check(profile.shields === 0, 'страховок пока нет');
   check(profile.maxBet === 2500, 'лимит стола 2 500 ₽');
-  check(profile.goals.length === 6, 'шесть целей');
-  check(profile.goals[0].target === 5000, 'первая цель — 5 000 ₽');
+  check(profile.bestNet === 0, 'рекорд выигрыша в профиле начинается с нуля');
+  check(profile.goals.length === 8, 'восемь целей — по числу званий');
+  check(profile.goals[0].target === 2000, 'первая цель — 2 000 ₽');
+  check(profile.goals[0].title === 'Фиш', 'первое звание — Фиш');
+  check(profile.goals[7].title === 'Барон удачи', 'последнее звание — Барон удачи');
   check(profile.goals.every((g) => !g.claimed), 'ни одна цель ещё не достигнута');
 
-  // Чистый выигрыш 12 000 ₽ закрывает первые две цели.
+  // Чистый выигрыш 12 000 ₽ закрывает первые три цели.
   win.Casino.stats('roulette').net = 12000;
   const reached = win.Casino.checkGoals();
-  check(reached.length === 2, `закрылись две цели, получено ${reached.length}`);
-  check(win.Casino.getBalance() === 1000 + 500 + 1000,
-    `награда 1 500 ₽ на балансе, получено ${win.Casino.getBalance()}`);
-  check(win.Casino.goalTitle() === 'Опытный', 'звание сменилось на Опытный');
-  check(win.Casino.shields() === 2, 'две страховки за две цели');
-  check(win.Casino.maxBet() === 4500, `лимит вырос до 4 500, получено ${win.Casino.maxBet()}`);
+  check(reached.length === 3, `закрылись три цели, получено ${reached.length}`);
+  check(win.Casino.getBalance() === 1000 + 200 + 500 + 1200,
+    `награда 1 900 ₽ на балансе, получено ${win.Casino.getBalance()}`);
+  check(win.Casino.goalTitle() === 'Лудоман', 'звание сменилось на Лудоман');
+  check(win.Casino.shields() === 3, 'три страховки за три цели');
+  check(win.Casino.maxBet() === 5500, `лимит вырос до 5 500, получено ${win.Casino.maxBet()}`);
   check(win.Casino.checkGoals().length === 0, 'повторно цели не начисляются');
+  check(win.Casino.profile().bestNet === 12000, `в профиле рекорд 12 000, получено ${win.Casino.profile().bestNet}`);
 
   const goals = win.Casino.goals();
-  check(goals[0].claimed && goals[1].claimed, 'первые две цели отмечены полученными');
-  check(goals[2].progress === 12000, 'у следующей цели виден прогресс');
+  check(goals[0].claimed && goals[1].claimed && goals[2].claimed, 'первые три цели отмечены полученными');
+  check(goals[3].progress === 12000, 'у следующей цели виден прогресс');
 
-  check(win.Casino.takeGoalNotices().length === 2, 'уведомления о целях созданы');
+  check(win.Casino.takeGoalNotices().length === 3, 'уведомления о целях созданы');
   check(win.Casino.takeGoalNotices().length === 0, 'уведомления выдаются один раз');
 
   check(win.Casino.useShield() === true, 'страховка тратится');
-  check(win.Casino.shields() === 1, 'осталась одна страховка');
+  check(win.Casino.shields() === 2, 'осталось две страховки');
 
   // Экран целей показывает прогресс и звание.
   win.document.querySelector('#goalsBtn').click();
   check(!win.document.querySelector('#overlay').hidden, 'окно целей открывается');
   // Будущие цели скрыты: видно только полученные и одну следующую.
-  check(win.document.querySelectorAll('.goal-card').length === 3,
-    `в окне две полученные и одна следующая цель, получено ${win.document.querySelectorAll('.goal-card').length}`);
-  check(win.document.querySelectorAll('.goal-card.claimed').length === 2, 'две цели отмечены выполненными');
+  check(win.document.querySelectorAll('.goal-card').length === 4,
+    `в окне три полученные и одна следующая цель, получено ${win.document.querySelectorAll('.goal-card').length}`);
+  check(win.document.querySelectorAll('.goal-card.claimed').length === 3, 'три цели отмечены выполненными');
   check(win.document.querySelectorAll('.goal-card.current').length === 1, 'следующая цель подсвечена');
   const goalText = win.document.querySelector('.goal-list').textContent.replace(/\s+/g, ' ');
-  check(goalText.includes('20 000'), 'следующая цель — 20 000 ₽');
-  check(goalText.includes('Хайтейлер'), 'у следующей цели видно её звание');
-  check(!goalText.includes('Мастер'), 'названия будущих целей скрыты');
-  check(!goalText.includes('250 000'), 'условия дальних целей не видны');
+  check(goalText.includes('25 000'), 'следующая цель — 25 000 ₽');
+  check(goalText.includes('Отбивала'), 'у следующей цели видно её звание');
+  check(!goalText.includes('Кэшаут-мастер'), 'названия будущих целей скрыты');
+  check(!goalText.includes('400 000'), 'условия дальних целей не видны');
   check(!!win.document.querySelector('.goals-veiled'), 'есть подсказка, что цели ещё будут');
-  check(win.document.querySelector('.title-chip.big').textContent.includes('Опытный'),
+  check(win.document.querySelector('.title-chip.big').textContent.includes('Лудоман'),
     'в окне видно звание');
   win.document.querySelector('#modalClose').click();
 
@@ -444,8 +469,8 @@ console.log('• Цели, звания и бонусы');
   // После сброса игрок видит только первую цель.
   win.document.querySelector('#goalsBtn').click();
   check(win.document.querySelectorAll('.goal-card').length === 1, 'новичку видна только первая цель');
-  check(win.document.querySelector('.goal-card.current .goal-target').textContent.replace(/\s+/g, ' ').includes('5 000'),
-    'это цель на 5 000 ₽');
+  check(win.document.querySelector('.goal-card.current .goal-target').textContent.replace(/\s+/g, ' ').includes('2 000'),
+    'это цель на 2 000 ₽');
   win.document.querySelector('#modalClose').click();
 }
 
@@ -524,11 +549,15 @@ console.log('• Открытие игр');
   check(!fresh.Casino.isUnlocked('mines'), 'сапёр закрыт на старте');
   check(fresh.Casino.unlockThreshold('blackjack') === 0, 'у открытой игры порога нет');
   check(fresh.Casino.unlockThreshold('dice') === 1000, 'кости — 1 000 ₽');
-  check(fresh.Casino.unlockThreshold('baccarat') === 2000, 'баккара — 2 000 ₽');
-  check(fresh.Casino.unlockThreshold('slots') === 3000, 'слоты — 3 000 ₽');
+  check(fresh.Casino.unlockThreshold('baccarat') === 1500, 'баккара — 1 500 ₽');
+  check(fresh.Casino.unlockThreshold('slots') === 2500, 'слоты — 2 500 ₽');
   check(fresh.Casino.unlockThreshold('wheel') === 4000, 'колесо — 4 000 ₽');
-  check(fresh.Casino.unlockThreshold('plinko') === 5000, 'плинко — 5 000 ₽');
-  check(fresh.Casino.unlockThreshold('mines') === 6000, 'сапёр — 6 000 ₽');
+  check(fresh.Casino.unlockThreshold('plinko') === 6000, 'плинко — 6 000 ₽');
+  check(fresh.Casino.unlockThreshold('mines') === 9000, 'сапёр — 9 000 ₽');
+  // Каждая следующая игра дороже примерно в полтора раза.
+  const thresholds = fresh.Casino.unlockPlan().map((item) => item.threshold);
+  check(thresholds.every((value, i) => i === 0 || value / thresholds[i - 1] >= 1.4),
+    `пороги растут не меньше чем в 1,4 раза: ${thresholds.join(', ')}`);
   check(fresh.Casino.unlockPlan().map((item) => item.id).join(',') === 'dice,baccarat,slots,wheel,plinko,mines',
     'порядок открытия совпадает с порядком игр');
   check(fresh.Casino.unlockedCount() === 2, 'на старте открыто две игры');
@@ -566,7 +595,7 @@ console.log('• Открытие игр');
   check(!one.Casino.isUnlocked('baccarat'), 'баккара ещё закрыта');
   check(one.document.querySelectorAll('.game-card.locked').length === 5, 'закрытых карточек пять');
   const strip = one.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
-  check(strip.includes('3 из 8') && strip.includes('2 000 ₽'), `следующая цель 2 000 ₽: ${strip}`);
+  check(strip.includes('3 из 8') && strip.includes('1 500 ₽'), `следующая цель 1 500 ₽: ${strip}`);
 
   // Проигрыш не закрывает уже открытую игру: планка только растёт.
   one.Casino.stats('roulette').net = -500;
@@ -581,12 +610,13 @@ console.log('• Открытие игр');
 {
   // Всё открыто, когда набрано 6 000 ₽.
   const all = open(hubHtml, [rawCasino, rawHub], {
-    'casino.progress.v1': JSON.stringify({ bestNet: 6000 }),
+    'casino.progress.v1': JSON.stringify({ bestNet: 9000 }),
   });
   check(all.Casino.unlockedCount() === 8, 'открыты все восемь игр');
   check(all.document.querySelectorAll('.game-card.locked').length === 0, 'блюра больше нет');
   const strip = all.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
-  check(strip.includes('Открыты все игры'), `строка прогресса про все игры: ${strip}`);
+  check(strip === '', `строка прогресса исчезла: ${strip}`);
+  check(!all.document.body.textContent.includes('Блюр снят'), 'фразы «Блюр снят» больше нет');
 }
 
 {
@@ -619,6 +649,17 @@ console.log('• Открытие игр');
   check(!!previewPage.window.__WHEEL_TEST__, 'в режиме проверки игра запускается');
   check(!previewPage.window.document.querySelector('.locked-card'), 'замка нет');
   check(previewPage.window.Casino.isUnlocked('mines'), 'в режиме проверки открыто всё');
+}
+
+{
+  // Время в истории прижато к правому нижнему углу одной и той же плашкой.
+  const css = fs.readFileSync(`${root}shared/casino.css`, 'utf8');
+  const block = css.slice(css.indexOf('.round-time {'), css.indexOf('.round-time {') + 400);
+  check(block.includes('position: absolute') && block.includes('right:') && block.includes('bottom:'),
+    'плашка времени стоит в правом нижнем углу');
+  check(block.includes('font-variant-numeric: tabular-nums'), 'цифры времени не дёргаются');
+  const relativeAt = css.indexOf('.spin-card,\n.spin-row,\n.roll-row,\n.round-row,\n.history-round { position: relative; }');
+  check(relativeAt !== -1, 'все виды карточек истории держат время в углу');
 }
 
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);

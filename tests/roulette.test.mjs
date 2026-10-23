@@ -40,7 +40,17 @@ function boot(seed) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const { window, doc, api } = boot();
+// Математику выплат проверяем без побочных эффектов целей:
+// все награды уже получены, поэтому баланс меняют только ставки.
+const GOALS_OFF = {
+  'casino.progress.v1': JSON.stringify({
+    claimed: { g2000: 1, g5000: 1, g12000: 1, g25000: 1, g50000: 1, g100000: 1, g200000: 1, g400000: 1 },
+    shields: 0,
+    notices: [],
+  }),
+};
+
+const { window, doc, api } = boot(GOALS_OFF);
 api.setTiming({ spin: 1, settle: 1 });
 
 const balance = () => window.Casino.getBalance();
@@ -218,7 +228,7 @@ check(reopened.window.Casino.getBalance() === 1000,
 
 // ---------- Ставка на зеро ----------
 console.log('• Ставка на само зеро');
-const zeroGame = boot();
+const zeroGame = boot(GOALS_OFF);
 zeroGame.api.setTiming({ spin: 1, settle: 1 });
 selectChip(zeroGame.doc, 100);
 zeroGame.doc.querySelector('[data-bet="straight:0"]').click();
@@ -477,6 +487,10 @@ console.log('• Страховка и повышенный лимит из це
     'casino.progress.v1': JSON.stringify({ claimed: {}, shields: 1, notices: [] }),
   });
   insured.api.setTiming({ spin: 1, settle: 1 });
+  const pill = insured.doc.querySelector('.topbar .shield-pill');
+  check(!!pill && !pill.hidden && pill.textContent.trim() === '1',
+    'в шапке виден значок с числом страховок');
+  check(pill.title.includes('вернёт половину'), 'подсказка объясняет, что вернёт страховка');
   insured.api.placeBet('red', 100);
   check(insured.window.Casino.shields() === 1, 'страховка на месте до спина');
   insured.api.forceNumber(2); // чёрное — красное проигрывает
@@ -491,6 +505,10 @@ console.log('• Страховка и повышенный лимит из це
   check(insuredHistory.net === -50, `итог спина −50, получено ${insuredHistory.net}`);
   check(insured.doc.querySelector('#message').textContent.includes('страховка'),
     'сообщение объясняет, что сработала страховка');
+  check(insured.doc.querySelector('#spinsList .round-time'), 'в истории спина время в общем виде');
+  const insTag = insured.doc.querySelector('#spinsList .ins-tag');
+  check(!!insTag && insTag.textContent.includes('50'), 'в истории значок страховки с суммой возврата');
+  check(insured.doc.querySelector('.topbar .shield-pill').hidden, 'значок прячется, когда страховок нет');
 }
 
 {
@@ -509,7 +527,7 @@ console.log('• Страховка и повышенный лимит из це
 }
 
 {
-  // Достижение цели прямо в рулетке: 4 900 + выигрыш 100 = 5 000.
+  // Достижение целей прямо в рулетке: 4 900 + выигрыш 100 = 5 000.
   const climber = boot({
     'casino.stats.v1': JSON.stringify({ roulette: { net: 4900 } }),
   });
@@ -519,14 +537,15 @@ console.log('• Страховка и повышенный лимит из це
   await climber.api.spin();
   await sleep(5);
 
-  check(climber.window.Casino.getBalance() === 1600,
-    `баланс с наградой: ожидалось 1 600, получено ${climber.window.Casino.getBalance()}`);
-  check(climber.window.Casino.goalTitle() === 'Игрок', 'цель 5 000 дала звание Игрок');
-  check(climber.window.Casino.shields() === 1, 'за цель начислена страховка');
-  check(climber.window.Casino.maxBet() === 3500, 'лимит стола вырос');
+  // 1 000 − 100 + 200 = 1 100, плюс награды за 2 000 (200) и 5 000 (500).
+  check(climber.window.Casino.getBalance() === 1800,
+    `баланс с наградами: ожидалось 1 800, получено ${climber.window.Casino.getBalance()}`);
+  check(climber.window.Casino.goalTitle() === 'Депозитчик', 'цель 5 000 дала звание Депозитчик');
+  check(climber.window.Casino.shields() === 2, 'за две цели начислены две страховки');
+  check(climber.window.Casino.maxBet() === 4500, 'лимит стола вырос');
   check(climber.doc.querySelector('#message').textContent.includes('цель'),
     `сообщение сообщает о цели: ${climber.doc.querySelector('#message').textContent}`);
-  check(climber.window.Casino.takeGoalNotices().length === 1, 'осталось уведомление для хаба');
+  check(climber.window.Casino.takeGoalNotices().length === 2, 'остались уведомления для хаба');
 }
 
 // ---------- Сброс игры ----------

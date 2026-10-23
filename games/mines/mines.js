@@ -56,7 +56,7 @@
   };
 
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
   const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
   const multLabel = (m) => `×${m.toFixed(2).replace('.', ',')}`;
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -230,7 +230,7 @@
     if (el.nextMult) el.nextMult.textContent = multLabel(multFor(state.mines, next));
 
     const cashout = playing ? Math.round(state.bet * state.mult) : 0;
-    if (el.cashoutValue) el.cashoutValue.textContent = cashout ? fmt(cashout) : '0 ₽';
+    if (el.cashoutValue) el.cashoutValue.textContent = cashout ? fmt(cashout) : '0\u00A0₽';
 
     if (el.playBtn) {
       el.playBtn.disabled = !playing && short;
@@ -257,7 +257,7 @@
     sfx('chip');
     updateUI();
     setMessage(`${next} ${plural(next, ['мина', 'мины', 'мин'])} на поле · следующий шаг ${multLabel(multFor(next, 1))}`);
-    if (el.cashoutValue) el.cashoutValue.textContent = '0 ₽';
+    if (el.cashoutValue) el.cashoutValue.textContent = '0\u00A0₽';
   }
 
   function plural(n, forms) {
@@ -469,14 +469,6 @@
   }
 
   // ---------- История ----------
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const now = new Date();
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === now.toDateString()
-      ? time
-      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   function roundCardHTML(entry) {
     const net = Number(entry.net) || 0;
@@ -488,9 +480,9 @@
         <span class="spin-mult ${mult <= 0 ? 'low' : ''}">${badge}</span>
         <div class="spin-text">
           <b class="${net > 0 ? 'plus' : net < 0 ? 'minus' : ''}">${net === 0 ? 'ровно' : signed(net)}</b>
-          <span>ставка ${fmt(entry.bet || 0)} · ${entry.picks || 0} ${plural(entry.picks || 0, ['клетка', 'клетки', 'клеток'])} · ${entry.mines || 0} ${plural(entry.mines || 0, ['мина', 'мины', 'мин'])}</span>
-          <time>${timeLabel(entry.ts)}</time>
+          <span>ставка ${fmt(entry.bet || 0)} · ${entry.picks || 0} ${plural(entry.picks || 0, ['клетка', 'клетки', 'клеток'])} · ${entry.mines || 0} ${plural(entry.mines || 0, ['мина', 'мины', 'мин'])}${Casino.insuranceTagHTML(entry)}</span>
         </div>
+        <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
       </article>
     `;
   }
@@ -552,15 +544,13 @@
         В любой момент можно забрать выплату.</p>
       <h3>Мины</h3>
       <ul>${rows}</ul>
-      <p>Множитель считается честно: вероятность пройти k клеток без мины —
-        C(25−m, k) / C(25, k), выплата — 94,5% от обратной вероятности.
-        Поэтому возврат не выше <b>94,5%</b> при любой стратегии.</p>
       <h3>Поле до конца</h3>
-      <p>Если открыть все безопасные клетки, заход заканчивается сам и платит
-        по последнему множителю — копить дальше уже нечего.</p>
+      <p>Чем больше клеток открыто, тем выше множитель. Если открыть все
+        безопасные клетки, заход заканчивается сам и платит по последнему
+        множителю — копить дальше уже нечего.</p>
       <h3>Страховка</h3>
-      <p>Если есть страховка из целей, на подрыве она сработает сама
-        и вернёт половину ставки. Одна страховка за заход.</p>
+      <p>Страховки приходят за цели. Если попали на мину, страховка срабатывает
+        сама и возвращает половину ставки. Сгорает не больше одной за заход.</p>
       <div class="modal-actions"><button class="primary-btn" data-close>Понятно</button></div>
     `);
   }

@@ -129,7 +129,7 @@ fly(api, 0.4);
 check(api.state.phase === 'dead', 'фишка разбилась о стопку');
 check(doc.querySelector('#flapTitle').textContent.includes('труба'), `экран итогов: ${doc.querySelector('#flapTitle').textContent}`);
 check(doc.querySelector('#flapBtn').textContent === 'Ещё полёт', 'кнопка предлагает ещё полёт');
-check(doc.querySelector('#flapEarned').textContent === '1 ₽', `за полёт показан 1 ₽: ${doc.querySelector('#flapEarned').textContent}`);
+check(doc.querySelector('#flapEarned').textContent.replace(/\u00a0/g, ' ') === '1 ₽', `за полёт показан 1 ₽: ${doc.querySelector('#flapEarned').textContent}`);
 
 // ---------- Земля ----------
 console.log('• Земля');

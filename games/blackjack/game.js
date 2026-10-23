@@ -110,8 +110,8 @@
   // ---------- Утилиты ----------
   const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
-  const fmtDelta = (n) => `${n > 0 ? '+' : '−'}${numFmt.format(Math.abs(Math.round(n)))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
+  const fmtDelta = (n) => `${n > 0 ? '+' : '−'}${numFmt.format(Math.abs(Math.round(n)))}\u00A0₽`;
   const mmss = (ms) => {
     const total = Math.max(0, Math.ceil(ms / 1000));
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
@@ -519,8 +519,8 @@
     const rounds = history.map((entry) => {
       const sign = entry.net > 0 ? 'plus' : entry.net < 0 ? 'minus' : 'zero';
       const netText = entry.net === 0
-        ? '0 ₽'
-        : `${entry.net > 0 ? '+' : '−'}${numFmt.format(Math.abs(entry.net))} ₽`;
+        ? '0\u00A0₽'
+        : `${entry.net > 0 ? '+' : '−'}${numFmt.format(Math.abs(entry.net))}\u00A0₽`;
 
       const hands = (entry.hands || []).map((hand) => `
         <div class="history-hand ${hand.result}">
@@ -543,6 +543,7 @@
             <span class="history-dealer-cards">${entry.dealerCards} карт.</span>
           </div>
           <div class="history-hands">${hands}</div>
+          <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
         </article>
       `;
     }).join('');
@@ -656,7 +657,7 @@
     const info = Casino.getTopUp();
     el.rebuyBtn.disabled = !info.ready;
     el.rebuyBtn.textContent = info.ready
-      ? `Пополнить + ${numFmt.format(info.amount)} ₽`
+      ? `Пополнить + ${numFmt.format(info.amount)}\u00A0₽`
       : `Бонус через ${mmss(info.remaining)}`;
   }
 
@@ -1203,8 +1204,8 @@
         <li><span class="accent">Удвоить</span> — удвоить ставку и получить ровно одну карту.</li>
         <li><span class="accent">Сплит</span> — разделить пару одинаковых карт на две руки
         (до 4 рук). После сплита тузов даётся по одной карте.</li>
-        <li>Сплит требует ещё одну ставку того же размера: пара 8 и 8 за 100 ₽ —
-        это 200 ₽ на столе. Поэтому кнопка неактивна, если на балансе не хватает
+        <li>Сплит требует ещё одну ставку того же размера: пара 8 и 8 за 100\u00A0₽ —
+        это 200\u00A0₽ на столе. Поэтому кнопка неактивна, если на балансе не хватает
         на вторую ставку.</li>
         <li>Почему кнопка «Сплит» недоступна, написано во всплывающей подсказке:
         наведите на неё курсор.</li>
@@ -1222,11 +1223,16 @@
         <li>6 колод в шузе, перемешивание автоматическое.</li>
         <li>Дилер останавливается на 17 очках (включая мягкие 17).</li>
         <li>Блэкджек после сплита оплачивается 1 : 1.</li>
-        <li>Минимальная ставка — 25 ₽, максимальная — ${fmt(maxBet())}.</li>
-        <li>Лимит растёт на 1 000 ₽ за каждую достигнутую цель.</li>
-        <li>Бесплатный бонус +1 000 ₽ — раз в 30 минут, в том числе из панели пополнения.</li>
+        <li>Минимальная ставка — 25\u00A0₽, максимальная — ${fmt(maxBet())}.</li>
+        <li>Лимит растёт на 1 000\u00A0₽ за каждую достигнутую цель.</li>
+        <li>Бесплатный бонус +1 000\u00A0₽ — раз в 30 минут, в том числе из панели пополнения.</li>
         <li>Игра на демо-фишки. Реальные деньги не используются.</li>
       </ul>
+
+      <h3>Страховка</h3>
+      <p>Страховки приходят за цели. Если раздача ушла в минус, страховка
+        срабатывает сама и возвращает половину потерь. На выигрыш она не
+        тратится, сгорает не больше одной за раздачу.</p>
 
       <div class="modal-actions">
         <button class="primary-btn" data-close>Понятно</button>

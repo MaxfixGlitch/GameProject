@@ -139,7 +139,7 @@
   };
 
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
   const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
 
   // ---------- Состояние ----------
@@ -419,14 +419,6 @@
   }
 
   // ---------- История спинов ----------
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const now = new Date();
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === now.toDateString()
-      ? time
-      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   function spinCardHTML(entry) {
     const net = Number(entry.net) || 0;
@@ -449,9 +441,9 @@
         <div class="spin-grid" aria-hidden="true">${mini}</div>
         <div class="spin-text">
           <b class="${net > 0 ? 'plus' : net < 0 ? 'minus' : ''}">${net === 0 ? 'без выигрыша' : signed(net)}</b>
-          <span>ставка ${fmt(entry.bet || 0)}${entry.payout ? ` · выплата ${fmt(entry.payout)}` : ''}</span>
-          <time>${timeLabel(entry.ts)}</time>
+          <span>ставка ${fmt(entry.bet || 0)}${entry.payout ? ` · выплата ${fmt(entry.payout)}` : ''}${Casino.insuranceTagHTML(entry)}</span>
         </div>
+        <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
       </article>
     `;
   }
@@ -555,7 +547,7 @@
       const jackpot = wins.some((win) => win.sym === 'seven' || win.sym === 'wild');
       sfx(jackpot ? 'jackpot' : 'win');
       setMessage(
-        `${summary}. Выплата ${fmt(payout)}${insurance ? ` · страховка ${fmt(insurance)}` : ''} · чистыми ${signed(net)}`,
+        `${summary}. Выплата ${fmt(payout)}${insurance ? ` · страховка вернула ${fmt(insurance)}` : ''} · чистыми ${signed(net)}`,
         'win',
       );
     } else if (insurance > 0) {
@@ -616,13 +608,10 @@
       <ul>
         ${['seven', 'diamond', 'star', 'bell', 'lemon', 'cherry', 'wild'].map((id) => `<li>${SYMBOLS[id].name} — ×${SYMBOLS[id].pay}</li>`).join('')}
       </ul>
-      <h3>Возврат</h3>
-      <p>При такой ленте барабанов возврат игроку — около <b>94,2%</b> от оборота ставок.
-        Это честная математика слота: каждая линия выпадает с постоянной вероятностью,
-        а не подкручивается под игрока.</p>
       <h3>Страховка</h3>
-      <p>Если есть страховка из целей, при проигрышном спине она срабатывает сама
-        и возвращает половину потерь. Сгорает одна страховка за спин.</p>
+      <p>Страховки приходят за цели. Если спин ушёл в минус, страховка
+        срабатывает сама и возвращает половину потерь. На выигрыш она не
+        тратится, сгорает не больше одной за спин.</p>
       <div class="modal-actions"><button class="primary-btn" data-close>Понятно</button></div>
     `);
   }

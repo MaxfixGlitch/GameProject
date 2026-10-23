@@ -14,7 +14,6 @@
     deltaLayer: $('#deltaLayer'),
     gamesGrid: $('#gamesGrid'),
     unlockStrip: $('#unlockStrip'),
-    miniStats: $('#miniStats'),
     topUpBtn: $('#topUpBtn'),
     heroHistoryBtn: $('#heroHistoryBtn'),
     soundBtn: $('#soundBtn'),
@@ -31,7 +30,7 @@
   };
 
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
   const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
   const mmss = (ms) => {
     const total = Math.max(0, Math.ceil(ms / 1000));
@@ -107,9 +106,9 @@
     el.goalNext.hidden = !next;
     if (next) {
       el.goalNext.innerHTML = '<img class="chip-icon" src="shared/brand/icons/target.png" alt="">'
-        + ` ${numFmt.format(next.progress)} / ${numFmt.format(next.target)} ₽`;
-      el.goalNext.title = `Следующая цель: ${numFmt.format(next.target)} ₽ чистого выигрыша. `
-        + `Награда: ${numFmt.format(next.reward)} ₽, звание «${next.title}» и страховка.`;
+        + ` ${numFmt.format(next.progress)} / ${numFmt.format(next.target)}\u00A0₽`;
+      el.goalNext.title = `Следующая цель: ${numFmt.format(next.target)}\u00A0₽ чистого выигрыша. `
+        + `Награда: ${numFmt.format(next.reward)}\u00A0₽, звание «${next.title}» и страховка.`;
     }
     renderTopUp();
   }
@@ -148,21 +147,35 @@
     `;
   }
 
-  // Мини-игра живёт отдельной лентой: у неё нет ставок и чистой истории,
-  // зато есть рекорд и заработок в общем хранилище Casino.mini.
-  function renderMini() {
-    if (!el.miniStats) return;
+  // Мини-игра — запасной способ поднять баланс, когда он на нуле и бонус
+  // ещё не скоро. Живёт в окне пополнения, отдельной лентой на хабе не стоит.
+  function miniBlockHTML() {
     const saved = Casino.mini.get('flappy', null) || {};
     const best = Number(saved.best) || 0;
     const total = Number(saved.total) || 0;
     let attempts = Number.isFinite(Number(saved.attempts)) ? Number(saved.attempts) : 3;
-    // Перезарядка могла кончиться, пока хаб был закрыт: тогда снова три полёта.
+    // Перезарядка могла кончиться, пока окно было закрыто: тогда снова три полёта.
     if (saved.cooldownUntil && Number(saved.cooldownUntil) <= Date.now()) attempts = 3;
+    // Звание «Фиш» уже намекает, что копейка в кармане лишней не бывает.
     const recordLabel = best === 0 ? 'пока нет' : `${numFmt.format(best)} ${plural(best, ['труба', 'трубы', 'труб'])}`;
-    el.miniStats.innerHTML = `
-      <span>рекорд <b>${recordLabel}</b></span>
-      <span>заработано <b class="${total > 0 ? 'plus' : ''}">${fmt(total)}</b></span>
-      <span>полётов <b>${attempts} / 3</b></span>
+    return `
+      <div class="deposit-mini">
+        <div class="deposit-mini-head">
+          <span class="deposit-mini-icon" aria-hidden="true">F</span>
+          <div class="deposit-mini-text">
+            <b>Если баланс на нуле</b>
+            <small>Мини-игра «Летящая фишка» без ставок: 1\u00A0₽ за каждую пройденную трубу.</small>
+          </div>
+        </div>
+        <div class="deposit-mini-stats">
+          <span>рекорд <b>${recordLabel}</b></span>
+          <span>заработано <b class="${total > 0 ? 'plus' : ''}">${fmt(total)}</b></span>
+          <span>полётов <b>${attempts} / 3</b></span>
+        </div>
+        <p class="deposit-mini-note">Три полёта подряд, потом перезарядка на 3 минуты.
+          Ставок нет — только трубы и монеты.</p>
+        <a class="ghost-btn deposit-mini-play" href="games/flappy/index.html">Играть →</a>
+      </div>
     `;
   }
 
@@ -183,7 +196,7 @@
       const percent = Math.min(100, (status.have / status.threshold) * 100);
       return `
         <a class="game-card live locked" href="${game.href}" style="--accent:${game.color}"
-           data-locked="${game.id}" aria-label="${game.title} — закрыта до ${numFmt.format(status.threshold)} ₽ чистого выигрыша">
+           data-locked="${game.id}" aria-label="${game.title} — закрыта до ${numFmt.format(status.threshold)}\u00A0₽ чистого выигрыша">
           <div class="game-card-blur" aria-hidden="true">
             <span class="game-card-icon"><img src="shared/brand/icons/${game.icon}.png" alt=""></span>
             <p class="game-card-tagline">${game.tagline}</p>
@@ -195,7 +208,7 @@
             </span>
             <b class="lock-title">${game.title}</b>
             <span class="lock-progress"><span class="lock-bar"><i style="width:${percent.toFixed(1)}%"></i></span></span>
-            <span class="lock-text">${numFmt.format(status.have)} / ${numFmt.format(status.threshold)} ₽</span>
+            <span class="lock-text">${numFmt.format(status.have)} / ${numFmt.format(status.threshold)}\u00A0₽</span>
             <span class="lock-sub">чистый выигрыш</span>
           </div>
         </a>
@@ -206,7 +219,6 @@
     // Если понадобится анонс, добавьте сюда карточки с классом .soon.
     el.gamesGrid.innerHTML = cards;
     renderUnlockStrip();
-    renderMini();
   }
 
   /** Строка прогресса открытия над сеткой игр. */
@@ -217,15 +229,16 @@
     const next = plan.find((item) => !item.unlocked);
     const total = plan.length + 2;
     if (!next) {
-      el.unlockStrip.innerHTML = `<span class="unlock-strip-text">Открыты все игры: <b>${total} из ${total}</b>. Блюр снят.</span>`;
+      // Все игры открыты — подсказка больше не нужна.
+      el.unlockStrip.innerHTML = '';
       return;
     }
     const have = Casino.bestNet();
     const percent = Math.min(100, (have / next.threshold) * 100);
     el.unlockStrip.innerHTML = `
-      <span class="unlock-strip-text">Открыто <b>${opened} из ${total}</b> игр. Следующая — <b>${next.game.title}</b> на ${numFmt.format(next.threshold)} ₽ чистого выигрыша.</span>
+      <span class="unlock-strip-text">Открыто <b>${opened} из ${total}</b> игр. Следующая — <b>${next.game.title}</b> на ${numFmt.format(next.threshold)}\u00A0₽ чистого выигрыша.</span>
       <span class="unlock-strip-bar"><i style="width:${percent.toFixed(1)}%"></i></span>
-      <span class="unlock-strip-sum">${numFmt.format(have)} / ${numFmt.format(next.threshold)} ₽</span>
+      <span class="unlock-strip-sum">${numFmt.format(have)} / ${numFmt.format(next.threshold)}\u00A0₽</span>
     `;
   }
 
@@ -236,15 +249,15 @@
     openModal(`
       <h2>${game.title} ещё ${Casino.closedWord(gameId)}</h2>
       <p>Игра откроется, когда чистый выигрыш по казино дойдёт до
-        <b>${numFmt.format(status.threshold)} ₽</b>. Сейчас накоплено
-        ${numFmt.format(status.have)} ₽ — осталось
-        <b>${numFmt.format(status.left)} ₽</b>.</p>
+        <b>${numFmt.format(status.threshold)}\u00A0₽</b>. Сейчас накоплено
+        ${numFmt.format(status.have)}\u00A0₽ — осталось
+        <b>${numFmt.format(status.left)}\u00A0₽</b>.</p>
       <div class="unlock-modal-bar"><span style="width:${Math.min(100, (status.have / status.threshold) * 100).toFixed(1)}%"></span></div>
       <p class="goals-note">Чистый выигрыш — это сумма итогов всех игр. Бонус и пополнение
         в него не входят. Он только растёт: проигранные потом деньги игры не закроют.</p>
       <h3>Порядок открытия</h3>
       <ul class="unlock-list">
-        ${plan.map((item) => `<li>${item.game.title} — ${numFmt.format(item.threshold)} ₽</li>`).join('')}
+        ${plan.map((item) => `<li>${item.game.title} — ${numFmt.format(item.threshold)}\u00A0₽</li>`).join('')}
       </ul>
       <div class="modal-actions">
         <button class="ghost-btn" data-preview>Открыть всё для проверки</button>
@@ -277,6 +290,7 @@
         Casino.resetAll();
         closeModal();
         renderBalance(true);
+        renderProfile();
         renderGames();
       });
     }
@@ -293,13 +307,6 @@
   // ---------- История ----------
   let historyFilter = 'all';
 
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const now = new Date();
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    const sameDay = d.toDateString() === now.toDateString();
-    return sameDay ? time : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   // В общей истории у игр со ставками (рулетка, кости, баккара) показываем
   // сами ставки: выигравшие — в зелёной рамке, чтобы сразу было видно,
@@ -331,11 +338,9 @@
             <span class="history-round-net ${sign}">${signed(entry.net)}</span>
             <span class="history-round-bet">ставка ${fmt(entry.bet)}</span>
           </header>
-          <p class="history-round-summary">${entry.summary || ''}</p>
+          <p class="history-round-summary">${entry.summary || ''}${Casino.insuranceTagHTML(entry, 'shared/brand/icons/shield.png')}</p>
           ${entry.bets ? betDetails(entry) : ''}
-          <header class="history-round-head" style="margin-top:4px">
-            <span class="history-round-bet">${timeLabel(entry.ts)}</span>
-          </header>
+          <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
         </article>
       `;
     }).join('')}</div>`;
@@ -414,7 +419,7 @@
   function openReset() {
     openModal(`
       <h2>Сбросить казино?</h2>
-      <p>Баланс вернётся к <span class="accent">1 000 ₽</span>, история ставок и статистика
+      <p>Баланс вернётся к <span class="accent">1 000\u00A0₽</span>, история ставок и статистика
       всех игр обнулятся. Цели, звания и страховки тоже сбросятся — а таймер бонуса
       останется, чтобы сброс не давал лишнюю бесплатную тысячу.</p>
       <div class="modal-actions">
@@ -461,11 +466,11 @@
           <span class="deposit-bonus-icon" aria-hidden="true"><img src="shared/brand/icons/bonus.png" alt=""></span>
           <div class="deposit-bonus-text">
             <b>Бесплатный бонус</b>
-            <small>${numFmt.format(info.amount)} ₽ раз в 30 минут — без оплаты</small>
+            <small>${numFmt.format(info.amount)}\u00A0₽ раз в 30 минут — без оплаты</small>
           </div>
         </div>
         <button class="primary-btn" id="claimBonusBtn" type="button" ${ready ? '' : 'disabled'}>
-          ${ready ? `Забрать ${numFmt.format(info.amount)} ₽` : `Бонус через ${mmss(info.remaining)}`}
+          ${ready ? `Забрать ${numFmt.format(info.amount)}\u00A0₽` : `Бонус через ${mmss(info.remaining)}`}
         </button>
         <p class="deposit-bonus-hint" id="bonusHint">
           ${ready ? 'Бонус доступен — забирайте.' : 'Пока ждёте, можно играть на текущий баланс.'}
@@ -481,9 +486,10 @@
       <div class="pay-grid">${PAYMENT_METHODS.map(paymentTileHTML).join('')}</div>
       <p class="pay-answer" id="payAnswer" role="status" hidden></p>
       ${bonusBlockHTML()}
+      ${miniBlockHTML()}
       <p class="deposit-disclaimer">
-        Казино демонстрационное: реальные деньги не принимаются, все способы оплаты
-        отключены. Играем на демо-фишки — их даёт бесплатный бонус.
+        Реальные деньги не принимаются: все способы оплаты отключены.
+        Играем на фишки — их даёт бесплатный бонус.
       </p>
       <div class="modal-actions">
         <button class="primary-btn" data-close>Закрыть</button>
@@ -558,7 +564,7 @@
     if (btn) {
       btn.disabled = !info.ready;
       btn.textContent = info.ready
-        ? `Забрать ${numFmt.format(info.amount)} ₽`
+        ? `Забрать ${numFmt.format(info.amount)}\u00A0₽`
         : `Бонус через ${mmss(info.remaining)}`;
     }
     const hint = node.querySelector('#bonusHint');
@@ -578,19 +584,19 @@
       ? '✓ Получено'
       : goal.reached
         ? 'Цель достигнута'
-        : `${numFmt.format(goal.progress)} из ${numFmt.format(goal.target)} ₽`;
+        : `${numFmt.format(goal.progress)} из ${numFmt.format(goal.target)}\u00A0₽`;
     return `
       <article class="${cls}">
         <header class="goal-head">
-          <span class="goal-target">${numFmt.format(goal.target)} ₽</span>
+          <span class="goal-target">${numFmt.format(goal.target)}\u00A0₽</span>
           ${isCurrent ? '<span class="goal-now">следующая</span>' : ''}
-          <span class="goal-reward">+${numFmt.format(goal.reward)} ₽</span>
+          <span class="goal-reward">+${numFmt.format(goal.reward)}\u00A0₽</span>
         </header>
         <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${goal.target}"
           aria-valuenow="${goal.progress}"><i style="width:${pct}%"></i></div>
         <div class="goal-meta">
           <span>${status}</span>
-          <span>${goal.title} · <img class="game-icon" src="shared/brand/icons/shield.png" alt="страховок">${goal.shields} · лимит +${numFmt.format(Casino.LIMIT_PER_GOAL)} ₽</span>
+          <span>${goal.title} · <img class="game-icon" src="shared/brand/icons/shield.png" alt="страховок">${goal.shields} · лимит +${numFmt.format(Casino.LIMIT_PER_GOAL)}\u00A0₽</span>
         </div>
       </article>
     `;
@@ -613,7 +619,7 @@
     const celebrate = notices.length
       ? `<div class="goal-celebrate">
           <b>Цель достигнута!</b>
-          ${notices.map((n) => `<span>${numFmt.format(n.target)} ₽ → +${numFmt.format(n.reward)} ₽ · звание «${n.title}» · страховок ${n.shields}</span>`).join('')}
+          ${notices.map((n) => `<span>${numFmt.format(n.target)}\u00A0₽ → +${numFmt.format(n.reward)}\u00A0₽ · звание «${n.title}» · страховок ${n.shields}</span>`).join('')}
         </div>`
       : '';
 
@@ -623,14 +629,14 @@
       <div class="profile-strip">
         <span class="title-chip big">${profile.title}</span>
         <span class="shield-chip ${profile.shields ? '' : 'empty'}"><img class="chip-icon" src="shared/brand/icons/shield.png" alt=""> ${profile.shields}</span>
-        <span class="profile-stat">Чистый выигрыш: <b class="${profile.net > 0 ? 'plus' : profile.net < 0 ? 'minus' : ''}">${signed(profile.net)}</b></span>
+        <span class="profile-stat">Рекорд выигрыша: <b class="${profile.bestNet > 0 ? 'plus' : ''}">${fmt(profile.bestNet)}</b></span>
         <span class="profile-stat">Лимит ставки: <b>${fmt(profile.maxBet)}</b></span>
         <span class="profile-stat">Бонус: <b>${topUp.ready ? 'доступен' : `через ${mmss(topUp.remaining)}`}</b></span>
       </div>
       <p class="goals-note">
-        Цели считаются по чистому выигрышу за всё время: выплаты минус ставки во всех играх.
-        Круговорот ставок цель не приближает — казино всегда оставляет себе 2,7%.
-        Достигнутые цели не отбираются, даже если потом уйти в минус.
+        Цель засчитывается по рекорду чистого выигрыша: выплаты минус ставки во всех играх.
+        Рекорд только растёт, поэтому полученные звания не отбираются, даже если потом
+        уйти в минус. Бонус и пополнение в зачёт не идут.
       </p>
       <div class="goal-list">${goals.list.join('')}</div>
       ${goals.hidden > 0
@@ -638,8 +644,9 @@
           + 'выигрыша — их условия пока скрыты.</p>'
         : ''}
       <p class="goals-note">
-        За каждую цель — деньги на баланс, новое звание, страховка и +1 000 ₽ к лимиту стола.
-        Страховка при проигрыше возвращает половину потерь и тратится автоматически.
+        За каждую цель — деньги на баланс, новое звание, страховка и +1 000\u00A0₽ к лимиту стола.
+        Страховка срабатывает сама в проигрышном раунде и возвращает половину потерь;
+        на выигрыш она не тратится. Сколько их в запасе, видно по щиту в шапке.
       </p>
       <div class="modal-actions">
         <button class="primary-btn" data-close>Понятно</button>

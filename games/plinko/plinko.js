@@ -77,7 +77,7 @@
   }
 
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
   const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
   const multLabel = (m) => (Number.isInteger(m) ? `×${m}` : `×${String(m).replace('.', ',')}`);
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -413,14 +413,6 @@
   }
 
   // ---------- История ----------
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const now = new Date();
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === now.toDateString()
-      ? time
-      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   function spinCardHTML(entry) {
     const net = Number(entry.net) || 0;
@@ -431,9 +423,9 @@
         <span class="spin-mult ${mult < 1 ? 'low' : ''}">${multLabel(mult)}</span>
         <div class="spin-text">
           <b class="${net > 0 ? 'plus' : net < 0 ? 'minus' : ''}">${net === 0 ? 'ровно' : signed(net)}</b>
-          <span>ставка ${fmt(entry.bet || 0)}${entry.payout ? ` · выплата ${fmt(entry.payout)}` : ''}</span>
-          <time>${timeLabel(entry.ts)}</time>
+          <span>ставка ${fmt(entry.bet || 0)}${entry.payout ? ` · выплата ${fmt(entry.payout)}` : ''}${Casino.insuranceTagHTML(entry)}</span>
         </div>
+        <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
       </article>
     `;
   }
@@ -626,21 +618,17 @@
   function openRules() {
     openModal(`
       <h2>Правила плинко</h2>
-      <p>Шарик падает сверху по восьми рядам колышков. На каждом колышке он
-        с равной вероятностью уходит влево или вправо, поэтому попадание
-        в слот — честный биномиальный случай.</p>
+      <p>Шарик падает сверху по восьми рядам колышков и на каждом отскакивает
+        влево или вправо. Чем дальше слот от центра, тем выше множитель —
+        и тем реже шарик туда попадает.</p>
       <h3>Слоты и выплаты</h3>
       <ul>
         ${[...new Set(MULT)].sort((a, b) => a - b).map((m) => `<li>${multLabel(m)} — выплата ${multLabel(m)} от ставки</li>`).join('')}
       </ul>
-      <p>Крайние слоты выпадают редко: вероятность попасть в крайний — 1 к 256,
-        в центральный — 70 из 256.</p>
-      <h3>Возврат</h3>
-      <p>С учётом вероятностей слотов возврат игроку — <b>94,53%</b> от оборота
-        ставок. Шарик не подкручивается: каждый отскок независим.</p>
       <h3>Страховка</h3>
-      <p>Если есть страховка из целей, на неудачном дропе она сработает сама
-        и вернёт половину потерь. Одна страховка за дроп.</p>
+      <p>Страховки приходят за цели. Если дроп ушёл в минус, страховка
+        срабатывает сама и возвращает половину потерь. На выигрыш она не
+        тратится, сгорает не больше одной за дроп.</p>
       <div class="modal-actions"><button class="primary-btn" data-close>Понятно</button></div>
     `);
   }

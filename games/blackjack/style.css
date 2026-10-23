@@ -854,7 +854,7 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
 .history-list { display: flex; flex-direction: column; gap: 8px; }
 
 .history-round {
-  padding: 10px 12px 11px;
+  padding: 10px 12px 24px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, .08);
   border-left: 3px solid rgba(255, 255, 255, .16);

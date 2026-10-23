@@ -141,7 +141,7 @@
   };
 
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
   const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -312,7 +312,7 @@
   function cellHTML({ key, label, odds, className }) {
     const amount = state.bets[key] || 0;
     const chip = amount
-      ? `<span class="cell-chip" title="${numFmt.format(amount)} ₽">${chipAmount(amount)}</span>`
+      ? `<span class="cell-chip" title="${numFmt.format(amount)}\u00A0₽">${chipAmount(amount)}</span>`
       : '';
     const winning = state.highlight.has(key);
     const losing = state.highlight.size > 0 && amount > 0 && !winning;
@@ -670,13 +670,6 @@
   // ---------- История бросков ----------
   const ROLLS_PREVIEW = 6;
 
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === new Date().toDateString()
-      ? time
-      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   function miniDieHTML(value) {
     return `<span class="mini-die">${pipGridHTML(Number(value))}</span>`;
@@ -719,10 +712,10 @@
         ${tags}
         <div class="roll-foot">
           <span>ставка ${fmt(bet)}</span>
-          <span>выплата ${fmt(payout)}</span>
-          <time>${timeLabel(entry.ts)}</time>
+          <span>выплата ${fmt(payout)}${Casino.insuranceTagHTML(entry)}</span>
         </div>
       </div>
+      <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
     </article>`;
   }
 
@@ -834,9 +827,9 @@
 
       <h3>Бонус и цели</h3>
       <ul>
-        <li>Бесплатные <span class="accent">+1 000 ₽</span> — раз в 30 минут, на главной странице.</li>
+        <li>Бесплатные <span class="accent">+1 000\u00A0₽</span> — раз в 30 минут, на главной странице.</li>
         <li>Цели считаются по чистому выигрышу за всё время. За каждую: деньги,
-        звание, страховка и <span class="accent">+1 000 ₽</span> к лимиту стола.</li>
+        звание, страховка и <span class="accent">+1 000\u00A0₽</span> к лимиту стола.</li>
         <li>Страховка при проигрыше возвращает половину потерь и тратится автоматически.</li>
       </ul>
 

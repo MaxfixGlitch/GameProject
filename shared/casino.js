@@ -29,14 +29,18 @@
 
   // Цели по чистому выигрышу за всё время. За каждую — деньги, звание,
   // страховка и +1 000 ₽ к лимиту ставки навсегда.
+  // Восемь званий: от мелкой сошки до барона удачи. Пороги растут
+  // примерно вдвое, награда — десятая часть порога.
   const DEFAULT_TITLE = 'Новичок';
   const GOALS = [
-    { id: 'g5000', target: 5000, reward: 500, title: 'Игрок', shields: 1 },
-    { id: 'g10000', target: 10000, reward: 1000, title: 'Опытный', shields: 1 },
-    { id: 'g20000', target: 20000, reward: 2000, title: 'Хайтейлер', shields: 1 },
-    { id: 'g50000', target: 50000, reward: 5000, title: 'Мастер', shields: 2 },
-    { id: 'g100000', target: 100000, reward: 10000, title: 'Легенда', shields: 2 },
-    { id: 'g250000', target: 250000, reward: 25000, title: 'Мифический', shields: 3 },
+    { id: 'g2000', target: 2000, reward: 200, title: 'Фиш', shields: 1 },
+    { id: 'g5000', target: 5000, reward: 500, title: 'Депозитчик', shields: 1 },
+    { id: 'g12000', target: 12000, reward: 1200, title: 'Лудоман', shields: 1 },
+    { id: 'g25000', target: 25000, reward: 2500, title: 'Отбивала', shields: 2 },
+    { id: 'g50000', target: 50000, reward: 5000, title: 'Кэшаут-мастер', shields: 2 },
+    { id: 'g100000', target: 100000, reward: 10000, title: 'Хайроллер', shields: 2 },
+    { id: 'g200000', target: 200000, reward: 20000, title: 'Джекпот-хантер', shields: 3 },
+    { id: 'g400000', target: 400000, reward: 40000, title: 'Барон удачи', shields: 3 },
   ];
   const LIMIT_PER_GOAL = 1000;
 
@@ -253,7 +257,7 @@
   }
 
   const moneyFmt = new Intl.NumberFormat('ru-RU');
-  const money = (value) => `${moneyFmt.format(num(value))} ₽`;
+  const money = (value) => `${moneyFmt.format(num(value))}\u00A0₽`;
 
   // Фишки ставок для истории: выигравшие обведены зелёным.
   function betTagsHTML(bets, wins) {
@@ -270,6 +274,65 @@
         + `${won ? '<span class="bet-tag-check" aria-hidden="true">✓</span>' : ''}</span>`;
     }).join('');
     return `<div class="bet-tags${hasWins ? ' has-wins' : ''}">${tags}</div>`;
+  }
+
+  // ---------- История: общее время ----------
+  /**
+   * Время раунда одинаково во всех играх: «14:05», а для прошлых дней
+   * «12.10 · 14:05». Карточки ставят его в правый нижний угол.
+   */
+  function timeLabel(ts) {
+    const d = new Date(Number(ts) || Date.now());
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString()
+      ? time
+      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} · ${time}`;
+  }
+
+  /**
+   * Пометка о сработавшей страховке для карточки истории.
+   * Путь к иконке зависит от страницы: игра лежит в games/<игра>/, хаб — в корне.
+   */
+  function insuranceTagHTML(entry, iconSrc) {
+    const value = num(entry && entry.insurance);
+    if (value <= 0) return '';
+    const src = iconSrc || '../../shared/brand/icons/shield.png';
+    return `<span class="ins-tag" title="Сработала страховка: вернула половину потерь">`
+      + `<img class="ins-tag-icon" src="${src}" alt=""> `
+      + `+${money(value)}</span>`;
+  }
+
+  /**
+   * Значок страховок в шапке игры. Сам он не появляется, пока страховок
+   * нет: тогда игроку нечего объяснять. Ставится один раз при загрузке.
+   */
+  function mountShieldChip() {
+    if (typeof document === 'undefined') return null;
+    const bar = document.querySelector('.topbar');
+    if (!bar) return null;
+    // На хабе свой значок страховок — второй не нужен.
+    if (document.querySelector('#shieldChip')) return null;
+    if (bar.querySelector('.shield-pill')) return bar.querySelector('.shield-pill');
+    const chip = document.createElement('span');
+    chip.className = 'shield-pill';
+    chip.hidden = true;
+    const anchor = bar.querySelector('.bankroll-box');
+    if (anchor && anchor.nextSibling) bar.insertBefore(chip, anchor.nextSibling);
+    else bar.appendChild(chip);
+    updateShieldChip(chip);
+    return chip;
+  }
+
+  function updateShieldChip(chip) {
+    const node = chip || (typeof document !== 'undefined' ? document.querySelector('.shield-pill') : null);
+    if (!node) return;
+    const count = progress.shields;
+    node.hidden = count <= 0;
+    node.innerHTML = '<img class="shield-pill-icon" src="../../shared/brand/icons/shield.png" alt="">'
+      + ` <b>${count}</b>`;
+    node.title = `Страховок: ${count}. Сработает сама, если раунд уйдёт в минус, `
+      + 'и вернёт половину потерь. На выигрыш не тратится.';
+    node.setAttribute('aria-label', `Страховок: ${count}`);
   }
 
   function normalizeProgress(raw) {
@@ -305,7 +368,9 @@
   }
 
   function goalsList() {
-    const net = totalNet();
+    // Цели считаются по рекорду, а не по текущему итогу: прогресс
+    // не откатывается после проигрыша.
+    const net = bestNet();
     return GOALS.map((goal) => ({
       id: goal.id,
       target: goal.target,
@@ -323,7 +388,7 @@
   }
 
   function checkGoalProgress() {
-    const net = totalNet();
+    const net = bestNet();
     const claimedNow = [];
     GOALS.forEach((goal) => {
       if (progress.claimed[goal.id] || net < goal.target) return;
@@ -340,7 +405,10 @@
       progress.notices.push(notice);
       claimedNow.push(notice);
     });
-    if (claimedNow.length) persist();
+    if (claimedNow.length) {
+      persist();
+      updateShieldChip();
+    }
     return claimedNow;
   }
 
@@ -358,6 +426,8 @@
   // Остальные игры открываются по очереди: каждая следующая — за
   // очередную тысячу рублей чистого выигрыша (бонус не считается).
   const UNLOCK_ORDER = ['dice', 'baccarat', 'slots', 'wheel', 'plinko', 'mines'];
+  // Каждая следующая игра дороже примерно в полтора раза.
+  const UNLOCK_THRESHOLDS = { dice: 1000, baccarat: 1500, slots: 2500, wheel: 4000, plinko: 6000, mines: 9000 };
   const UNLOCK_STEP = 1000;
 
   const PREVIEW_KEY = 'casino.preview.v1';
@@ -395,11 +465,9 @@
     return Math.max(current, num(progress.bestNet));
   }
 
-  /** Сколько всего чистого выигрыша нужно, чтобы игра открылась. */
+  /** Сколько чистого выигрыша нужно, чтобы игра открылась. */
   function unlockThreshold(gameId) {
-    const index = UNLOCK_ORDER.indexOf(gameId);
-    if (index < 0) return 0;
-    return UNLOCK_STEP * (index + 1);
+    return UNLOCK_THRESHOLDS[gameId] || 0;
   }
 
   /** Открыта ли игра. Блэкджек и рулетка открыты всегда. */
@@ -431,10 +499,10 @@
 
   /** Порядок открытия: от первой закрытой игры к последней. */
   function unlockPlan() {
-    return UNLOCK_ORDER.map((gameId, index) => ({
+    return UNLOCK_ORDER.map((gameId) => ({
       id: gameId,
       game: GAMES[gameId],
-      threshold: UNLOCK_STEP * (index + 1),
+      threshold: unlockThreshold(gameId),
       unlocked: isUnlocked(gameId),
     }));
   }
@@ -478,7 +546,7 @@
           </span>
           <h1>${game.title} ещё ${closedWord(gameId)}</h1>
           <p>Игра откроется, когда чистый выигрыш по казино дойдёт
-            до ${moneyFmt.format(info.threshold)} ₽. Осталось ${left} ₽.</p>
+            до ${moneyFmt.format(info.threshold)}\u00A0₽. Осталось ${left}\u00A0₽.</p>
           <div class="locked-bar"><span style="width:${Math.min(100, (info.have / info.threshold) * 100).toFixed(1)}%"></span></div>
           <p class="locked-note">Бонус и пополнение в счёт открытия не идут —
             только то, что вы выиграли за столом.</p>
@@ -497,6 +565,7 @@
     if (progress.shields <= 0) return false;
     progress.shields -= 1;
     persist();
+    updateShieldChip();
     return true;
   }
 
@@ -816,10 +885,15 @@
     },
 
     useShield,
+    timeLabel,
+    insuranceTagHTML,
+    mountShieldChip,
+    updateShieldChip,
 
     // ---------- Открытие игр ----------
     UNLOCK_ORDER,
     UNLOCK_STEP,
+    UNLOCK_THRESHOLDS,
     unlockPlan,
     unlockStatus,
     unlockThreshold,
@@ -840,6 +914,7 @@
         title: goalTitle(),
         shields: progress.shields,
         net: totalNet(),
+        bestNet: bestNet(),
         maxBet: maxBetValue(),
         goals: goalsList(),
         topUp: topUpInfo(),
@@ -937,4 +1012,6 @@
 
   load();
   window.Casino = Casino;
+  // Страховки видны на любой странице игры сразу, без правок в каждой игре.
+  mountShieldChip();
 })();
