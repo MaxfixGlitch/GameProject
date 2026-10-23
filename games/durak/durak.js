@@ -77,7 +77,6 @@
     trumpBadge: $('#trumpBadge'),
     trumpSuit: $('#trumpSuit'),
     tableCounts: $('#tableCounts'),
-    deckCounter: $('#deckCounter'),
     deckLeft: $('#deckLeft'),
     discardLeft: $('#discardLeft'),
     feltNote: $('#feltNote'),
@@ -803,13 +802,13 @@
     if (el.trumpSuit) {
       const suit = SUITS[state.trumpSuit];
       el.trumpSuit.textContent = suit.sym;
-      el.trumpSuit.className = suit.red ? 'red' : '';
+      // Класс badge-value не трогаем: красная масть — это только добавка.
+      el.trumpSuit.classList.toggle('red', suit.red);
     }
 
     // Колода и отбой: вместе с картами на руках и на столе они всегда дают 36.
     if (el.deckLeft) el.deckLeft.textContent = String(state.deck.length);
     if (el.discardLeft) el.discardLeft.textContent = String(state.discard.length);
-    if (el.deckCounter) el.deckCounter.classList.toggle('is-empty', state.deck.length === 0);
     if (el.feltNote) el.feltNote.textContent = `всего ${DECK_SIZE} карт`;
   }
 

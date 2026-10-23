@@ -8,10 +8,10 @@
 <meta name="description" content="Подкидной дурак на 36 картах: игра против одного–пяти ботов. Демо-фишки, без реальных денег.">
 <link rel="icon" type="image/png" href="../../shared/brand/fakrap-icon.png">
 <link rel="apple-touch-icon" href="../../shared/brand/fakrap-mobile.png">
-<link rel="stylesheet" href="../../shared/casino.css?v=2">
-<link rel="stylesheet" href="../../shared/cards.css?v=2">
-<link rel="stylesheet" href="../../shared/hud.css?v=2">
-<link rel="stylesheet" href="durak.css?v=2">
+<link rel="stylesheet" href="../../shared/casino.css?v=3">
+<link rel="stylesheet" href="../../shared/cards.css?v=3">
+<link rel="stylesheet" href="../../shared/hud.css?v=3">
+<link rel="stylesheet" href="durak.css?v=3">
 </head>
 <body class="casino-page durak-page">
 
@@ -55,15 +55,15 @@
 
   <section class="durak-felt" id="felt" aria-label="Стол">
     <div class="felt-head">
-      <div class="trump-badge" id="trumpBadge" hidden>
-        <span class="trump-text">козырь <b id="trumpSuit">♠</b></span>
+      <div class="table-badge" id="trumpBadge" hidden>
+        <span class="badge-label">козырь</span><b class="badge-value" id="trumpSuit">♠</b>
       </div>
       <div class="table-counts" id="tableCounts" hidden>
-        <span class="table-count" id="deckCounter" title="Сколько карт осталось в колоде">
-          <span class="count-label">Колода</span><b id="deckLeft">36</b>
+        <span class="table-badge" id="deckCounter" title="Сколько карт осталось в колоде">
+          <span class="badge-label">колода</span><b class="badge-value" id="deckLeft">36</b>
         </span>
-        <span class="table-count is-discard" id="discardCounter" title="Сколько карт уже бито и ушло из игры">
-          <span class="count-label">Отбой</span><b id="discardLeft">0</b>
+        <span class="table-badge" id="discardCounter" title="Сколько карт уже бито и ушло из игры">
+          <span class="badge-label">отбой</span><b class="badge-value" id="discardLeft">0</b>
         </span>
       </div>
       <span class="felt-note" id="feltNote">Выберите соперников и ставку</span>
@@ -150,7 +150,7 @@
   </div>
 </div>
 
-<script src="../../shared/casino.js?v=2"></script>
-<script src="durak.js?v=2"></script>
+<script src="../../shared/casino.js?v=3"></script>
+<script src="durak.js?v=3"></script>
 </body>
 </html>

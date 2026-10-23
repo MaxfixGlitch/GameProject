@@ -286,12 +286,26 @@ console.log('• Счётчики колоды и отбоя');
   check(deckLeft() === String(started.deck.length),
     `счётчик колоды обновился: ${started.deck.length} и ${deckLeft()}`);
 
-  // Пустая колода гасит счётчик.
+  // Пустая колода показывает честный ноль, но выглядит так же, как остальные.
   started.deck = [];
   game.api.render();
   check(deckLeft() === '0', 'пустая колода — ноль в счётчике');
-  check(game.doc.querySelector('#deckCounter').classList.contains('is-empty'),
-    'пустая колода помечена в оформлении');
+
+  // Все три плашки стола — одного вида: один класс, одна разметка.
+  const badges = [...game.doc.querySelectorAll('#felt .table-badge')];
+  check(badges.length === 3, `на столе три плашки, получено ${badges.length}`);
+  check(badges.every((badge) => badge.className === 'table-badge'),
+    `у всех плашек одинаковый класс: ${badges.map((badge) => badge.className).join(' | ')}`);
+  check(badges.every((badge) => badge.children.length === 2
+    && badge.children[0].classList.contains('badge-label')
+    && badge.children[1].classList.contains('badge-value')),
+    'у каждой плашки подпись и значение с одинаковыми классами');
+  const labels = badges.map((badge) => badge.querySelector('.badge-label').textContent.trim().toLowerCase());
+  check(labels.join(',') === 'козырь,колода,отбой', `подписи плашек: ${labels.join(', ')}`);
+
+  // Красная масть — добавка к оформлению, а не замена класса.
+  check(game.doc.querySelector('#trumpSuit').classList.contains('badge-value'),
+    'у значения козыря сохраняется общий класс');
 }
 
 // ---------- Устаревшая разметка ----------
