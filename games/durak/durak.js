@@ -59,6 +59,7 @@
     round: null,
     pending: null,        // { type: attack | beat | add, actor }
     outOrder: [],
+    roundCount: 0,       // сколько заходов уже было — страховка от вечного цикла
     result: null,
   };
 
@@ -252,6 +253,7 @@
     state.trumpSuit = state.trumpCard.s;
     state.discard = [];
     state.outOrder = [];
+    state.roundCount = 0;
     state.result = null;
     state.round = null;
     state.pending = null;
@@ -467,7 +469,19 @@
 
   function finishRound(nextAttackerIdx, kind) {
     const round = state.round;
+    state.roundCount += 1;
     refillOrder(round).forEach(drawTo);
+
+    // Карты в редких случаях могут ходить по кругу: один и тот же расклад
+    // возвращается снова и снова. Партия обязана закончиться — дураком
+    // становится тот, у кого больше карт.
+    if (state.roundCount > 200) {
+      const active = state.players.filter((player) => !player.out);
+      active.sort((a, b) => b.hand.length - a.hand.length);
+      const durak = active.length ? state.players.indexOf(active[0]) : -1;
+      endGame({ won: durak !== 0, reason: 'durak', durakIndex: durak });
+      return;
+    }
 
     state.players.forEach((player, index) => {
       if (!player.out && player.hand.length === 0 && state.deck.length === 0) {
@@ -647,7 +661,10 @@
     } finally {
       pumping = false;
     }
-    if (gen === state.gen && state.screen === 'playing' && state.pending && state.pending.actor !== 0) {
+    // Если бот по-прежнему должен ходить — подхватываем снова. Смотрим на
+    // живое состояние, а не на поколение: иначе партия, начатая, пока боты
+    // «думали», могла замереть навсегда.
+    if (state.screen === 'playing' && state.pending && state.pending.actor !== 0) {
       pump();
       return;
     }
