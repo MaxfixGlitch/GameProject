@@ -591,7 +591,7 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
 }
 .panel[hidden] { display: none; }
 
-.chips-row { display: flex; gap: clamp(6px, 1.4vw, 14px); flex-wrap: wrap; justify-content: center; }
+.chips-row { display: flex; gap: clamp(5px, .6vw, 7px); flex-wrap: wrap; justify-content: center; }
 
 .chip {
   position: relative;
@@ -771,7 +771,24 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
    начинается ниже кнопки закрытия и не вылезает за скруглённый угол. */
 .modal-body {
   min-height: 0;
-  margin-top: 18px;
+  /* Небольшой зазор под кнопкой закрытия: карточки не заходят на крестик. */
+  margin-top: 30px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* История: заголовок и кнопка «Закрыть» стоят, прокручивается только список. */
+.modal-body.has-scroll {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+.modal-body.has-scroll > h2,
+.modal-body.has-scroll > .modal-actions { flex: none; }
+.modal-body.has-scroll > .modal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
@@ -962,7 +979,7 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
   .bet-actions { width: 100%; }
   .bet-actions .primary-btn { flex: 1; }
   .modal { padding: 22px 10px 18px 16px; }
-  .modal-body { margin-top: 22px; }
+  .modal-body { margin-top: 30px; }
   .history-round { padding: 9px 10px 22px; }
   .history-round-head { flex-wrap: wrap; gap: 4px 8px; }
   .history-round-bet { margin-left: auto; }

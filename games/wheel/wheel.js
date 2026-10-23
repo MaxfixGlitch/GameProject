@@ -201,6 +201,7 @@
       el.chipsRow.querySelectorAll('[data-chip]').forEach((chip) => {
         chip.classList.toggle('on', Number(chip.dataset.chip) === state.bet);
       });
+      Casino.syncChips(el.chipsRow);
     }
     const short = Casino.getBalance() < state.bet;
     if (el.betHint) {
@@ -410,6 +411,8 @@
     if (!el.modalBody || !el.overlay) return;
     lastFocused = document.activeElement;
     el.modalBody.innerHTML = html;
+    // История прокручивает только список раундов, заголовок стоит.
+    el.modalBody.classList.toggle('has-scroll', Boolean(el.modalBody.querySelector('.modal-scroll')));
     el.overlay.hidden = false;
     if (el.modalClose) el.modalClose.focus({ preventScroll: true });
     el.modalBody.querySelectorAll('[data-close]').forEach((btn) => btn.addEventListener('click', closeModal));
@@ -484,9 +487,11 @@
     const list = Casino.history(GAME_ID);
     openModal(`
       <h2>История вращений</h2>
-      ${list.length
-        ? `<div class="rolls-list rolls-history-full">${list.map(spinCardHTML).join('')}</div>`
-        : '<p class="roll-empty">Вращений пока нет.</p>'}
+      <div class="modal-scroll">
+        ${list.length
+          ? `<div class="rolls-list rolls-history-full">${list.map(spinCardHTML).join('')}</div>`
+          : '<p class="roll-empty">Вращений пока нет.</p>'}
+      </div>
       <div class="modal-actions"><button class="primary-btn" data-close>Закрыть</button></div>
     `);
   }

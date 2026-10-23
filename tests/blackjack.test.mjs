@@ -105,7 +105,8 @@ function click(sel) {
 console.log('• Базовая инициализация');
 check(bankroll() === 1000, `стартовый баланс 1000, получено ${bankroll()}`);
 check(doc.querySelector('#dealBtn').disabled, 'кнопка «Раздать» заблокирована без ставки');
-check(doc.querySelectorAll('.chip').length === 5, 'пять фишек');
+check(doc.querySelectorAll('.chip').length === 6, 'шесть фишек, крупная спрятана до звания');
+check(doc.querySelector('[data-chip="5000"]').hidden, 'фишка 5 000 скрыта, пока лимит 2 500');
 
 click('#historyBtn');
 check(doc.querySelector('#modalBody').textContent.includes('Здесь появятся последние раздачи'),
@@ -723,6 +724,22 @@ check(restoredHistory[1].hands[1].result === 'bust', 'перебор сохра�
 check(restoredHistory[1].hands[3].soft === true, 'мягкая рука сохранена');
 check(restoredHistory[2].hands.length === 0 && restoredHistory[2].bet === 0,
   'битая запись не ломает загрузку');
+
+// ---------- Крупная фишка ----------
+console.log('• Крупная фишка');
+{
+  // Три закрытые цели поднимают лимит до 5 500 ₽ — фишка 5 000 открывается.
+  const rich = boot({
+    'casino.wallet.v1': JSON.stringify({ bankroll: 20000 }),
+    'casino.progress.v1': JSON.stringify({ claimed: { g2000: 1, g5000: 1, g12000: 1 }, shields: 0, notices: [] }),
+  });
+  const rdoc = rich.window.document;
+  const big = rdoc.querySelector('[data-chip="5000"]');
+  check(!big.hidden, 'с лимитом 5 500 фишка 5 000 видна');
+  big.click();
+  check(rich.window.__BJ_TEST__.state.bet === 5000,
+    `фишка 5 000 ставит 5 000, получено ${rich.window.__BJ_TEST__.state.bet}`);
+}
 
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);

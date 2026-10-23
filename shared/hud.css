@@ -171,9 +171,9 @@
 }
 
 .chip.c25, .chip.c50, .chip.c100, .chip.c250, .chip.c500,
-.chip.c1000, .chip.c2500,
+.chip.c1000, .chip.c2500, .chip.c5000,
 .mini-chip.c25, .mini-chip.c50, .mini-chip.c100, .mini-chip.c250,
-.mini-chip.c500, .mini-chip.c1000, .mini-chip.c2500 {
+.mini-chip.c500, .mini-chip.c1000, .mini-chip.c2500, .mini-chip.c5000 {
   background-color: transparent;
   background-size: contain;
   background-repeat: no-repeat;
@@ -187,6 +187,10 @@
 .chip.c500, .mini-chip.c500 { background-image: url('brand/chips/chip-500.png'); }
 .chip.c1000, .mini-chip.c1000 { background-image: url('brand/chips/chip-1000.png'); }
 .chip.c2500, .mini-chip.c2500 { background-image: url('brand/chips/chip-2500.png'); }
+.chip.c5000, .mini-chip.c5000 { background-image: url('brand/chips/chip-5000.png'); }
+
+/* Крупная фишка появляется только с нужным званием — до этого её нет. */
+.chip[hidden], .mini-chip[hidden] { display: none !important; }
 
 /* Знак бренда на узких экранах: вместо золотого кружка с «F» —
    присланный квадратный логотип Fakrap. */

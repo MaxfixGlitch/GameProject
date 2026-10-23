@@ -387,6 +387,17 @@
     return MAX_BET + claimedCount() * LIMIT_PER_GOAL;
   }
 
+  // Крупная фишка 5 000 ₽ показывается только тогда, когда лимит стола
+  // до неё дорос: до звания «Лудоман» она висела бы вечно заблокированной.
+  function syncChips(row) {
+    if (!row) return;
+    const limit = maxBetValue();
+    row.querySelectorAll('[data-chip]').forEach((chip) => {
+      const value = Number(chip.dataset.chip);
+      if (Number.isFinite(value)) chip.hidden = value > limit;
+    });
+  }
+
   function checkGoalProgress() {
     const net = bestNet();
     const claimedNow = [];
@@ -908,6 +919,7 @@
     touchBestNet,
 
     maxBet: maxBetValue,
+    syncChips,
 
     profile() {
       return {

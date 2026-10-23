@@ -338,5 +338,20 @@ check(resetGame.window.Casino.stats('dice').rolls === 0, 'статистика �
 check(resetGame.window.Casino.history('dice').length === 0, 'история костей очищена');
 check(resetGame.window.Casino.stats('roulette').spins === 0, 'чужая статистика не тронута');
 
+// ---------- Крупная фишка ----------
+console.log('• Крупная фишка');
+{
+  // Три закрытые цели — лимит 5 500 ₽: фишка 5 000 появляется.
+  const rich = boot({
+    'casino.wallet.v1': JSON.stringify({ bankroll: 20000 }),
+    'casino.progress.v1': JSON.stringify({ claimed: { g2000: 1, g5000: 1, g12000: 1 }, shields: 0, notices: [] }),
+  });
+  const big = rich.doc.querySelector('[data-chip="5000"]');
+  check(!big.hidden, 'с лимитом 5 500 фишка 5 000 видна');
+  big.click();
+  rich.doc.querySelector('[data-bet="sum:7"]').click();
+  check(rich.api.totalBet() === 5000, `фишка 5 000 ставит 5 000, получено ${rich.api.totalBet()}`);
+}
+
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);
