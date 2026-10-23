@@ -27,11 +27,13 @@ function boot(seed) {
     runScripts: 'outside-only',
   });
   const store = dom.window.localStorage;
-  if (seed) {
+  if (seed && seed.getItem) {
     CASINO_KEYS.forEach((key) => {
       const value = seed.getItem(key);
       if (value !== null) store.setItem(key, value);
     });
+  } else if (seed) {
+    Object.entries(seed).forEach(([key, value]) => store.setItem(key, value));
   }
   dom.window.eval(rawCasino);
   dom.window.eval(rawGame);
@@ -176,6 +178,26 @@ check(api.state.bet === 2500, '«Максимум» ставит 2 500');
 win.Casino.setBalance(320);
 doc.querySelector('#maxBetBtn').click();
 check(api.state.bet === 250, `при 320 ₽ «Максимум» даёт 250, получено ${api.state.bet}`);
+
+// ---------- Лимит стола ----------
+console.log('• Лимит стола');
+{
+  // Закрытая цель поднимает лимит: 2 500 + 1 000 = 3 500.
+  const grown = boot({
+    'casino.progress.v1': JSON.stringify({ claimed: { g5000: 1 }, shields: 0, notices: [] }),
+  });
+  grown.window.Casino.setBalance(10000);
+  check(grown.window.Casino.maxBet() === 3500, `лимит 3 500, получено ${grown.window.Casino.maxBet()}`);
+  check(grown.doc.querySelector('#betLimit').textContent.replace(/\s/g, '').includes('3500'),
+    `на столе виден новый лимит: ${grown.doc.querySelector('#betLimit').textContent}`);
+  grown.api.setBet(99999);
+  check(grown.api.state.bet === 3500, `ставка не выше нового лимита, получено ${grown.api.state.bet}`);
+  grown.doc.querySelector('#maxBetBtn').click();
+  check(grown.api.state.bet === 3500, `«Максимум» ставит весь лимит, получено ${grown.api.state.bet}`);
+  grown.window.Casino.setBalance(3200);
+  grown.doc.querySelector('#maxBetBtn').click();
+  check(grown.api.state.bet === 3200, `«Максимум» не ставит больше баланса, получено ${grown.api.state.bet}`);
+}
 api.setBet(100);
 
 // ---------- Сброс ----------
