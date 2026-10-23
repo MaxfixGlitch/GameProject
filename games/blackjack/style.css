@@ -98,7 +98,6 @@ button:disabled { cursor: not-allowed; }
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 10px clamp(12px, 3vw, 32px);
   background: linear-gradient(180deg, rgba(10, 20, 16, .92), rgba(7, 14, 11, .72));
@@ -156,6 +155,7 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-left: auto;
   padding: 5px 22px;
   border-radius: 14px;
   background: rgba(233, 196, 106, .07);
