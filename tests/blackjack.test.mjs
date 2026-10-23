@@ -372,6 +372,31 @@ check(!!doc.querySelector('.topbar .shield-pill'), 'в шапке игры ес�
 click('#modalClose');
 check(doc.querySelector('#overlay').hidden, 'история закрывается');
 
+{
+  // Сработавшая страховка отмечается в истории, как и в остальных играх.
+  const insured = boot({
+    'casino.history.v1': JSON.stringify({
+      blackjack: [{
+        ts: Date.now(),
+        n: 1,
+        bet: 100,
+        net: -50,
+        insurance: 50,
+        hands: [{ result: 'lose', total: 18, bet: 100 }],
+        dealerTotal: 20,
+        dealerCards: 2,
+        dealerNatural: false,
+      }],
+    }),
+  });
+  const insuredDoc = insured.window.document;
+  check(insuredDoc.querySelector('.topbar .shield-pill'), 'значок страховки стоит в шапке блэкджека');
+  insuredDoc.querySelector('#historyBtn').click();
+  const tag = insuredDoc.querySelector('.history-round .ins-tag');
+  check(!!tag && tag.textContent.includes('50'), 'в истории видна сумма возврата по страховке');
+  check(!!insuredDoc.querySelector('.history-round .round-time'), 'время в карточке истории');
+}
+
 click('#statsBtn');
 doc.querySelector('[data-action="history"]').click();
 check(doc.querySelector('#modalBody').textContent.includes('История раздач'), 'история открывается из статистики');

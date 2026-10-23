@@ -210,6 +210,10 @@
       const hands = Array.isArray(entry?.hands) ? entry.hands : [];
       return {
         n: num(entry?.n) || index + 1,
+        // Время и страховку храним вместе с записью: без них история
+        // после перезагрузки теряла время и метку сработавшей страховки.
+        ts: num(entry?.ts),
+        insurance: Math.max(0, num(entry?.insurance)),
         bet: Math.max(0, num(entry?.bet)),
         net: num(entry?.net),
         dealerTotal: Math.max(0, num(entry?.dealerTotal)),
@@ -543,6 +547,7 @@
             <span class="history-dealer-cards">${entry.dealerCards} карт.</span>
           </div>
           <div class="history-hands">${hands}</div>
+          ${Casino.insuranceTagHTML(entry)}
           <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
         </article>
       `;

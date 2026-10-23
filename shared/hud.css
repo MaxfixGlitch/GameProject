@@ -1,0 +1,122 @@
+/* ============================================================
+   Общие мелочи шапки и истории: значок страховок, время раунда,
+   метка сработавшей страховки и прокрутка окна истории.
+
+   Подключается на хабе и во всех играх — в том числе в блэкджеке,
+   у которого своя оболочка: эти элементы ставит shared/casino.js,
+   поэтому выглядеть они должны одинаково везде.
+   ============================================================ */
+
+/* ---------------- Единое время в истории ---------------- */
+/* Время раунда стоит в правом нижнем углу каждой карточки — одинаково
+   в играх и в общей истории на хабе. */
+.spin-card,
+.spin-row,
+.roll-row,
+.round-row,
+.history-round { position: relative; }
+
+.round-time {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted);
+  opacity: .72;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ---------------- Страховка ---------------- */
+.ins-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 6px 1px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 196, 106, .4);
+  background: rgba(233, 196, 106, .1);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold-soft);
+  vertical-align: middle;
+}
+.ins-tag-icon { height: 10px; width: 10px; flex: 0 0 auto; display: block; }
+
+/* Значок страховок в шапке игры. Не сжимается и не растягивается:
+   в тесной шапке картинка иначе показывает свой настоящий размер. */
+.shield-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 196, 106, .38);
+  background: rgba(233, 196, 106, .1);
+  font-size: 12px;
+  color: var(--gold-soft);
+  white-space: nowrap;
+}
+.shield-pill[hidden] { display: none; }
+.shield-pill b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.shield-pill-icon { height: 15px; width: 15px; flex: 0 0 auto; display: block; object-fit: contain; }
+
+/* В окне «Вся история» прокручивается само окно, а не список внутри него:
+   второй ползунок рядом с первым не нужен. */
+.modal-body .spin-history-full,
+.modal-body .rolls-history-full,
+.modal-body .rounds-history-full {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+/* ---------------- Тесная шапка ---------------- */
+/* В шапке шесть кнопок, плашка баланса, монета бренда и значок страховок.
+   Без этих правил на телефоне всё это сжимается и лезет друг на друга,
+   а иконка щита показывает свой настоящий размер — во всю шапку. */
+
+@media (max-width: 520px) {
+  .shield-pill { gap: 4px; margin-right: 4px; padding: 3px 8px; }
+  .shield-pill-icon { height: 13px; width: 13px; }
+  .shield-pill b { font-size: 12px; }
+}
+
+@media (max-width: 460px) {
+  .topbar { gap: 6px; padding: 8px; }
+  /* Бренд и его монета не сжимаются: иначе монета наезжает на баланс. */
+  .topbar .brand { flex: 0 0 auto; }
+  .brand-coin { flex: 0 0 auto; width: 34px; height: 34px; font-size: 17px; }
+  .bankroll-box { padding: 3px 8px; }
+  .bankroll { font-size: 17px; }
+  .tools { gap: 3px; }
+  .icon-btn { width: 29px; height: 29px; }
+}
+
+/* Телефон уже 400 px: монета бренда уступает место кнопкам. Домой
+   по-прежнему ведёт первая кнопка в шапке. */
+@media (max-width: 400px) {
+  .topbar .brand { display: none; }
+}
+
+@media (max-width: 360px) {
+  .bankroll-label { display: none; }
+  .bankroll { font-size: 16px; }
+  .tools { gap: 2px; }
+  .icon-btn { width: 27px; height: 27px; }
+  .shield-pill { padding: 3px 7px; }
+}
+
+/* Старые телефоны вроде iPhone SE: шапка ужимается ещё на пару пикселей. */
+@media (max-width: 340px) {
+  .topbar { padding: 6px; }
+  .bankroll { font-size: 15px; }
+  .icon-btn { width: 26px; height: 26px; }
+  .shield-pill { padding: 2px 6px; }
+  .shield-pill b { font-size: 11px; }
+}
