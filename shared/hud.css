@@ -104,6 +104,13 @@
   .topbar .brand { display: none; }
 }
 
+/* На хабе кнопок меньше, чем в игре, поэтому знак бренда остаётся
+   в левом верхнем углу — в том же месте, что и на компьютере. */
+@media (max-width: 400px) {
+  .hub-page .topbar .brand { display: flex; }
+  .hub-page .brand-coin { width: 32px; height: 32px; border-radius: 8px; }
+}
+
 @media (max-width: 360px) {
   .bankroll-label { display: none; }
   .bankroll { font-size: 16px; }
