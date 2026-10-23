@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const html = fs.readFileSync(`${root}games/durak/index.html`, 'utf8')
-  .replace('<script src="../../shared/casino.js"></script>', '')
-  .replace('<script src="durak.js"></script>', '');
+  // Скрипты подключаем вручную через eval: версия в ссылке (?v=) может меняться.
+  .replace(/<script src="[^"]*casino\.js[^"]*"><\/script>/, '')
+  .replace(/<script src="[^"]*durak\.js[^"]*"><\/script>/, '');
 const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
 const rawGame = fs.readFileSync(`${root}games/durak/durak.js`, 'utf8');
 
@@ -291,6 +292,109 @@ console.log('• Счётчики колоды и отбоя');
   check(deckLeft() === '0', 'пустая колода — ноль в счётчике');
   check(game.doc.querySelector('#deckCounter').classList.contains('is-empty'),
     'пустая колода помечена в оформлении');
+}
+
+// ---------- Устаревшая разметка ----------
+console.log('• Устаревшая разметка');
+{
+  // Браузер мог отдать новую разметку со старым скриптом из кэша: тогда
+  // счётчиков в документе нет. Раньше это валило всю отрисовку — стол
+  // замирал в лобби, хотя ставка уже списана. Теперь — нет.
+  const game = boot();
+  game.window.Casino.setBalance(1000);
+  game.api.setTiming({ bot: 100000 });
+  ['#tableCounts', '#deckLeft', '#discardLeft', '#deckCounter'].forEach((sel) => {
+    const node = game.doc.querySelector(sel);
+    if (node) node.remove();
+  });
+
+  const started = game.api.startGame(1, 100);
+  check(started !== null, 'партия начинается и со старой разметкой');
+  check(game.doc.querySelector('#lobby').hidden, 'лобби скрылось, даже если счётчиков нет');
+  check(game.doc.querySelectorAll('#playerHand .card').length > 0, 'рука отрисовалась');
+  check(game.doc.querySelectorAll('#botsRow .bot-chip').length === 1, 'соперники отрисовались');
+  check(!game.doc.querySelector('#felt').classList.contains('is-lobby'), 'стол переключился из лобби');
+  check(game.window.Casino.getPending('durak') === 100, 'ставка учтена');
+}
+
+// ---------- Сбой одной части отрисовки ----------
+console.log('• Сбой отрисовки');
+{
+  const game = boot();
+  game.window.Casino.setBalance(1000);
+  game.api.setTiming({ bot: 100000 });
+  game.api.state.screen = 'lobby';
+  const started = game.api.startGame(1, 100);
+
+  // Ломаем ровно один счётчик: так падал старый скрипт на новой разметке.
+  const broken = game.doc.querySelector('#deckLeft');
+  Object.defineProperty(broken, 'textContent', {
+    configurable: true,
+    get() { return ''; },
+    set() { throw new Error('сломано'); },
+  });
+
+  let crashed = null;
+  try {
+    game.api.render();
+  } catch (err) {
+    crashed = err;
+  }
+  check(!crashed, `render() переживает сбой одной части: ${crashed && crashed.message}`);
+  check(game.doc.querySelectorAll('#playerHand .card').length === started.players[0].hand.length,
+    'остальные части всё равно отрисовались');
+  check(game.doc.querySelector('#lobby').hidden, 'лобби осталось скрытым, партия не замерла');
+
+  // Возвращаем счётчик, чтобы он не мешал дальше в этой игре.
+  delete broken.textContent;
+  const fresh = game.doc.createElement('b');
+  fresh.id = 'deckLeft';
+  broken.replaceWith(fresh);
+}
+
+// ---------- Кнопка «Раздать» ----------
+console.log('• Кнопка «Раздать»');
+{
+  const game = boot();
+  game.window.Casino.setBalance(1000);
+  game.api.setTiming({ bot: 100000 });
+  const stake = game.api.state.bet;
+  const before = game.window.Casino.getBalance();
+
+  game.doc.querySelector('#dealBtn').click();
+  check(game.api.state.screen === 'playing', 'нажатие «Раздать» начинает партию');
+  check(game.window.Casino.getBalance() === before - stake,
+    `ставка списана один раз: ${before - stake}, получено ${game.window.Casino.getBalance()}`);
+  check(game.doc.querySelector('#lobby').hidden, 'лобби скрылось после раздачи');
+  check(game.doc.querySelectorAll('#playerHand .card').length > 0, 'карты на руках показаны');
+
+  // Повторное нажатие во время партии не списывает ставку ещё раз.
+  game.doc.querySelector('#dealBtn').click();
+  check(game.window.Casino.getBalance() === before - stake,
+    'повторное нажатие не списывает ставку второй раз');
+}
+
+// ---------- Сбой при раздаче ----------
+console.log('• Сбой при раздаче');
+{
+  const game = boot();
+  game.window.Casino.setBalance(1000);
+  game.api.setTiming({ bot: 100000 });
+  const before = game.window.Casino.getBalance();
+
+  // Если внутри что-то сломалось, деньги не должны пропасть, а лобби
+  // должно остаться рабочим — раньше в этом месте игра просто замирала.
+  const Casino = game.window.Casino;
+  const original = Casino.stake;
+  Casino.stake = () => { throw new Error('сломано'); };
+  game.doc.querySelector('#dealBtn').click();
+  Casino.stake = original;
+
+  check(game.window.Casino.getBalance() === before, `ставка не списалась: ${game.window.Casino.getBalance()}`);
+  check(game.api.state.screen === 'lobby', 'игра осталась в лобби');
+  check(!game.doc.querySelector('#lobby').hidden, 'лобби снова видно');
+  check(game.doc.querySelector('#message').textContent.includes('Попробуйте ещё раз'),
+    'игроку сказали, что произошло');
 }
 
 // ---------- История и окно ----------

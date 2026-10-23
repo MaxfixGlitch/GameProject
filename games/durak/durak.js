@@ -795,14 +795,16 @@
   }
 
   function renderTrump() {
-    if (!el.trumpBadge) return;
-    const show = state.screen !== 'lobby' && state.trumpCard;
-    el.trumpBadge.hidden = !show;
+    const show = state.screen !== 'lobby' && Boolean(state.trumpCard);
+    if (el.trumpBadge) el.trumpBadge.hidden = !show;
     if (el.tableCounts) el.tableCounts.hidden = !show;
     if (!show) return;
-    const suit = SUITS[state.trumpSuit];
-    el.trumpSuit.textContent = suit.sym;
-    el.trumpSuit.className = suit.red ? 'red' : '';
+
+    if (el.trumpSuit) {
+      const suit = SUITS[state.trumpSuit];
+      el.trumpSuit.textContent = suit.sym;
+      el.trumpSuit.className = suit.red ? 'red' : '';
+    }
 
     // Колода и отбой: вместе с картами на руках и на столе они всегда дают 36.
     if (el.deckLeft) el.deckLeft.textContent = String(state.deck.length);
@@ -917,14 +919,20 @@
     </article>`;
   }
 
+  // Если браузер держит старую копию скрипта, а разметку уже обновили,
+  // какой-то элемент может не найтись. Раньше это валило всю отрисовку:
+  // стол замирал в лобби, хотя ставка уже списана. Теперь каждая часть
+  // рисуется отдельно — сбой в одной не мешает остальным.
+  const RENDERERS = [renderBankroll, renderTrump, renderBots, renderTable, renderHand, renderPanel, renderRounds];
+
   function render() {
-    renderBankroll();
-    renderTrump();
-    renderBots();
-    renderTable();
-    renderHand();
-    renderPanel();
-    renderRounds();
+    RENDERERS.forEach((draw) => {
+      try {
+        draw();
+      } catch (err) {
+        console.error('Дурак: сбой отрисовки', err);
+      }
+    });
   }
 
   // ---------- Окна ----------
@@ -1058,12 +1066,42 @@
     });
   }
 
-  if (el.dealBtn) {
-    el.dealBtn.addEventListener('click', () => {
-      if (state.screen !== 'lobby') return;
-      startGame(state.botCount, state.bet);
-    });
+  /**
+   * Запуск партии из лобби. Единственный путь: и кнопка, и клавиша идут сюда.
+   * Партия не должна ни молча не начинаться, ни съедать ставку при сбое.
+   */
+  function dealFromLobby() {
+    // Партия уже идёт: второй раз ставку не списываем.
+    if (state.screen === 'playing' && state.round) return null;
+    if (state.screen === 'over') return null;
+
+    const stake = state.bet;
+    let started = null;
+    try {
+      started = startGame(state.botCount, stake);
+    } catch (err) {
+      console.error('Дурак: партия не началась', err);
+      // Ставка не должна пропасть из-за сбоя — возвращаем её и остаёмся в лобби.
+      Casino.settlePending(GAME_ID);
+      Casino.setPending(GAME_ID, 0);
+      Casino.save();
+      state.screen = 'lobby';
+      state.round = null;
+      state.pending = null;
+      render();
+      if (el.message) el.message.textContent = 'Не удалось раздать карты — ставка возвращена. Попробуйте ещё раз.';
+      return null;
+    }
+
+    if (!started) {
+      // Денег не хватило: кнопка обычно погашена, но объясним и здесь.
+      if (el.message) el.message.textContent = 'Не хватает на ставку — уменьшите её или заберите бонус на главной.';
+      return null;
+    }
+    return started;
   }
+
+  if (el.dealBtn) el.dealBtn.addEventListener('click', dealFromLobby);
 
   if (el.bitoBtn) el.bitoBtn.addEventListener('click', humanBito);
   if (el.takeBtn) el.takeBtn.addEventListener('click', humanTake);
@@ -1113,7 +1151,7 @@
     if (key === 'r') { event.preventDefault(); openRules(); return; }
     if (key === ' ' || key === 'enter') {
       event.preventDefault();
-      if (state.screen === 'lobby') startGame(state.botCount, state.bet);
+      if (state.screen === 'lobby') dealFromLobby();
       else if (state.screen === 'over') el.againBtn.click();
       else if (state.pending && state.pending.actor === 0 && state.pending.type === 'add') humanBito();
     }
