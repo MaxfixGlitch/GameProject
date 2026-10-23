@@ -200,10 +200,13 @@
   font-style: normal;
 }
 
-/* Иконка мини-игры в окне пополнения — фишка с «F». */
+/* Иконка мини-игры в окне пополнения — крылатая фишка «Летящей фишки». */
 .deposit-mini-icon {
-  background: url('brand/icons/chip-f.png') center / contain no-repeat;
+  width: 46px;
+  height: 38px;
   border: 0;
+  border-radius: 0;
+  background: url('brand/icons/flappy.png') center / contain no-repeat;
   box-shadow: none;
   color: transparent;
   font-size: 0;
