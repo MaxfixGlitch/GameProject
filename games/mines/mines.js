@@ -111,20 +111,17 @@
   const placeMines = (count) => shuffle(Array.from({ length: CELLS }, (_, i) => i)).slice(0, count);
 
   // ---------- Иконки ----------
-  const COIN_SVG = `
-    <svg viewBox="0 0 48 48" aria-hidden="true">
-      <circle class="coin-face" cx="24" cy="24" r="17" fill="#f2cd6b" stroke="#8a6417" stroke-width="2.5"/>
-      <circle cx="24" cy="24" r="12.5" fill="none" stroke="#b98d2c" stroke-width="1.5"/>
-      <text x="24" y="31" text-anchor="middle" font-family="Georgia, serif" font-size="17" font-weight="700" fill="#12200f">F</text>
-    </svg>`;
+  const ICON_BASE = '../../shared/brand/icons/';
+  const icon = (name) => `<img class="cell-icon" src="${ICON_BASE}${name}.png" alt="" draggable="false">`;
+  const COIN_PNG = icon('chip-f');
+  const MINE_PNG = icon('bomb');
+  const MINE_HIT_PNG = icon('bomb-hit');
 
-  const MINE_SVG = `
-    <svg viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="28" r="12" fill="#1b1b1b" stroke="#e9c46a" stroke-width="2"/>
-      <path d="M31 17 L37 9" stroke="#e9c46a" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="38" cy="8" r="3.2" fill="#ff7043"/>
-      <circle cx="20" cy="24" r="3.4" fill="rgba(255,255,255,.35)"/>
-    </svg>`;
+  // Греем кеш, чтобы первая открытая клетка не мигала пустотой.
+  ['chip-f', 'bomb', 'bomb-hit'].forEach((name) => {
+    const img = new Image();
+    img.src = `${ICON_BASE}${name}.png`;
+  });
 
   // ---------- Интерфейс ----------
   function setMessage(text, kind = '') {
@@ -183,7 +180,7 @@
       node.setAttribute('aria-label', `${cellLabel(index)}${isOpened ? (isMine ? ', мина' : ', пусто') : ''}`);
 
       if (isOpened || (state.revealed && isMine)) {
-        node.innerHTML = isMine ? MINE_SVG : COIN_SVG;
+        node.innerHTML = isMine ? (state.lastHit === index ? MINE_HIT_PNG : MINE_PNG) : COIN_PNG;
       } else {
         node.innerHTML = '';
       }
