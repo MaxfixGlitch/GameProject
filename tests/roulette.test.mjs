@@ -558,5 +558,20 @@ check(window.Casino.history('roulette').length === 0, 'сброс обнулил
 check(doc.querySelectorAll('#spinsList .spin-row').length === 0, 'сброс очистил ленту спинов');
 check(balance() > 0, 'сброс не тронул общий баланс');
 
+// ---------- Крупная фишка ----------
+console.log('• Крупная фишка');
+{
+  // Три закрытые цели — лимит 5 500 ₽: фишка 5 000 появляется.
+  const rich = boot({
+    'casino.wallet.v1': JSON.stringify({ bankroll: 20000 }),
+    'casino.progress.v1': JSON.stringify({ claimed: { g2000: 1, g5000: 1, g12000: 1 }, shields: 0, notices: [] }),
+  });
+  const big = rich.doc.querySelector('[data-chip="5000"]');
+  check(!big.hidden, 'с лимитом 5 500 фишка 5 000 видна');
+  big.click();
+  rich.doc.querySelector('[data-bet="red"]').click();
+  check(rich.api.totalBet() === 5000, `фишка 5 000 ставит 5 000, получено ${rich.api.totalBet()}`);
+}
+
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);

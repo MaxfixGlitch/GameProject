@@ -86,6 +86,7 @@
     betChips: $('#betChips'),
     betAmount: $('#betAmount'),
     chips: [...document.querySelectorAll('.chip')],
+    chipsRow: $('#chipsRow'),
     betPanel: $('#betPanel'),
     actionPanel: $('#actionPanel'),
     rebuyPanel: $('#rebuyPanel'),
@@ -678,6 +679,7 @@
       const value = Number(chip.dataset.chip);
       chip.disabled = state.phase !== 'betting' || state.bankroll < value || state.bet + value > maxBet();
     });
+    Casino.syncChips(el.chipsRow);
 
     el.dealBtn.disabled = state.phase !== 'betting' || state.busy || state.bet < MIN_BET;
     el.clearBet.disabled = state.phase !== 'betting' || state.bet === 0;
@@ -1157,6 +1159,8 @@
   function openModal(html) {
     lastFocused = document.activeElement;
     el.modalBody.innerHTML = html;
+    // История прокручивает только список раундов, заголовок стоит.
+    el.modalBody.classList.toggle('has-scroll', Boolean(el.modalBody.querySelector('.modal-scroll')));
     el.overlay.hidden = false;
     el.modalClose.focus({ preventScroll: true });
 
@@ -1273,7 +1277,7 @@
   function openHistory() {
     openModal(`
       <h2>История раздач</h2>
-      <div id="historyBody"></div>
+      <div class="modal-scroll"><div id="historyBody"></div></div>
       <div class="modal-actions">
         <button class="ghost-btn" data-action="stats">Общая статистика</button>
         <button class="primary-btn" data-close>Закрыть</button>

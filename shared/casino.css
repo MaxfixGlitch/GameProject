@@ -281,7 +281,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------------- Фишки ---------------- */
 
-.chips-row { display: flex; gap: clamp(6px, 1.4vw, 14px); flex-wrap: wrap; justify-content: center; }
+.chips-row { display: flex; gap: clamp(5px, .6vw, 7px); flex-wrap: wrap; justify-content: center; }
 
 .chip {
   position: relative;
@@ -368,7 +368,26 @@ button { font-family: inherit; cursor: pointer; }
    поэтому ползунок не вылезает за скруглённый угол. */
 .modal-body {
   min-height: 0;
-  margin-top: 18px;
+  /* Небольшой зазор под кнопкой закрытия: карточки раундов не должны
+     заходить на крестик. */
+  margin-top: 30px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* История: заголовок и кнопка «Закрыть» стоят на месте,
+   прокручивается только список раундов. */
+.modal-body.has-scroll {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+.modal-body.has-scroll > h2,
+.modal-body.has-scroll > .modal-actions { flex: none; }
+.modal-body.has-scroll > .modal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
 }

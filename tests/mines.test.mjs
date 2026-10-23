@@ -227,6 +227,17 @@ console.log('• Лимит стола');
   grown.window.Casino.setBalance(3200);
   grown.doc.querySelector('#maxBetBtn').click();
   check(grown.api.state.bet === 3200, `«Максимум» не ставит больше баланса, получено ${grown.api.state.bet}`);
+  check(grown.doc.querySelector('[data-chip="5000"]').hidden, 'фишка 5 000 спрятана, пока лимит 3 500');
+
+  // Три цели — лимит 5 500 ₽: крупная фишка появляется.
+  const big = boot({
+    'casino.progress.v1': JSON.stringify({ claimed: { g2000: 1, g5000: 1, g12000: 1 }, shields: 0, notices: [] }),
+  });
+  big.window.Casino.setBalance(20000);
+  const bigChip = big.doc.querySelector('[data-chip="5000"]');
+  check(!bigChip.hidden, 'с лимитом 5 500 фишка 5 000 видна');
+  bigChip.click();
+  check(big.api.state.bet === 5000, `фишка 5 000 ставит 5 000, получено ${big.api.state.bet}`);
 }
 
 // ---------- Сброс ----------

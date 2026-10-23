@@ -532,6 +532,7 @@
       chip.classList.toggle('selected', value === state.chip);
       chip.disabled = locked || Casino.getBalance() < value;
     });
+    Casino.syncChips(el.chipsRow);
 
     renderBalance(bump);
     renderTable();
@@ -932,9 +933,11 @@
     const list = Casino.history(GAME_ID);
     openModal(`
       <h2>История спинов</h2>
-      ${list.length
-        ? `<div class="spins-list spin-history-full">${list.map(spinRowHTML).join('')}</div>`
-        : '<p class="spin-empty">Спинов пока нет.</p>'}
+      <div class="modal-scroll">
+        ${list.length
+          ? `<div class="spins-list spin-history-full">${list.map(spinRowHTML).join('')}</div>`
+          : '<p class="spin-empty">Спинов пока нет.</p>'}
+      </div>
       <div class="modal-actions">
         <button class="primary-btn" data-close>Закрыть</button>
       </div>
@@ -996,6 +999,8 @@
   function openModal(html) {
     lastFocused = document.activeElement;
     el.modalBody.innerHTML = html;
+    // История прокручивает только список раундов, заголовок стоит.
+    el.modalBody.classList.toggle('has-scroll', Boolean(el.modalBody.querySelector('.modal-scroll')));
     el.overlay.hidden = false;
     el.modalClose.focus({ preventScroll: true });
     el.modalBody.querySelectorAll('[data-close]').forEach((btn) => btn.addEventListener('click', closeModal));
