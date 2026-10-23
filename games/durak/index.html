@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дурак — Fakrap</title>
+<meta name="theme-color" content="#07120e">
+<meta name="description" content="Подкидной дурак на 36 картах: игра против одного–пяти ботов. Демо-фишки, без реальных денег.">
+<link rel="icon" type="image/png" href="../../shared/brand/fakrap-icon.png">
+<link rel="apple-touch-icon" href="../../shared/brand/fakrap-mobile.png">
+<link rel="stylesheet" href="../../shared/casino.css">
+<link rel="stylesheet" href="../../shared/cards.css">
+<link rel="stylesheet" href="../../shared/hud.css">
+<link rel="stylesheet" href="durak.css">
+</head>
+<body class="casino-page durak-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-mark" href="../../index.html" title="Все игры" aria-label="Fakrap — все игры">
+      <img class="brand-logo" src="../../shared/brand/fakrap.png" alt="Fakrap">
+      <span class="brand-coin" aria-hidden="true">F</span>
+    </a>
+    <div class="brand-text">
+      <span>DURAK</span>
+    </div>
+  </div>
+
+  <div class="bankroll-box">
+    <span class="bankroll-label">Баланс</span>
+    <span class="bankroll" id="bankroll">1 000&nbsp;₽</span>
+    <div class="delta-layer" id="deltaLayer"></div>
+  </div>
+
+  <div class="tools">
+    <a class="icon-btn" href="../../index.html" title="Все игры" aria-label="Все игры">
+      <img class="icon-img" src="../../shared/brand/icons/home.png" alt="">
+    </a>
+    <button class="icon-btn" id="soundBtn" title="Звук" aria-label="Включить или выключить звук" data-sound-on="../../shared/brand/icons/sound-on.png" data-sound-off="../../shared/brand/icons/sound-off.png">
+      <img class="icon-img" src="../../shared/brand/icons/sound-on.png" alt="">
+    </button>
+    <button class="icon-btn" id="rulesBtn" title="Правила" aria-label="Правила игры">
+      <img class="icon-img" src="../../shared/brand/icons/rules.png" alt="">
+    </button>
+    <button class="icon-btn" id="historyTopBtn" title="История партий" aria-label="История партий">
+      <img class="icon-img" src="../../shared/brand/icons/history.png" alt="">
+    </button>
+    <button class="icon-btn" id="statsBtn" title="Статистика" aria-label="Статистика дурака">
+      <img class="icon-img" src="../../shared/brand/icons/stats.png" alt="">
+    </button>
+  </div>
+</header>
+
+<main class="durak-main">
+
+  <section class="durak-felt" id="felt" aria-label="Стол">
+    <div class="felt-head">
+      <div class="trump-badge" id="trumpBadge" hidden>
+        <span class="trump-text">козырь <b id="trumpSuit">♠</b></span>
+        <span class="deck-count" id="deckCount">36</span>
+      </div>
+      <span class="felt-note" id="feltNote">Выберите соперников и ставку</span>
+    </div>
+
+    <div class="bots-row" id="botsRow"></div>
+
+    <div class="table-area">
+      <div class="table-cards" id="tableCards"></div>
+      <p class="table-empty" id="tableEmpty">Стол пуст</p>
+    </div>
+  </section>
+
+  <p class="message" id="message" aria-live="polite">Сколько соперников и какая ставка?</p>
+
+  <section class="durak-hand-wrap" aria-label="Ваши карты">
+    <div class="hand durak-hand" id="playerHand"></div>
+  </section>
+
+  <section class="durak-panel">
+
+    <div class="lobby" id="lobby">
+      <div class="lobby-row">
+        <span class="lobby-label">Соперников</span>
+        <div class="bot-picker" id="botPicker" role="group" aria-label="Сколько ботов">
+          <button type="button" data-bots="1" class="bot-btn on">1</button>
+          <button type="button" data-bots="2" class="bot-btn">2</button>
+          <button type="button" data-bots="3" class="bot-btn">3</button>
+          <button type="button" data-bots="4" class="bot-btn">4</button>
+          <button type="button" data-bots="5" class="bot-btn">5</button>
+        </div>
+        <span class="mult-note">выигрыш <b id="multValue">×1,9</b></span>
+      </div>
+
+      <div class="bet-total">
+        <span>Ставка за партию</span>
+        <strong id="betTotal">25&nbsp;₽</strong>
+        <span class="bet-limit" id="betLimit">из 2 500&nbsp;₽</span>
+      </div>
+      <p class="bet-hint" id="betHint" hidden></p>
+
+      <div class="chips-row" id="chipsRow">
+        <button class="chip c25" data-chip="25" aria-label="Фишка 25"><span>25</span></button>
+        <button class="chip c50" data-chip="50" aria-label="Фишка 50"><span>50</span></button>
+        <button class="chip c100" data-chip="100" aria-label="Фишка 100"><span>100</span></button>
+        <button class="chip c250" data-chip="250" aria-label="Фишка 250"><span>250</span></button>
+        <button class="chip c500" data-chip="500" aria-label="Фишка 500"><span>500</span></button>
+        <button class="chip c5000" data-chip="5000" aria-label="Фишка 5 000" hidden><span>5 000</span></button>
+      </div>
+
+      <button class="primary-btn deal-btn" id="dealBtn">Раздать</button>
+
+      <p class="hint">36 карт, козырь — нижняя карта колоды. <kbd>Space</kbd> — раздать
+        или сказать «бито», <kbd>H</kbd> — история, <kbd>R</kbd> — правила.
+        Клавиши работают на любой раскладке.</p>
+    </div>
+
+    <div class="actions" id="actions" hidden>
+      <button class="primary-btn" id="bitoBtn" disabled>Бито</button>
+      <button class="ghost-btn" id="takeBtn" disabled>Взять</button>
+      <span class="actions-stake" id="actionsStake"></span>
+    </div>
+
+    <div class="result" id="result" hidden>
+      <p class="result-text" id="resultText"></p>
+      <button class="primary-btn" id="againBtn">Ещё партия</button>
+    </div>
+  </section>
+
+  <section class="rounds-section" aria-labelledby="roundsTitle">
+    <div class="rounds-head">
+      <h2 id="roundsTitle">История партий</h2>
+      <button class="ghost-btn" id="historyBtn" type="button">Вся история</button>
+    </div>
+    <div class="rounds-list" id="roundsList"></div>
+  </section>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="../../shared/casino.js"></script>
+<script src="durak.js"></script>
+</body>
+</html>

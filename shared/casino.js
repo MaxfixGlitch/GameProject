@@ -64,6 +64,10 @@
       playerWins: 0, bankerWins: 0, ties: 0,
       wagered: 0, bestWin: 0, net: 0,
     },
+    durak: {
+      rounds: 0, wins: 0, losses: 0, pushes: 0,
+      wagered: 0, bestWin: 0, net: 0,
+    },
     slots: {
       spins: 0, wins: 0, losses: 0, pushes: 0, lines: 0,
       wagered: 0, bestWin: 0, net: 0,
@@ -130,6 +134,18 @@
       counterKey: 'rounds',
       counterLabel: 'раздач',
       counterForms: ['раздача', 'раздачи', 'раздач'],
+    },
+    durak: {
+      id: 'durak',
+      title: 'Дурак',
+      short: 'Дурак',
+      icon: 'durak',
+      href: 'games/durak/index.html',
+      color: '#5eead4',
+      tagline: 'Подкидной на 36 картах против одного–пяти ботов',
+      counterKey: 'rounds',
+      counterLabel: 'партий',
+      counterForms: ['партия', 'партии', 'партий'],
     },
     slots: {
       id: 'slots',
@@ -450,6 +466,7 @@
     roulette: 'закрыта',
     dice: 'закрыты',
     baccarat: 'закрыта',
+    durak: 'закрыт',
     slots: 'закрыты',
     wheel: 'закрыто',
     plinko: 'закрыто',

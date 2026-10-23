@@ -225,9 +225,11 @@
   function renderUnlockStrip() {
     if (!el.unlockStrip) return;
     const plan = Casino.unlockPlan();
-    const opened = plan.filter((item) => item.unlocked).length + 2; // плюс блэкджек и рулетка
+    // Считаем по всем играм: блэкджек, рулетка и дурак открыты всегда,
+    // остальные — по очереди.
+    const opened = Casino.unlockedCount();
     const next = plan.find((item) => !item.unlocked);
-    const total = plan.length + 2;
+    const total = Object.keys(Casino.GAMES).length;
     if (!next) {
       // Все игры открыты — подсказка больше не нужна.
       el.unlockStrip.innerHTML = '';
