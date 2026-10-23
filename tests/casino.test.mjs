@@ -57,8 +57,8 @@ check(win.Casino.stats('roulette').spins === 0, 'статистика рулет
 check(win.Casino.allHistory().length === 0, 'история пуста');
 
 const cards = [...win.document.querySelectorAll('.game-card')];
-check(cards.length === 8, `на хабе 8 карточек, получено ${cards.length}`);
-check(cards.filter((c) => c.classList.contains('live')).length === 8, 'восемь играбельных игр');
+check(cards.length === 9, `на хабе 9 карточек, получено ${cards.length}`);
+check(cards.filter((c) => c.classList.contains('live')).length === 9, 'девять играбельных игр');
 check(cards.every((card) => card.classList.contains('live')), 'заглушек «скоро» не осталось');
 check(win.document.querySelector('[href="games/blackjack/index.html"]'), 'ссылка на блэкджек');
 check(win.document.querySelector('[href="games/roulette/index.html"]'), 'ссылка на рулетку');
@@ -231,7 +231,7 @@ hub.Casino.save();
 hub.document.querySelector('#historyBtn').click();
 check(!hub.document.querySelector('#overlay').hidden, 'история открывается');
 check(hub.document.querySelectorAll('.history-round').length === 3, 'видны обе игры и все записи');
-check(hub.document.querySelectorAll('[data-filter]').length === 9, 'фильтры: все + восемь игр');
+check(hub.document.querySelectorAll('[data-filter]').length === 10, 'фильтры: все + девять игр');
 hub.document.querySelector('[data-filter="roulette"]').click();
 check(hub.document.querySelectorAll('.history-round').length === 2, 'фильтр оставил записи рулетки');
 check(hub.document.querySelector('.history-round-summary').textContent.includes('17'),
@@ -499,9 +499,9 @@ console.log('• Общая статистика');
   const statsHub = open(hubHtml, [rawCasino, rawHub], {});
   statsHub.document.querySelector('#statsBtn').click();
   check(!statsHub.document.querySelector('#overlay').hidden, 'статистика открывается');
-  check(statsHub.document.querySelectorAll('.stat-game').length === 8, 'в статистике восемь игр');
-  check(statsHub.document.querySelectorAll('.stat-sep:not(.total)').length === 7,
-    'между играми семь разделительных черт');
+  check(statsHub.document.querySelectorAll('.stat-game').length === 9, 'в статистике девять игр');
+  check(statsHub.document.querySelectorAll('.stat-sep:not(.total)').length === 8,
+    'между играми восемь разделительных черт');
   check(statsHub.document.querySelectorAll('.stat-sep.total').length === 1, 'перед итогами отдельная черта');
   const text = statsHub.document.querySelector('.stat-grid').textContent.replace(/\s+/g, ' ');
   check(text.includes('0 спинов') && text.includes('0 раундов') && text.includes('0 бросков')
@@ -560,11 +560,11 @@ console.log('• Открытие игр');
     `пороги растут не меньше чем в 1,4 раза: ${thresholds.join(', ')}`);
   check(fresh.Casino.unlockPlan().map((item) => item.id).join(',') === 'dice,baccarat,slots,wheel,plinko,mines',
     'порядок открытия совпадает с порядком игр');
-  check(fresh.Casino.unlockedCount() === 2, 'на старте открыто две игры');
+  check(fresh.Casino.unlockedCount() === 3, 'на старте открыто три игры');
 
   const lockedCards = [...fresh.document.querySelectorAll('.game-card.locked')];
   check(lockedCards.length === 6, `закрыто шесть карточек, получено ${lockedCards.length}`);
-  check(fresh.document.querySelectorAll('.game-card.live').length === 8, 'карточки остаются на витрине');
+  check(fresh.document.querySelectorAll('.game-card.live').length === 9, 'карточки остаются на витрине');
   check(fresh.document.querySelector('.game-card.locked .game-card-blur'), 'у закрытой карточки блюр');
   check(fresh.document.querySelector('.game-card.locked .game-card-lock'), 'у закрытой карточки замок');
   check(!fresh.document.querySelector('.game-card[href="games/dice/index.html"] .game-card-lock') === false,
@@ -572,7 +572,7 @@ console.log('• Открытие игр');
   check(!fresh.document.querySelector('.game-card[href="games/roulette/index.html"] .game-card-lock'),
     'рулетка без замка');
   const strip = fresh.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
-  check(strip.includes('2 из 8'), `в строке прогресса 2 из 8: ${strip}`);
+  check(strip.includes('3 из 9'), `в строке прогресса 3 из 9: ${strip}`);
   check(strip.includes('1 000 ₽'), 'в строке прогресса порог 1 000 ₽');
 
   // Клик по закрытой карточке не уводит на страницу, а объясняет правила.
@@ -595,7 +595,7 @@ console.log('• Открытие игр');
   check(!one.Casino.isUnlocked('baccarat'), 'баккара ещё закрыта');
   check(one.document.querySelectorAll('.game-card.locked').length === 5, 'закрытых карточек пять');
   const strip = one.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
-  check(strip.includes('3 из 8') && strip.includes('1 500 ₽'), `следующая цель 1 500 ₽: ${strip}`);
+  check(strip.includes('4 из 9') && strip.includes('1 500 ₽'), `следующая цель 1 500 ₽: ${strip}`);
 
   // Проигрыш не закрывает уже открытую игру: планка только растёт.
   one.Casino.stats('roulette').net = -500;
@@ -612,7 +612,7 @@ console.log('• Открытие игр');
   const all = open(hubHtml, [rawCasino, rawHub], {
     'casino.progress.v1': JSON.stringify({ bestNet: 9000 }),
   });
-  check(all.Casino.unlockedCount() === 8, 'открыты все восемь игр');
+  check(all.Casino.unlockedCount() === 9, 'открыты все девять игр');
   check(all.document.querySelectorAll('.game-card.locked').length === 0, 'блюра больше нет');
   const strip = all.document.querySelector('#unlockStrip').textContent.replace(/\s+/g, ' ');
   check(strip === '', `строка прогресса исчезла: ${strip}`);

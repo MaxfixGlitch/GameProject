@@ -1,0 +1,457 @@
+/* ============================================================
+   Дурак — стол, соперники, карты в руке
+   ============================================================ */
+
+.durak-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(12px, 2.4vw, 24px) clamp(8px, 2vw, 22px) 40px;
+  --card-w: clamp(54px, 6.4vw, 82px);
+}
+
+/* ---------------- Фетр ---------------- */
+
+.durak-felt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vw, 14px);
+  min-height: clamp(300px, 38vw, 430px);
+  padding: clamp(12px, 2vw, 20px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(233, 196, 106, .2);
+  background:
+    radial-gradient(600px 260px at 50% 0%, rgba(22, 121, 77, .45), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 55%, rgba(255, 255, 255, .05), transparent 70%),
+    linear-gradient(160deg, #12563b, #0b3a28 58%, #08291d);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .04),
+    inset 0 22px 44px rgba(0, 0, 0, .3),
+    0 24px 60px rgba(0, 0, 0, .45);
+}
+
+.durak-felt::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: calc(var(--radius) - 8px);
+  border: 1px solid rgba(233, 196, 106, .14);
+  pointer-events: none;
+}
+
+/* Лобби: фетр ужимается, чтобы не занимать пол-экрана пустым столом. */
+.durak-felt.is-lobby { min-height: 0; }
+.durak-felt.is-lobby .table-area { min-height: 120px; }
+
+.felt-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+}
+
+.felt-note {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .42);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trump-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(0, 0, 0, .3);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.trump-text b { font-size: 14px; color: var(--gold-soft); }
+.trump-text b.red { color: #ff8a8a; }
+.deck-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* ---------------- Соперники ---------------- */
+
+.bots-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.bot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(0, 0, 0, .26);
+  font-size: 11.5px;
+  color: var(--muted);
+  transition: border-color .2s, background .2s, opacity .2s;
+}
+.bot-avatar {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #2b6b4d, #123a29);
+  border: 1px solid rgba(233, 196, 106, .35);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold-soft);
+}
+.bot-name { color: var(--text); font-weight: 600; }
+.bot-cards { font-variant-numeric: tabular-nums; }
+.bot-cards b { color: var(--gold-soft); }
+.bot-state { font-size: 10px; letter-spacing: .04em; color: var(--gold); }
+.bot-chip.attacker { border-color: rgba(233, 196, 106, .65); background: rgba(233, 196, 106, .12); }
+.bot-chip.defender { border-color: rgba(248, 113, 113, .6); background: rgba(248, 113, 113, .1); }
+.bot-chip.out { opacity: .5; }
+.bot-chip.out .bot-name { text-decoration: line-through; }
+
+/* ---------------- Стол ---------------- */
+
+.table-area {
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  min-height: calc(var(--card-w) * 3.1);
+  padding: 4px 0;
+}
+
+.table-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(8px, 1.6vw, 16px);
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+}
+
+.table-empty {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .28);
+}
+
+.pair {
+  position: relative;
+  width: calc(var(--card-w) * 1.55);
+  height: calc(var(--card-w) * 1.9);
+  flex: 0 0 auto;
+}
+.pair .card { position: absolute; }
+.pair .card.attack { top: 0; left: 0; }
+.pair .card.defense {
+  top: calc(var(--card-w) * .62);
+  left: calc(var(--card-w) * .5);
+  z-index: 2;
+}
+.pair.taking .card.attack { opacity: .9; }
+
+/* ---------------- Рука ---------------- */
+
+.durak-hand-wrap {
+  margin-top: clamp(8px, 1.4vw, 14px);
+  padding: 8px 4px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.durak-hand {
+  justify-content: center;
+  min-height: calc(var(--card-w) * 1.4 + 10px);
+  padding: 2px;
+}
+
+.durak-hand .card {
+  cursor: default;
+  transition: transform .16s, filter .16s;
+}
+.durak-hand .card.playable {
+  cursor: pointer;
+  filter: drop-shadow(0 0 2px rgba(233, 196, 106, .9)) drop-shadow(0 8px 14px rgba(0, 0, 0, .5));
+}
+.durak-hand .card.playable:hover { transform: translateY(-8px); }
+.durak-hand .card.playable:active { transform: translateY(-3px) scale(.98); }
+.durak-hand .card.dim { filter: brightness(.82); }
+
+/* Текст руки выводится на кнопку — карта ведёт себя как кнопка. */
+.durak-hand button.card {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: inherit;
+  color: inherit;
+  font: inherit;
+}
+.durak-hand button.card:disabled { cursor: default; }
+
+/* ---------------- Панель ---------------- */
+
+.durak-panel {
+  margin-top: clamp(8px, 1.4vw, 14px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lobby,
+.actions,
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: clamp(12px, 2vw, 18px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: linear-gradient(160deg, rgba(16, 32, 26, .96), rgba(7, 18, 14, .96));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+}
+.lobby[hidden], .actions[hidden], .result[hidden] { display: none !important; }
+
+.lobby-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.lobby-label {
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bot-picker { display: flex; gap: 6px; }
+.bot-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(0, 0, 0, .25);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  transition: .16s;
+}
+.bot-btn:hover { border-color: rgba(233, 196, 106, .45); color: var(--gold-soft); }
+.bot-btn.on {
+  border-color: rgba(233, 196, 106, .8);
+  background: rgba(233, 196, 106, .16);
+  color: var(--gold-soft);
+}
+
+.mult-note {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.mult-note b { color: var(--gold-soft); font-variant-numeric: tabular-nums; }
+
+.bet-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 196, 106, .22);
+  background: rgba(0, 0, 0, .26);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.bet-total strong {
+  margin-left: auto;
+  font-family: Georgia, serif;
+  font-size: 21px;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.bet-total .bet-limit { font-size: 10.5px; }
+
+.bet-hint {
+  margin: 0;
+  padding: 7px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, .35);
+  background: rgba(248, 113, 113, .1);
+  font-size: 12px;
+  color: #fecaca;
+}
+
+.deal-btn { width: 100%; }
+
+.durak-panel .hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, .38);
+  text-align: center;
+}
+.durak-panel .hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .06);
+  font-family: inherit;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* ---------------- Действия ---------------- */
+
+.actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.actions .primary-btn,
+.actions .ghost-btn { padding: 11px 22px; min-width: 108px; }
+.actions .primary-btn:disabled { opacity: .55; }
+.actions-stake {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.actions-stake b { color: var(--gold-soft); font-variant-numeric: tabular-nums; }
+
+/* ---------------- Итог ---------------- */
+
+.result { align-items: center; text-align: center; }
+.result-text {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: clamp(18px, 2.4vw, 24px);
+  color: var(--gold-soft);
+  line-height: 1.35;
+}
+.result-text.win { color: var(--win); }
+.result-text.lose { color: var(--lose); }
+.result .primary-btn { min-width: 220px; }
+
+/* ---------------- История ---------------- */
+
+.rounds-section {
+  margin-top: clamp(16px, 2.6vw, 26px);
+  padding: clamp(12px, 2vw, 18px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(160deg, rgba(14, 28, 23, .9), rgba(6, 15, 12, .9));
+}
+.rounds-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.rounds-head h2 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 16px;
+  letter-spacing: .06em;
+  color: var(--gold-soft);
+}
+
+.rounds-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.round-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(9, 22, 16, .9);
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.round-card.win { border-color: rgba(74, 222, 128, .45); }
+.round-card.lose { border-color: rgba(248, 113, 113, .28); }
+.round-card b { font-size: 12.5px; color: var(--text); }
+.round-card .plus { color: var(--win); }
+.round-card .minus { color: var(--lose); }
+.round-empty {
+  margin: 0;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, .12);
+  font-size: 12px;
+  color: var(--muted);
+}
+.history-round {
+  position: relative;
+  padding: 10px 12px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(9, 22, 16, .9);
+}
+.history-round.win { border-color: rgba(74, 222, 128, .45); }
+.history-round.lose { border-color: rgba(248, 113, 113, .28); }
+
+.rounds-history-full { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); margin-bottom: 14px; }
+
+.modal-body .stat-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---------------- Адаптив ---------------- */
+
+@media (max-width: 760px) {
+  .durak-main { --card-w: clamp(48px, 12vw, 64px); }
+  .durak-felt { min-height: 280px; padding: 10px 8px; }
+  .felt-note { display: none; }
+  .bot-chip { padding-right: 8px; font-size: 10.5px; }
+  .bot-avatar { width: 21px; height: 21px; font-size: 10px; }
+  .durak-hand { justify-content: flex-start; }
+  .durak-hand-wrap { padding-inline: 2px; }
+  .rounds-list { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
+
+@media (max-width: 460px) {
+  .durak-main { --card-w: 52px; padding-inline: 6px; }
+  .durak-felt { min-height: 250px; border-radius: 18px; }
+  .pair { width: calc(var(--card-w) * 1.45); height: calc(var(--card-w) * 1.8); }
+  .actions { gap: 8px; }
+  .actions .primary-btn,
+  .actions .ghost-btn { flex: 1; padding: 11px 12px; }
+  .actions-stake { width: 100%; margin-left: 0; text-align: center; }
+  .bot-picker { gap: 4px; }
+  .bot-btn { width: 31px; height: 31px; }
+  .mult-note { margin-left: 0; }
+}
+
+@media (max-width: 380px) {
+  .durak-main { --card-w: 46px; }
+  .bot-name { display: none; }
+}
