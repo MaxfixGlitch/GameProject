@@ -279,6 +279,8 @@
   function openModal(html) {
     lastFocused = document.activeElement;
     el.modalBody.innerHTML = html;
+    // История прокручивает только список раундов, заголовок стоит.
+    el.modalBody.classList.toggle('has-scroll', Boolean(el.modalBody.querySelector('.modal-scroll')));
     el.overlay.hidden = false;
     el.modalClose.focus({ preventScroll: true });
     el.modalBody.querySelectorAll('[data-close]').forEach((btn) => {
@@ -370,7 +372,7 @@
   function openHistory() {
     openModal(`
       <h2>История ставок</h2>
-      <div id="historyBody"></div>
+      <div class="modal-scroll"><div id="historyBody"></div></div>
       <div class="modal-actions">
         <button class="ghost-btn" data-close>Закрыть</button>
       </div>
