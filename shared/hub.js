@@ -170,7 +170,7 @@
         <div class="deposit-mini-stats">
           <span>рекорд <b>${recordLabel}</b></span>
           <span>заработано <b class="${total > 0 ? 'plus' : ''}">${fmt(total)}</b></span>
-          <span>полётов <b>${attempts} / 3</b></span>
+          <span>попыток <b>${attempts} / 3</b></span>
         </div>
         <p class="deposit-mini-note">Три полёта подряд, потом перезарядка на 3 минуты.
           Ставок нет — только трубы и монеты.</p>

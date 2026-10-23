@@ -99,7 +99,6 @@
     soundBtn: $('#soundBtn'),
     rulesBtn: $('#rulesBtn'),
     statsBtn: $('#statsBtn'),
-    resetBtn: $('#resetBtn'),
     overlay: $('#overlay'),
     modalBody: $('#modalBody'),
     modalClose: $('#modalClose'),
@@ -1164,13 +1163,6 @@
     el.modalBody.querySelectorAll('[data-close]').forEach((btn) => {
       btn.addEventListener('click', closeModal);
     });
-    const action = el.modalBody.querySelector('[data-action="reset"]');
-    if (action) {
-      action.addEventListener('click', () => {
-        resetGame();
-        closeModal();
-      });
-    }
   }
 
   function closeModal() {
@@ -1292,19 +1284,8 @@
     renderHistory();
   }
 
-  function openReset() {
-    openModal(`
-      <h2>Сбросить блэкджек?</h2>
-      <p>Обнулятся <span class="accent">статистика и история раздач блэкджека</span>.
-      Текущая раздача будет прервана.</p>
-      <p>Общий баланс и другие игры не изменятся.</p>
-      <div class="modal-actions">
-        <button class="ghost-btn" data-close>Отмена</button>
-        <button class="primary-btn" data-action="reset">Сбросить</button>
-      </div>
-    `);
-  }
-
+  // Кнопки сброса в шапке блэкджека больше нет — интерфейс как в остальных
+  // играх, а общий сброс живёт на хабе. Функция осталась для тестов.
   function resetGame() {
     session++;
     // Ставка прерванного раунда возвращается: сброс не должен съедать деньги.
@@ -1340,7 +1321,6 @@
   el.rulesBtn.addEventListener('click', openRules);
   el.statsBtn.addEventListener('click', openStats);
   el.historyBtn.addEventListener('click', openHistory);
-  el.resetBtn.addEventListener('click', openReset);
   el.modalClose.addEventListener('click', closeModal);
 
   el.overlay.addEventListener('click', (event) => {

@@ -649,6 +649,8 @@
   }
 
   document.addEventListener('keydown', (event) => {
+    // Удержание клавиши не должно запускать игру и тут же забирать выигрыш.
+    if (event.repeat) return;
     const key = Casino.keyOf(event);
     if (el.overlay && !el.overlay.hidden) {
       if (key === 'escape') closeModal();
