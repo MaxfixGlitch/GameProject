@@ -5,15 +5,16 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
 const rawHub = fs.readFileSync(`${root}shared/hub.js`, 'utf8');
+// Версия в ссылке (?v=) может меняться — вырезаем скрипты по шаблону.
 const hubHtml = fs.readFileSync(`${root}index.html`, 'utf8')
-  .replace('<script src="shared/casino.js"></script>', '')
-  .replace('<script src="shared/hub.js"></script>', '');
+  .replace(/<script src="shared\/casino\.js[^"]*"><\/script>/, '')
+  .replace(/<script src="shared\/hub\.js[^"]*"><\/script>/, '');
 const bjHtml = fs.readFileSync(`${root}games/blackjack/index.html`, 'utf8')
-  .replace('<script src="../../shared/casino.js"></script>', '')
-  .replace('<script src="game.js"></script>', '');
+  .replace(/<script src="\.\.\/\.\.\/shared\/casino\.js[^"]*"><\/script>/, '')
+  .replace(/<script src="game\.js[^"]*"><\/script>/, '');
 const rlHtml = fs.readFileSync(`${root}games/roulette/index.html`, 'utf8')
-  .replace('<script src="../../shared/casino.js"></script>', '')
-  .replace('<script src="roulette.js"></script>', '');
+  .replace(/<script src="\.\.\/\.\.\/shared\/casino\.js[^"]*"><\/script>/, '')
+  .replace(/<script src="roulette\.js[^"]*"><\/script>/, '');
 const rawBlackjack = fs.readFileSync(`${root}games/blackjack/game.js`, 'utf8')
   .replace('  // ---------- Старт ----------', '  window.__BJ__ = { state };' + String.fromCharCode(10) + '  // ---------- Старт ----------');
 const rawRoulette = fs.readFileSync(`${root}games/roulette/roulette.js`, 'utf8');
@@ -64,6 +65,19 @@ check(win.document.querySelector('[href="games/blackjack/index.html"]'), 'ссы
 check(win.document.querySelector('[href="games/roulette/index.html"]'), 'ссылка на рулетку');
 check(win.document.querySelector('[href="games/dice/index.html"]'), 'ссылка на кости');
 check(win.document.querySelector('[href="games/baccarat/index.html"]'), 'ссылка на баккару');
+check(win.document.querySelector('[href="games/durak/index.html"]'), 'ссылка на дурака');
+
+// Порядок на витрине: дурак стоит между рулеткой и костями.
+{
+  const order = cards.map((card) => card.getAttribute('href'));
+  const rouletteAt = order.indexOf('games/roulette/index.html');
+  const durakAt = order.indexOf('games/durak/index.html');
+  const diceAt = order.indexOf('games/dice/index.html');
+  check(rouletteAt >= 0 && durakAt === rouletteAt + 1,
+    `дурак сразу после рулетки: рулетка ${rouletteAt}, дурак ${durakAt}`);
+  check(diceAt === durakAt + 1, `кости сразу после дурака: дурак ${durakAt}, кости ${diceAt}`);
+  check(order[0] === 'games/blackjack/index.html', `блэкджек по-прежнему первый: ${order[0]}`);
+}
 const slotsCard = win.document.querySelector('.game-card[href="games/slots/index.html"]');
 check(!!slotsCard, 'на хабе есть карточка слотов');
 check(slotsCard.textContent.includes('Слоты'), 'карточка слотов подписана');
