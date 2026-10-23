@@ -971,7 +971,7 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
   .bet-actions .primary-btn { flex: 1; }
   .modal { padding: 22px 10px 18px 16px; }
   .modal-body { margin-top: 22px; }
-  .history-round { padding: 9px 10px 10px; }
+  .history-round { padding: 9px 10px 22px; }
   .history-round-head { flex-wrap: wrap; gap: 4px 8px; }
   .history-round-bet { margin-left: auto; }
   .history-hand { flex-wrap: wrap; white-space: normal; }

@@ -467,62 +467,9 @@ button { font-family: inherit; cursor: pointer; }
 .history-round-summary { margin: 5px 0 0; font-size: 12px; color: #cfdcd5; }
 
 
-/* ---------------- Единое время в истории ---------------- */
-/* Время раунда стоит в правом нижнем углу каждой карточки — одинаково
-   в играх и в общей истории на хабе. */
-.spin-card,
-.spin-row,
-.roll-row,
-.round-row,
-.history-round { position: relative; }
-
-.round-time {
-  position: absolute;
-  right: 10px;
-  bottom: 6px;
-  font-size: 10px;
-  line-height: 1;
-  color: var(--muted);
-  opacity: .72;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-/* ---------------- Страховка ---------------- */
-.ins-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: 6px;
-  padding: 1px 6px 1px 4px;
-  border-radius: 999px;
-  border: 1px solid rgba(233, 196, 106, .4);
-  background: rgba(233, 196, 106, .1);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--gold-soft);
-  vertical-align: middle;
-}
-.ins-tag-icon { height: 10px; width: auto; display: block; }
-
-/* Значок страховок в шапке игры. */
-.shield-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-right: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(233, 196, 106, .38);
-  background: rgba(233, 196, 106, .1);
-  font-size: 12px;
-  color: var(--gold-soft);
-  white-space: nowrap;
-}
-.shield-pill[hidden] { display: none; }
-.shield-pill b { font-size: 13px; font-variant-numeric: tabular-nums; }
-.shield-pill-icon { height: 15px; width: auto; display: block; }
+/* Время раунда, метка страховки и значок страховок в шапке живут
+   в shared/hud.css: его подключают все игры, включая блэкджек
+   со своей оболочкой. */
 
 /* ---------------- Фишки ставок в истории ---------------- */
 
@@ -887,11 +834,12 @@ button.title-chip:hover { border-color: var(--gold); transform: translateY(-1px)
 }
 .goal-card.claimed .goal-bar i { background: linear-gradient(90deg, #15803d, var(--win)); }
 
+/* Статус и награда-звание идут столбиком: короткая подпись «Фиш»
+   не уезжает вправо, как только влезает в строку. */
 .goal-meta {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 3px;
   font-size: 11px;
   color: var(--muted);
 }

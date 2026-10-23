@@ -653,13 +653,28 @@ console.log('• Открытие игр');
 
 {
   // Время в истории прижато к правому нижнему углу одной и той же плашкой.
-  const css = fs.readFileSync(`${root}shared/casino.css`, 'utf8');
+  const css = fs.readFileSync(`${root}shared/hud.css`, 'utf8');
   const block = css.slice(css.indexOf('.round-time {'), css.indexOf('.round-time {') + 400);
   check(block.includes('position: absolute') && block.includes('right:') && block.includes('bottom:'),
     'плашка времени стоит в правом нижнем углу');
   check(block.includes('font-variant-numeric: tabular-nums'), 'цифры времени не дёргаются');
   const relativeAt = css.indexOf('.spin-card,\n.spin-row,\n.roll-row,\n.round-row,\n.history-round { position: relative; }');
   check(relativeAt !== -1, 'все виды карточек истории держат время в углу');
+
+  // У блэкджека своя оболочка: общие мелочи шапки и истории он обязан брать тоже.
+  const pages = ['index.html', ...fs.readdirSync(`${root}games`).map((dir) => `games/${dir}/index.html`)];
+  pages.forEach((page) => {
+    const html = fs.readFileSync(`${root}${page}`, 'utf8');
+    check(html.includes('hud.css'), `${page}: подключены общие стили шапки и истории`);
+  });
+  check(css.includes('.modal-body .spin-history-full'), 'в окне истории прокручивается только окно');
+  check(css.includes('flex: 0 0 auto;') && css.includes('width: 15px'),
+    'значок страховок не раздувается в тесной шапке');
+
+  // Статус цели и её звание стоят столбиком, а не разъезжаются по краям.
+  const casinoCss = fs.readFileSync(`${root}shared/casino.css`, 'utf8');
+  const meta = casinoCss.slice(casinoCss.indexOf('.goal-meta {'), casinoCss.indexOf('.goal-meta {') + 200);
+  check(meta.includes('flex-direction: column'), 'в плашке цели звание всегда под статусом');
 }
 
 console.log(failures === 0 ? '\n✅ Все проверки пройдены' : `\n❌ Провалено проверок: ${failures}`);
