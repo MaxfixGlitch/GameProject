@@ -35,7 +35,18 @@
   const HISTORY_SHOWN = 12;
   const maxBet = () => Casino.maxBet();
 
-  const BOT_NAMES = ['Лёша', 'Марина', 'Тимур', 'Вера', 'Егор'];
+  // Имён много и они не повторяются подряд: за столом должен быть новый
+  // состав, а не те же пять человек каждую партию.
+  const BOT_NAMES = [
+    'Лёша', 'Марина', 'Тимур', 'Вера', 'Егор',
+    'Света', 'Дима', 'Оля', 'Никита', 'Катя',
+    'Артём', 'Юля', 'Гриша', 'Настя', 'Рома',
+    'Лиза', 'Паша', 'Ира', 'Влад', 'Соня',
+    'Макс', 'Даша', 'Стас', 'Полина', 'Костя',
+    'Аня', 'Серёжа', 'Вика', 'Кирилл', 'Таня',
+  ];
+  // Сколько последних партий помним, чтобы не повторять имена.
+  const NAME_MEMORY = 2;
 
   const numFmt = new Intl.NumberFormat('ru-RU');
   const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
@@ -207,10 +218,34 @@
   }
 
   // ---------- Партия ----------
+  const recentNames = [];   // имена из последних партий
+
+  /**
+   * Состав стола на партию. Из пула выбираются имена, которых не было
+   * в последних двух партиях: при тридцати именах и пяти ботах за столом
+   * повтора не будет минимум пять партий подряд.
+   */
+  function pickBotNames(count) {
+    const banned = new Set(recentNames.flat());
+    let pool = BOT_NAMES.filter((name) => !banned.has(name));
+    // Если за столом больше пяти ботов (не бывает), страховка на всякий случай.
+    if (pool.length < count) {
+      const last = new Set(recentNames[0] || []);
+      pool = BOT_NAMES.filter((name) => !last.has(name));
+    }
+    if (pool.length < count) pool = BOT_NAMES.slice();
+    shuffle(pool);
+    const picked = pool.slice(0, count);
+    recentNames.unshift(picked);
+    if (recentNames.length > NAME_MEMORY) recentNames.length = NAME_MEMORY;
+    return picked;
+  }
+
   function makePlayers(botCount) {
+    const names = pickBotNames(botCount);
     const players = [{ id: 0, name: 'Вы', short: 'В', isHuman: true, hand: [], out: false }];
     for (let i = 0; i < botCount; i += 1) {
-      players.push({ id: i + 1, name: BOT_NAMES[i], short: BOT_NAMES[i].slice(0, 1), isHuman: false, hand: [], out: false });
+      players.push({ id: i + 1, name: names[i], short: names[i].slice(0, 1), isHuman: false, hand: [], out: false });
     }
     return players;
   }
@@ -875,8 +910,10 @@
     // защиты главная кнопка «Взять», во время подкидывания — «Бито».
     if (el.bitoBtn) {
       el.bitoBtn.disabled = !canBito;
-      el.bitoBtn.classList.toggle('primary-btn', canBito || !canTake);
-      el.bitoBtn.classList.toggle('ghost-btn', !canBito && canTake);
+      // Золотая кнопка — только та, которой сейчас можно нажать. Пока ходит
+      // бот, обе призрачные: иначе недоступная «Бито» выглядит рабочей.
+      el.bitoBtn.classList.toggle('primary-btn', canBito);
+      el.bitoBtn.classList.toggle('ghost-btn', !canBito);
     }
     if (el.takeBtn) {
       el.takeBtn.disabled = !canTake;
@@ -1193,6 +1230,7 @@
     botAct,
     chooseAttack,
     chooseDefense,
+    BOT_NAMES,
     setTiming,
     setRng,
     render,

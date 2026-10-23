@@ -182,6 +182,41 @@ for (const bots of [1, 3, 5]) {
   check(game.api.state.screen === 'playing', `${bots} бота: партия ещё идёт`);
 }
 
+// ---------- Имена ботов ----------
+console.log('• Имена ботов');
+{
+  check(api.BOT_NAMES.length >= 24, `имён много: ${api.BOT_NAMES.length}`);
+  check(new Set(api.BOT_NAMES).size === api.BOT_NAMES.length, 'имена в пуле не повторяются');
+
+  const game = boot();
+  game.window.Casino.setBalance(100000);
+  game.api.setTiming({ bot: 100000 });
+
+  const lineups = [];
+  for (let i = 0; i < 6; i += 1) {
+    game.api.state.screen = 'lobby';
+    const started = game.api.startGame(5, 25);
+    const names = started.players.slice(1).map((player) => player.name);
+    lineups.push(names);
+    check(names.length === 5, `за столом пятеро: ${names.join(', ')}`);
+    check(new Set(names).size === 5, `имена в партии не повторяются: ${names.join(', ')}`);
+    check(names.every((name) => api.BOT_NAMES.includes(name)), 'имя взято из пула');
+    check(started.players.slice(1).every((player) => player.short === player.name.slice(0, 1)),
+      'аватар — первая буква имени');
+  }
+
+  // Соседние партии не повторяют имена: за шесть партий ни одного повтора
+  // между двумя подряд идущими составами.
+  for (let i = 1; i < lineups.length; i += 1) {
+    const repeated = lineups[i].filter((name) => lineups[i - 1].includes(name));
+    check(repeated.length === 0,
+      `партии ${i} и ${i + 1} без общих имён, совпали: ${repeated.join(', ')}`);
+  }
+
+  const unique = new Set(lineups.flat());
+  check(unique.size >= 20, `за шесть партий повстречалось ${unique.size} разных имён`);
+}
+
 // ---------- Подкидывание ----------
 console.log('• Подкидывание');
 {

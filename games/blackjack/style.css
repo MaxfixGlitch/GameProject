@@ -62,15 +62,28 @@
 
 html, body { height: 100%; }
 
+html { background-color: #040a08; }
+
 body {
   margin: 0;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(1100px 620px at 50% -8%, #1d4433 0%, #0c1b15 52%, #040a08 100%);
+  background: transparent;
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Фон — неподвижным слоем: иначе на длинной странице градиент повторялся
+   каждый экран и на стыке была видна светлая полоса. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 620px at 50% -8%, #1d4433 0%, #0c1b15 52%, #040a08 100%);
 }
 
 body::after {
