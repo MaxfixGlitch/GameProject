@@ -76,7 +76,10 @@
     felt: $('#felt'),
     trumpBadge: $('#trumpBadge'),
     trumpSuit: $('#trumpSuit'),
-    deckCount: $('#deckCount'),
+    tableCounts: $('#tableCounts'),
+    deckCounter: $('#deckCounter'),
+    deckLeft: $('#deckLeft'),
+    discardLeft: $('#discardLeft'),
     feltNote: $('#feltNote'),
     botsRow: $('#botsRow'),
     tableCards: $('#tableCards'),
@@ -795,14 +798,17 @@
     if (!el.trumpBadge) return;
     const show = state.screen !== 'lobby' && state.trumpCard;
     el.trumpBadge.hidden = !show;
+    if (el.tableCounts) el.tableCounts.hidden = !show;
     if (!show) return;
     const suit = SUITS[state.trumpSuit];
     el.trumpSuit.textContent = suit.sym;
     el.trumpSuit.className = suit.red ? 'red' : '';
-    el.deckCount.textContent = String(state.deck.length);
-    if (el.feltNote) {
-      el.feltNote.textContent = state.discard.length ? `в отбое ${state.discard.length}` : '';
-    }
+
+    // Колода и отбой: вместе с картами на руках и на столе они всегда дают 36.
+    if (el.deckLeft) el.deckLeft.textContent = String(state.deck.length);
+    if (el.discardLeft) el.discardLeft.textContent = String(state.discard.length);
+    if (el.deckCounter) el.deckCounter.classList.toggle('is-empty', state.deck.length === 0);
+    if (el.feltNote) el.feltNote.textContent = `всего ${DECK_SIZE} карт`;
   }
 
   function statusText() {
@@ -973,6 +979,9 @@
       <h3>Стол</h3>
       <ul>
         <li>По шесть карт каждому, козырь — нижняя карта колоды.</li>
+        <li>В шапке стола два счётчика: сколько карт осталось в колоде и сколько
+        уже бито. Вместе с руками и столом они всегда дают 36 карт — карты
+        из игры не пропадают.</li>
         <li>Первым ходит тот, у кого младший козырь.</li>
         <li>Атаку можно отбить старшей картой той же масти или козырем.</li>
         <li>Подкидывать можно только карты тех рангов, что уже лежат на столе,

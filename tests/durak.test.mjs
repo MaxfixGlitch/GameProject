@@ -242,6 +242,57 @@ console.log('• Ставка');
   check(poor.window.Casino.getBalance() === 10, 'баланс не ушёл в минус');
 }
 
+// ---------- Счётчики стола ----------
+console.log('• Счётчики колоды и отбоя');
+{
+  const game = boot();
+  game.window.Casino.setBalance(5000);
+  game.api.setTiming({ bot: 100000 });
+  const counts = game.doc.querySelector('#tableCounts');
+  const deckLeft = () => game.doc.querySelector('#deckLeft').textContent;
+  const discardLeft = () => game.doc.querySelector('#discardLeft').textContent;
+
+  check(Boolean(counts), 'счётчики стола есть на странице');
+  check(counts.hidden, 'в лобби счётчики скрыты');
+
+  const started = game.api.startGame(1, 100);
+  check(!counts.hidden, 'в партии счётчики видны');
+  check(deckLeft() === String(started.deck.length),
+    `в счётчике колоды ${started.deck.length}, в разметке ${deckLeft()}`);
+  check(discardLeft() === '0', `в начале партии отбой пуст, в разметке ${discardLeft()}`);
+  check(game.doc.querySelector('#feltNote').textContent.includes('36'),
+    'справа подписано, что в игре 36 карт');
+
+  // Вся колода сходится: колода + руки + стол + отбой = 36.
+  const inHands = started.players.reduce((sum, player) => sum + player.hand.length, 0);
+  check(started.deck.length + inHands + started.discard.length === 36,
+    'колода, руки и отбой вместе дают 36 карт');
+
+  // Разыгрываем пару вручную: атакующая и отбивающая карты уходят в отбой.
+  const trumpSuit = started.trumpSuit;
+  const plain = (trumpSuit + 1) % 4;
+  started.players[0].hand = [card('7', plain)];
+  started.players[1].hand = [card('8', plain)];
+  started.round = { attacker: 0, defender: 1, pairs: [], limit: 1, taking: false, order: [], cursor: 0, passed: 0 };
+  started.pending = { type: 'attack', actor: 0 };
+  game.api.render();
+  game.api.humanPlay(started.players[0].hand[0].id);
+  game.api.playDefense(1, started.players[1].hand[0]);
+
+  const discarded = started.discard.length;
+  check(discarded === 2, `в отбой ушли обе карты пары, получено ${discarded}`);
+  check(discardLeft() === String(discarded), `счётчик отбоя показывает ${discarded}, в разметке ${discardLeft()}`);
+  check(deckLeft() === String(started.deck.length),
+    `счётчик колоды обновился: ${started.deck.length} и ${deckLeft()}`);
+
+  // Пустая колода гасит счётчик.
+  started.deck = [];
+  game.api.render();
+  check(deckLeft() === '0', 'пустая колода — ноль в счётчике');
+  check(game.doc.querySelector('#deckCounter').classList.contains('is-empty'),
+    'пустая колода помечена в оформлении');
+}
+
 // ---------- История и окно ----------
 console.log('• История');
 {

@@ -75,11 +75,42 @@
 }
 .trump-text b { font-size: 14px; color: var(--gold-soft); }
 .trump-text b.red { color: #ff8a8a; }
-.deck-count {
-  font-variant-numeric: tabular-nums;
-  color: var(--gold);
-  font-weight: 700;
+
+/* Счётчики стола: колода и отбой */
+.table-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
+
+.table-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(0, 0, 0, .24);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .46);
+  white-space: nowrap;
+}
+
+.table-count b {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-soft);
+}
+
+.table-count.is-discard b { color: rgba(255, 255, 255, .82); }
+
+/* Колода вышла — счётчик гаснет, чтобы это было заметно. */
+.table-count.is-empty b { color: rgba(255, 255, 255, .32); }
 
 /* ---------------- Соперники ---------------- */
 
@@ -431,6 +462,8 @@
   .durak-main { --card-w: clamp(48px, 12vw, 64px); }
   .durak-felt { min-height: 280px; padding: 10px 8px; }
   .felt-note { display: none; }
+  .table-count { padding: 3px 8px; font-size: 9px; gap: 4px; }
+  .table-count b { font-size: 12px; }
   .bot-chip { padding-right: 8px; font-size: 10.5px; }
   .bot-avatar { width: 21px; height: 21px; font-size: 10px; }
   .durak-hand { justify-content: flex-start; }
