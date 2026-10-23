@@ -128,6 +128,11 @@ check(!doc.querySelector('#winBadge').hidden, 'бейдж выигрыша ви�
 check(doc.querySelectorAll('.line-chip.active').length === 1, 'подсвечена одна линия');
 check(doc.querySelectorAll('.reel-cell.win').length === 3, 'подсвечены три клетки');
 check(doc.querySelector('#message').className.includes('win'), 'сообщение зелёное');
+const slotTime = doc.querySelector('#spinsList .spin-card .round-time');
+check(!!slotTime && slotTime.textContent.trim().length > 0, 'в истории спина время в общем виде');
+check(!!doc.querySelector('.topbar .shield-pill'), 'в шапке игры виден значок страховки');
+check(!doc.querySelector('.panel-note') && !doc.querySelector('.paytable-note'),
+  'над строкой управления нет дубля описания');
 check(doc.querySelectorAll('#spinsList .spin-card').length === 1, 'спин виден в истории на странице');
 check(win.Casino.getPending('slots') === 0, 'незавершённая ставка снята');
 

@@ -131,6 +131,10 @@ check(win.Casino.getPending('plinko') === 0, 'ставка не висит');
 check(api.state.highlight === 8, 'подсвечен восьмой слот');
 check(doc.querySelector('#message').className.includes('win'), 'сообщение зелёное');
 check(doc.querySelectorAll('#spinsList .spin-card').length === 1, 'дроп виден в истории на странице');
+const plinkoTime = doc.querySelector('#spinsList .spin-card .round-time');
+check(!!plinkoTime && plinkoTime.textContent.trim().length > 0, 'в истории дропа время в общем виде');
+check(!!doc.querySelector('.topbar .shield-pill'), 'в шапке игры виден значок страховки');
+check(!doc.querySelector('.panel-note'), 'над строкой управления нет дубля описания');
 check(doc.querySelector('#spinsList .spin-card').classList.contains('win'), 'выигрышная карточка обведена');
 
 // ---------- Дроп с проигрышем ----------

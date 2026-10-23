@@ -702,13 +702,6 @@
   // ---------- История раздач ----------
   const ROUNDS_PREVIEW = 6;
 
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === new Date().toDateString()
-      ? time
-      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   function roundRowHTML(entry) {
     const p = Number.isFinite(Number(entry.playerTotal)) ? Number(entry.playerTotal) : 0;
@@ -743,10 +736,10 @@
         ${cards}
         <div class="round-foot">
           <span>ставка ${fmt(bet)}</span>
-          <span>выплата ${fmt(payout)}</span>
-          <time>${timeLabel(entry.ts)}</time>
+          <span>выплата ${fmt(payout)}${Casino.insuranceTagHTML(entry)}</span>
         </div>
       </div>
+      <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
     </article>`;
   }
 
@@ -871,9 +864,14 @@
         в сумме по всем полям (лимит стола).</li>
         <li>Лимит действует на <b>одну раздачу</b>, а не на вечер: как в казино,
         где лимит стола ограничивает ставку, а не все ставки за ночь.</li>
-        <li>Бесплатные <span class="accent">+1 000 ₽</span> — раз в 30 минут, на главной странице.
+        <li>Бесплатные <span class="accent">+1 000\u00A0₽</span> — раз в 30 минут, на главной странице.
         Цели, звания и страховки общие для всех игр.</li>
       </ul>
+
+      <h3>Страховка</h3>
+      <p>Страховки приходят за цели. Если раздача ушла в минус, страховка
+        срабатывает сама и возвращает половину потерь. На выигрыш она не
+        тратится, сгорает не больше одной за раздачу.</p>
 
       <div class="modal-actions">
         <button class="primary-btn" data-close>Понятно</button>

@@ -99,7 +99,7 @@
   };
 
   const numFmt = new Intl.NumberFormat('ru-RU');
-  const fmt = (n) => `${numFmt.format(Math.round(n))} ₽`;
+  const fmt = (n) => `${numFmt.format(Math.round(n))}\u00A0₽`;
   const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
 
   // ---------- Звук ----------
@@ -410,7 +410,7 @@
   function cellHTML({ key, label, className, style }) {
     const amount = state.bets[key] || 0;
     const chip = amount
-      ? `<span class="cell-chip" title="${numFmt.format(amount)} ₽">${chipAmount(amount)}</span>`
+      ? `<span class="cell-chip" title="${numFmt.format(amount)}\u00A0₽">${chipAmount(amount)}</span>`
       : '';
     const winning = state.highlight.has(key);
     const losing = state.highlight.size > 0 && amount > 0 && !winning;
@@ -883,13 +883,6 @@
   // Короткая лента на странице и полная — в окне.
   const SPINS_PREVIEW = 6;
 
-  function timeLabel(ts) {
-    const d = new Date(Number(ts) || Date.now());
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return d.toDateString() === new Date().toDateString()
-      ? time
-      : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${time}`;
-  }
 
   // Один спин: что выпало, что было выбрано (выигравшие ставки — в зелёной рамке)
   // и сколько в итоге вышло.
@@ -917,10 +910,10 @@
         ${tags}
         <div class="spin-foot">
           <span>ставка ${fmt(bet)}</span>
-          <span>выплата ${fmt(payout)}</span>
-          <time>${timeLabel(entry.ts)}</time>
+          <span>выплата ${fmt(payout)}${Casino.insuranceTagHTML(entry)}</span>
         </div>
       </div>
+      <time class="round-time">${Casino.timeLabel(entry.ts)}</time>
     </article>`;
   }
 
@@ -1058,15 +1051,15 @@
 
       <h3>Лимиты и комбинации</h3>
       <ul>
-        <li>Минимальная ставка — 25 ₽, максимум на один спин — ${fmt(maxBet())}
+        <li>Минимальная ставка — 25\u00A0₽, максимум на один спин — ${fmt(maxBet())}
         в сумме по всем клеткам (лимит стола).</li>
         <li>Правила рулетки не запрещают ставить на любые клетки в любом сочетании:
         можно накрыть несколько чисел, красное и чёт, дюжину и колонку — всё сразу.</li>
         <li>Но «зеркальные» ставки (красное + чёрное, чёт + нечет, 1–18 + 19–36)
         выиграть не могут: при любом числе, кроме зеро, вы вернёте ровно поставленное,
         а зеро забирает всё.</li>
-        <li>Если накрыть все 37 чисел по 25 ₽ — это 925 ₽ ставки и 900 ₽ выплаты,
-        то есть минус 25 ₽ при любом исходе. Стол предупредит о таких комбинациях.</li>
+        <li>Если накрыть все 37 чисел по 25\u00A0₽ — это 925\u00A0₽ ставки и 900\u00A0₽ выплаты,
+        то есть минус 25\u00A0₽ при любом исходе. Стол предупредит о таких комбинациях.</li>
       </ul>
 
       <h3>Про баланс</h3>
@@ -1078,9 +1071,9 @@
 
       <h3>Бонус и цели</h3>
       <ul>
-        <li>Бесплатные <span class="accent">+1 000 ₽</span> — раз в 30 минут, на главной странице.</li>
+        <li>Бесплатные <span class="accent">+1 000\u00A0₽</span> — раз в 30 минут, на главной странице.</li>
         <li>Цели считаются по чистому выигрышу за всё время. За каждую: деньги,
-        звание, страховка и <span class="accent">+1 000 ₽</span> к лимиту стола.</li>
+        звание, страховка и <span class="accent">+1 000\u00A0₽</span> к лимиту стола.</li>
         <li>Страховка при проигрыше возвращает половину потерь и тратится автоматически.</li>
       </ul>
 

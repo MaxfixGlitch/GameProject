@@ -397,7 +397,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
-  padding: 10px 12px;
+  padding: 10px 12px 24px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, .08);
   border-left: 3px solid rgba(255, 255, 255, .16);
@@ -479,7 +479,6 @@
   font-size: 11px;
   color: var(--muted);
 }
-.round-foot time { margin-left: auto; }
 
 /* ---------------- Адаптив ---------------- */
 

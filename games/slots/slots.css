@@ -359,12 +359,6 @@
 }
 .pay-row.is-wild { background: rgba(233, 196, 106, .1); color: var(--gold-soft); }
 
-.paytable-note {
-  margin: 0;
-  font-size: 10.5px;
-  line-height: 1.5;
-  color: rgba(154, 176, 164, .9);
-}
 
 .hint {
   margin: 0;
@@ -417,7 +411,7 @@
   grid-template-columns: 76px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
-  padding: 9px 12px;
+  padding: 9px 12px 22px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, .08);
   background: rgba(9, 22, 16, .9);
@@ -440,7 +434,6 @@
 .spin-text b { display: block; font-size: 12.5px; color: var(--text); }
 .spin-text .plus { color: var(--win); }
 .spin-text .minus { color: var(--lose); }
-.spin-text time { display: block; font-size: 10px; opacity: .65; }
 
 .roll-empty {
   margin: 0;

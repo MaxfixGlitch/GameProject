@@ -96,6 +96,12 @@ check(win.Casino.getPending('wheel') === 0, 'ставка не висит');
 check(doc.querySelector('#resultValue').textContent.includes('600'), 'результат на экране');
 check(doc.querySelector('.wheel-label.hit').dataset.index === '7', 'подсвечен седьмой сектор');
 check(doc.querySelectorAll('#spinsList .spin-card').length === 1, 'вращение видно в истории на странице');
+const wheelTime = doc.querySelector('#spinsList .spin-card .round-time');
+check(!!wheelTime && wheelTime.textContent.trim().length > 0, 'в истории карточки время в общем виде');
+check(!!doc.querySelector('.topbar .shield-pill'), 'в шапке игры виден значок страховки');
+check(!doc.querySelector('.panel-note'), 'над строкой управления нет дубля описания');
+check(!doc.body.textContent.includes('RTP') && !doc.body.textContent.includes('Σ'),
+  'в подсказках больше нет формул возврата');
 
 // Угол поворота ставит сектор под указатель (0° сверху).
 const normalized = ((api.state.rotation % 360) + 360) % 360;

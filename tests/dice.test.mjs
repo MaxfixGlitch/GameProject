@@ -40,7 +40,17 @@ function boot(seed) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const { window, doc, api } = boot();
+// Математику выплат проверяем без побочных эффектов целей:
+// все награды уже получены, баланс меняют только ставки.
+const GOALS_OFF = {
+  'casino.progress.v1': JSON.stringify({
+    claimed: { g2000: 1, g5000: 1, g12000: 1, g25000: 1, g50000: 1, g100000: 1, g200000: 1, g400000: 1 },
+    shields: 0,
+    notices: [],
+  }),
+};
+
+const { window, doc, api } = boot(GOALS_OFF);
 api.setTiming({ roll: 1, settle: 1 });
 
 const balance = () => window.Casino.getBalance();
@@ -158,6 +168,9 @@ check(!!row, 'строка истории появилась');
 check(row.querySelectorAll('.mini-die .pip').length === 7, `на мини-кубиках 7 точек (3+4), получено ${row.querySelectorAll('.mini-die .pip').length}`);
 check(row.querySelectorAll('.bet-tag.is-win').length === 1, 'выигравшая ставка обведена зелёным');
 check(row.querySelector('.roll-net').textContent.includes('500'), 'в истории итог броска');
+check(!!row.querySelector('.round-time') && row.querySelector('.round-time').textContent.trim().length > 0,
+  'в истории броска время в общем виде');
+check(!!doc.querySelector('.topbar .shield-pill'), 'в шапке игры есть значок страховки');
 check(doc.querySelectorAll('#rollsStrip .strip-roll').length === 1, 'бросок попал в ленту');
 
 // ---------- Подсветка выигравших клеток ----------
