@@ -10,7 +10,7 @@ const rawCasino = fs.readFileSync(`${root}shared/casino.js`, 'utf8');
 const rawGame = fs.readFileSync(`${root}games/blackjack/game.js`, 'utf8');
 const game = rawGame.replace(
   '  // ---------- Старт ----------',
-  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI, renderRebuy, splitHint };\n  window.__BJ_REDUCE_MOTION__ = false;\n  // ---------- Старт ----------'
+  '  window.__BJ_TEST__ = { state, handValue, isNatural, BET_STACK_MAX, HISTORY_MAX, updateUI, renderRebuy, splitHint, resetGame };\n  window.__BJ_REDUCE_MOTION__ = false;\n  // ---------- Старт ----------'
 );
 if (game === rawGame) throw new Error('Не удалось внедрить тестовый хук');
 
@@ -62,7 +62,7 @@ function boot(seed) {
   fresh.window.eval(rawCasino);
   fresh.window.eval(rawGame.replace(
     '  // ---------- Старт ----------',
-    '  window.__BJ_TEST__ = { state, handValue };\n  // ---------- Старт ----------'
+    '  window.__BJ_TEST__ = { state, handValue, resetGame };\n  // ---------- Старт ----------'
   ));
   return fresh;
 }
@@ -421,15 +421,13 @@ console.log('• Сохранение и сброс');
 check(typeof JSON.parse(window.localStorage.getItem('casino.wallet.v1')).bankroll === 'number',
   'баланс хранится в общем кошельке казино');
 const balanceBeforeReset = bankroll();
-click('#resetBtn');
-check(!doc.querySelector('#overlay').hidden, 'окно сброса открыто');
-doc.querySelector('[data-action="reset"]').click();
+check(!doc.querySelector('#resetBtn'), 'в шапке блэкджека нет кнопки сброса');
+api.resetGame();
 await sleep(20);
 check(bankroll() === balanceBeforeReset,
   `сброс блэкджека не трогает общий баланс (${balanceBeforeReset})`);
 check(api.state.stats.rounds === 0, 'статистика блэкджека обнулена');
 check(api.state.history.length === 0, 'история блэкджека очищена');
-check(doc.querySelector('#overlay').hidden, 'окно сброса закрыто');
 
 // ---------- Туз: 11/1 ----------
 console.log('• Подсчёт очков');
@@ -448,10 +446,7 @@ check(!api.isNatural(mk(['7', '7', '7'])), 'три карты — не блэк�
 console.log('• Детерминированные сценарии (выплаты, сплит, дилер)');
 
 async function resetUI() {
-  click('#resetBtn');
-  const confirmBtn = doc.querySelector('[data-action="reset"]');
-  if (!confirmBtn) throw new Error('Нет кнопки подтверждения сброса');
-  confirmBtn.click();
+  api.resetGame();
   await sleep(10);
   // Сброс игры больше не обнуляет общий баланс, поэтому для сценариев
   // выставляем стартовые 1000 ₽ явно.
@@ -669,8 +664,7 @@ click('[data-chip="100"]');
 click('#dealBtn');
 await waitFor(() => api.state.phase === 'player', 'ход игрока перед сбросом');
 action('stand');
-click('#resetBtn');
-doc.querySelector('[data-action="reset"]').click();
+api.resetGame();
 await sleep(900);
 check(api.state.bankroll === 1000, `сброс посреди раунда: баланс 1000, получено ${api.state.bankroll}`);
 check(api.state.phase === 'betting' && !api.state.busy, 'сброс вернул фазу ставок');
