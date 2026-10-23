@@ -437,12 +437,9 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
   height: var(--chip-size);
   transform: translateX(calc(-50% + var(--sway, 0px))) rotate(var(--tilt, 0deg));
   border-radius: 50%;
-  border: 2px dashed rgba(255, 255, 255, .66);
   box-shadow:
     0 2px 0 rgba(0, 0, 0, .5),
-    0 5px 9px rgba(0, 0, 0, .38),
-    inset 0 0 0 2px rgba(0, 0, 0, .16),
-    inset 0 -4px 6px rgba(0, 0, 0, .22);
+    0 5px 9px rgba(0, 0, 0, .38);
   display: grid;
   place-items: center;
   /* Запасной вариант, если браузер не умеет container queries */
@@ -493,11 +490,6 @@ a.icon-btn:hover { color: #fff; border-color: rgba(233, 196, 106, .55); }
   font-variant-numeric: tabular-nums;
 }
 
-.mini-chip.c25 { background: radial-gradient(circle at 35% 30%, #4ade80, #15803d 72%); }
-.mini-chip.c50 { background: radial-gradient(circle at 35% 30%, #60a5fa, #1d4ed8 72%); }
-.mini-chip.c100 { background: radial-gradient(circle at 35% 30%, #4b5563, #111827 72%); }
-.mini-chip.c250 { background: radial-gradient(circle at 35% 30%, #c084fc, #6d28d9 72%); }
-.mini-chip.c500 { background: radial-gradient(circle at 35% 30%, #fbbf24, #b45309 72%); }
 
 /* ---------------- Игрок: руки ---------------- */
 

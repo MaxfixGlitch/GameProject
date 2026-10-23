@@ -111,9 +111,27 @@
   75% { transform: translateX(4px); }
 }
 
-.cell svg { width: 62%; height: 62%; display: block; }
+.cell-icon {
+  width: 74%;
+  height: 74%;
+  display: block;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .5));
+  animation: cellIconIn .18s ease both;
+}
+.cell.mine .cell-icon { width: 68%; height: 68%; }
+.cell.safe .cell-icon { width: 78%; height: 78%; }
 
-.coin-face { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .45)); }
+@keyframes cellIconIn {
+  from { opacity: 0; transform: scale(.82); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-icon { animation: none; }
+}
 
 /* ---------------- Панель ---------------- */
 

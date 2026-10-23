@@ -120,3 +120,74 @@
   .shield-pill { padding: 2px 6px; }
   .shield-pill b { font-size: 11px; }
 }
+
+/* ---------------- Фишки-картинки ---------------- */
+/* Номиналы нарисованы на самих фишках, поэтому число в разметке
+   остаётся (для чтения с экрана и тестов), но не показывается. */
+
+.chips-row .chip,
+.bet-chips .mini-chip {
+  border: 0;
+  background-color: transparent !important;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  box-shadow: none;
+  color: transparent;
+  text-shadow: none;
+}
+
+.chips-row .chip span { background: none; width: 100%; height: 100%; color: transparent; }
+
+/* Тонкая тень, чтобы фишки не сливались с фетром. */
+.chips-row .chip { filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .45)); }
+.bet-chips .mini-chip { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .45)); }
+
+.chips-row .chip:hover:not(:disabled) {
+  border: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .5)) drop-shadow(0 0 2px rgba(233, 196, 106, .8));
+}
+.chips-row .chip:disabled { filter: grayscale(.55) brightness(.75); opacity: .45; }
+.chips-row .chip.selected {
+  box-shadow: none;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)) drop-shadow(0 0 1.5px #e9c46a) drop-shadow(0 0 5px rgba(233, 196, 106, .85));
+}
+/* У выбранной фишки — золотое кольцо поверх картинки. */
+.chips-row .chip.selected::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(233, 196, 106, .9);
+  pointer-events: none;
+}
+
+.chip.c25, .chip.c50, .chip.c100, .chip.c250, .chip.c500,
+.chip.c1000, .chip.c2500,
+.mini-chip.c25, .mini-chip.c50, .mini-chip.c100, .mini-chip.c250,
+.mini-chip.c500, .mini-chip.c1000, .mini-chip.c2500 {
+  background-color: transparent;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.chip.c25, .mini-chip.c25 { background-image: url('brand/chips/chip-25.png'); }
+.chip.c50, .mini-chip.c50 { background-image: url('brand/chips/chip-50.png'); }
+.chip.c100, .mini-chip.c100 { background-image: url('brand/chips/chip-100.png'); }
+.chip.c250, .mini-chip.c250 { background-image: url('brand/chips/chip-250.png'); }
+.chip.c500, .mini-chip.c500 { background-image: url('brand/chips/chip-500.png'); }
+.chip.c1000, .mini-chip.c1000 { background-image: url('brand/chips/chip-1000.png'); }
+.chip.c2500, .mini-chip.c2500 { background-image: url('brand/chips/chip-2500.png'); }
+
+/* Монета бренда: вместо CSS-кружка — присланная фишка с «F». */
+.brand-coin,
+.deposit-mini-icon {
+  background: url('brand/icons/chip-f.png') center / contain no-repeat;
+  border: 0;
+  box-shadow: none;
+  color: transparent;
+  font-size: 0;
+  font-style: normal;
+}
