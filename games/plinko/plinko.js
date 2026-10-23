@@ -42,7 +42,8 @@
 
   const BET_STEPS = [25, 100, 250, 500, 1000, 2500];
   const MIN_BET = 25;
-  const MAX_BET = 2500;
+  // Лимит стола растёт с закрытыми целями — как в остальных играх.
+  const maxBet = () => Casino.maxBet();
   const HISTORY_SHOWN = 12;
 
   const el = {
@@ -352,7 +353,7 @@
   function updateUI() {
     renderBalance();
     if (el.betTotal) el.betTotal.textContent = fmt(state.bet);
-    if (el.betLimit) el.betLimit.textContent = `из ${fmt(MAX_BET)}`;
+    if (el.betLimit) el.betLimit.textContent = `из ${fmt(maxBet())}`;
     if (el.chipsRow) {
       el.chipsRow.querySelectorAll('[data-chip]').forEach((chip) => {
         chip.classList.toggle('on', Number(chip.dataset.chip) === state.bet);
@@ -373,7 +374,7 @@
 
   function setBet(value) {
     if (state.dropping) return;
-    const next = Math.max(MIN_BET, Math.min(MAX_BET, Math.round(value / 5) * 5));
+    const next = Math.max(MIN_BET, Math.min(maxBet(), Math.round(value / 5) * 5));
     state.bet = next;
     sfx('chip');
     updateUI();
@@ -685,12 +686,16 @@
 
   if (el.maxBetBtn) {
     el.maxBetBtn.addEventListener('click', () => {
-      const affordable = Math.min(MAX_BET, Math.floor(Casino.getBalance() / 5) * 5);
+      const affordable = Math.min(maxBet(), Math.floor(Casino.getBalance() / 5) * 5);
       if (affordable < MIN_BET) {
         setMessage('На балансе меньше минимальной ставки', 'lose');
         return;
       }
-      const step = BET_STEPS.filter((value) => value <= affordable).pop() || MIN_BET;
+      // Выше самой крупной фишки «Максимум» ставит весь доступный лимит.
+      const top = BET_STEPS[BET_STEPS.length - 1];
+      const step = affordable > top
+        ? affordable
+        : BET_STEPS.filter((value) => value <= affordable).pop() || MIN_BET;
       setBet(step);
     });
   }
@@ -752,7 +757,7 @@
 
   // ---------- Тестовый хук ----------
   window.__PLINKO_TEST__ = {
-    W, H, ROWS, MULT, MIN_BET, MAX_BET, SLOT_STEP,
+    W, H, ROWS, MULT, MIN_BET, maxBet, SLOT_STEP,
     state,
     slotFor,
     slotCenter,
