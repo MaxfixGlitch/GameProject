@@ -57,7 +57,14 @@
     <div class="felt-head">
       <div class="trump-badge" id="trumpBadge" hidden>
         <span class="trump-text">козырь <b id="trumpSuit">♠</b></span>
-        <span class="deck-count" id="deckCount">36</span>
+      </div>
+      <div class="table-counts" id="tableCounts" hidden>
+        <span class="table-count" id="deckCounter" title="Сколько карт осталось в колоде">
+          <span class="count-label">Колода</span><b id="deckLeft">36</b>
+        </span>
+        <span class="table-count is-discard" id="discardCounter" title="Сколько карт уже бито и ушло из игры">
+          <span class="count-label">Отбой</span><b id="discardLeft">0</b>
+        </span>
       </div>
       <span class="felt-note" id="feltNote">Выберите соперников и ставку</span>
     </div>
